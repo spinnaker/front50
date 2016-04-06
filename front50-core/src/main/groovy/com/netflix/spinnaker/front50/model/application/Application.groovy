@@ -16,7 +16,6 @@
 
 
 package com.netflix.spinnaker.front50.model.application
-
 import com.fasterxml.jackson.annotation.JsonAnyGetter
 import com.fasterxml.jackson.annotation.JsonAnySetter
 import com.fasterxml.jackson.annotation.JsonIgnore
