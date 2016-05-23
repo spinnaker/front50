@@ -41,19 +41,22 @@ import rx.schedulers.Schedulers;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.Collections;
 
 @Configuration
+@ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
 public class GcsConfig {
   // Refresh every 10 minutes. In practice this either doesnt matter because refreshes are fast enough,
   // or should be finer tuned. But it seems silly to refresh at a fast rate when changes are generally infrequent.
   // Actual queries always check to see if the cache is out of date anyway. So this is mostly for the benefit of
   // keeping other replicas up to date so that last-minute updates have fewer changes in them.
-  private static int APPLICATION_REFRESH_INTERVAL = 10 * 60;
-  private static int PROJECT_REFRESH_INTERVAL = 10 * 60;
-  private static int NOTIFICATION_REFRESH_INTERVAL = 10 * 60;
-  private static int PIPELINE_REFRESH_INTERVAL = 10 * 60;
-  private static int PIPELINE_STRATEGY_REFRESH_INTERVAL = 10 * 60;
+  private final Logger log = LoggerFactory.getLogger(getClass());
+  private static int APPLICATION_REFRESH_MS = (int)TimeUnit.MINUTES.toMillis(10);
+  private static int PROJECT_REFRESH_MS = (int)TimeUnit.MINUTES.toMillis(10);
+  private static int NOTIFICATION_REFRESH_MS = (int)TimeUnit.MINUTES.toMillis(10);
+  private static int PIPELINE_REFRESH_MS = (int)TimeUnit.MINUTES.toMillis(10);
+  private static int PIPELINE_STRATEGY_REFRESH_MS = (int)TimeUnit.MINUTES.toMillis(10);
 
   @Value("${spinnaker.gcs.bucket}")
   private String bucket;
@@ -61,20 +64,21 @@ public class GcsConfig {
   @Value("${spinnaker.gcs.rootFolder}")
   private String rootFolder;
 
-  @Value("${providers.google.primaryCredentials.jsonPath}")
+  @Value("${spinnaker.gcs.jsonPath:}")
   private String jsonPath;
 
-  @Value("${providers.google.primaryCredentials.project}")
+  @Value("${spinnaker.gcs.project:}")
   private String project;
 
   @Value("${Implementation-Version:Unknown}")
   private String applicationVersion;
 
   private void ensureBucket(Storage storage) throws IOException {
-    Logger log = LoggerFactory.getLogger(getClass());
     try {
         Bucket bkt = storage.buckets().get(bucket).execute();
         boolean has_versioning = bkt.getVersioning().getEnabled();
+        log.info("Using Google Cloud Storage bucket={} in project={}",
+                 bucket, project);
         log.info("Bucket versioning is {}.",
                  has_versioning ? "enabled" : "DISABLED");
     } catch (HttpResponseException e) {
@@ -104,7 +108,6 @@ public class GcsConfig {
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
         GoogleCredential credential;
-        Logger log = LoggerFactory.getLogger(getClass());
 
         if (!jsonPath.isEmpty()) {
             FileInputStream credentialStream = new FileInputStream(jsonPath);
@@ -112,7 +115,7 @@ public class GcsConfig {
                                          .createScoped(Collections.singleton(StorageScopes.DEVSTORAGE_FULL_CONTROL));
           log.info("Loaded credentials from from " + jsonPath);
         } else {
-            log.info("spinnaker.gcs.enabled without providers.google.primaryCredentials.jsonPath. Using default application credentials. Using default credentials.");
+            log.info("spinnaker.gcs.enabled without spinnaker.gcs.jsonPath. Using default application credentials. Using default credentials.");
             credential = GoogleCredential.getApplicationDefault();
         }
 
@@ -145,30 +148,30 @@ public class GcsConfig {
   @Bean
   @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
   public GcsApplicationDAO gcsApplicationDAO(ObjectMapper objectMapper, Storage storage) {
-    return new GcsApplicationDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), APPLICATION_REFRESH_INTERVAL * 1000, bucket, rootFolder);
+    return new GcsApplicationDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), APPLICATION_REFRESH_MS, bucket, rootFolder);
   }
 
   @Bean
   @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
   public GcsProjectDAO gcsProjectDAO(ObjectMapper objectMapper, Storage storage) {
-    return new GcsProjectDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), PROJECT_REFRESH_INTERVAL * 1000, bucket, rootFolder);
+    return new GcsProjectDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), PROJECT_REFRESH_MS, bucket, rootFolder);
   }
 
   @Bean
   @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
   public GcsNotificationDAO gcsNotificationDAO(ObjectMapper objectMapper, Storage storage) {
-    return new GcsNotificationDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), NOTIFICATION_REFRESH_INTERVAL * 1000, bucket, rootFolder);
+    return new GcsNotificationDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), NOTIFICATION_REFRESH_MS, bucket, rootFolder);
   }
 
   @Bean
   @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
   public GcsPipelineStrategyDAO gcsPipelineStrategyDAO(ObjectMapper objectMapper, Storage storage) {
-    return new GcsPipelineStrategyDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), PIPELINE_STRATEGY_REFRESH_INTERVAL * 1000, bucket, rootFolder);
+    return new GcsPipelineStrategyDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), PIPELINE_STRATEGY_REFRESH_MS, bucket, rootFolder);
   }
 
   @Bean
   @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
   public GcsPipelineDAO gcsPipelineDAO(ObjectMapper objectMapper, Storage storage) {
-    return new GcsPipelineDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), PIPELINE_REFRESH_INTERVAL * 1000, bucket, rootFolder);
+    return new GcsPipelineDAO(objectMapper, storage, Schedulers.from(Executors.newFixedThreadPool(5)), PIPELINE_REFRESH_MS, bucket, rootFolder);
   }
 }
