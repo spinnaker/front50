@@ -57,11 +57,16 @@ public class GcsStorageService implements StorageService {
   private ObjectMapper objectMapper = new ObjectMapper();
   private String projectName;
   private String bucketName;
-  private String bucketLocation;
   private String basePath;
   private Storage storage;
   private Storage.Objects obj_api;
   private String dataFilename = DEFAULT_DATA_FILENAME;
+
+  /**
+   * Bucket location for when a missing bucket is created. Has no effect if the bucket already
+   * exists.
+   */
+  private String bucketLocation;
 
   public Storage getStorage() { return this.storage; }
   public ObjectMapper getObjectMapper() { return this.objectMapper; }
