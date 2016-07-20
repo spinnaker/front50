@@ -38,6 +38,7 @@ import java.io.FileInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
@@ -56,6 +57,7 @@ public class GcsStorageService implements StorageService {
   private ObjectMapper objectMapper = new ObjectMapper();
   private String projectName;
   private String bucketName;
+  private String bucketLocation;
   private String basePath;
   private Storage storage;
   private Storage.Objects obj_api;
@@ -82,8 +84,13 @@ public class GcsStorageService implements StorageService {
   }
 
   @VisibleForTesting
-  GcsStorageService(String bucketName, String basePath, String projectName, Storage storage) {
+  GcsStorageService(String bucketName,
+                    String bucketLocation,
+                    String basePath,
+                    String projectName,
+                    Storage storage) {
     this.bucketName = bucketName;
+    this.bucketLocation = bucketLocation;
     this.basePath = basePath;
     this.projectName = projectName;
     this.storage = storage;
@@ -91,11 +98,13 @@ public class GcsStorageService implements StorageService {
   }
 
   public GcsStorageService(String bucketName,
+                           String bucketLocation,
                            String basePath,
                            String projectName,
                            String credentialsPath,
                            String applicationVersion) {
     this(bucketName,
+         bucketLocation,
          basePath,
          projectName,
          credentialsPath,
@@ -104,6 +113,7 @@ public class GcsStorageService implements StorageService {
   }
 
   public GcsStorageService(String bucketName,
+                           String bucketLocation,
                            String basePath,
                            String projectName,
                            String credentialsPath,
@@ -126,6 +136,7 @@ public class GcsStorageService implements StorageService {
     }
 
     this.bucketName = bucketName;
+    this.bucketLocation = bucketLocation;
     this.basePath = basePath;
     this.projectName = projectName;
     this.storage = storage;
@@ -145,6 +156,9 @@ public class GcsStorageService implements StorageService {
                  bucketName, projectName);
         Bucket.Versioning versioning = new Bucket.Versioning().setEnabled(true);
         Bucket bucket = new Bucket().setName(bucketName).setVersioning(versioning);
+        if (StringUtils.isNotBlank(bucketLocation)) {
+          bucket.setLocation(bucketLocation);
+        }
         try {
             storage.buckets().insert(projectName, bucket).execute();
         } catch (IOException e2) {
