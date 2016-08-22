@@ -49,6 +49,18 @@ class StrategyController {
         pipelineStrategyDAO.getPipelinesByApplication(application)
     }
 
+    @RequestMapping(value = 'getById/{id:.+}', method = RequestMethod.GET)
+    Pipeline findById(@PathVariable String id) {
+        pipelineStrategyDAO.findById(id)
+    }
+
+    @RequestMapping(value = 'getByName/{application:.+}/{strategy:.+}', method = RequestMethod.GET)
+    Pipeline findByName(@PathVariable String application, @PathVariable String strategy) {
+        pipelineStrategyDAO.findById(
+                pipelineStrategyDAO.getPipelineId(application, strategy)
+        )
+    }
+
     @RequestMapping(value = '{id:.+}/history', method = RequestMethod.GET)
     Collection<Pipeline> getHistory(@PathVariable String id,
                                     @RequestParam(value = "limit", defaultValue = "20") int limit) {
