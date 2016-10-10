@@ -16,14 +16,14 @@
 
 buildscript {
   ext {
-    springBootVersion = '1.2.5.RELEASE'
+    springBootVersion = '1.4.1.RELEASE'
   }
   repositories {
     jcenter()
     maven { url "http://dl.bintray.com/spinnaker/gradle" }
   }
   dependencies {
-    classpath 'com.netflix.spinnaker.gradle:spinnaker-gradle-project:3.5.0'
+    classpath 'com.netflix.spinnaker.gradle:spinnaker-gradle-project:3.7.0'
     classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
   }
 }
@@ -35,7 +35,7 @@ allprojects { project ->
   group = "com.netflix.spinnaker.front50"
 
   ext {
-    spinnakerDependenciesVersion = "0.54.0"
+    spinnakerDependenciesVersion = "0.54.0-dev.2+boot-1.4-upgrade.02896b4"
   }
 
   if (spinnakerDependenciesVersion.indexOf('-dev') != -1) {
@@ -64,13 +64,19 @@ allprojects { project ->
           it.useTarget group: "org.ow2.asm", name: "asm-all", version: "5.0.4"
         }
         if (it.requested.group == "cglib" || it.requested.name == "cglib") {
-          it.useTarget group: "cglib", name: "cglib", version: "3.1"
+          it.useTarget group: "cglib", name: "cglib", version: spinnaker.version('cglib')
         }
         if (it.requested.group == "org.apache.xbean") {
           it.useVersion "4.4"
         }
-        if (it.requested.group == "org.springframework.data" && it.requested.name == "spring-data-commons") {
-          it.useVersion "1.12.0.RELEASE"
+//        if (it.requested.group == "org.springframework.data" && it.requested.name == "spring-data-commons") {
+//          it.useVersion "1.12.0.RELEASE"
+//        }
+        if (it.requested.group.startsWith('org.apache.tomcat')) {
+          it.useVersion spinnaker.version('tomcat')
+        }
+        if (it.requested.group == 'com.netflix.spinnaker.kork') {
+          it.useVersion '1.69.0-SNAPSHOT'
         }
       }
     }
