@@ -21,6 +21,7 @@ import com.netflix.spinnaker.front50.model.pipeline.Pipeline
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
+import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken
 import org.springframework.stereotype.Component
 
 @Component
@@ -31,7 +32,7 @@ class AuthorizationSupport {
 
   boolean hasRunAsUserPermission(Pipeline pipeline) {
     List<String> runAsUsers = pipeline.triggers*.runAsUser
-    runAsUsers.removeAll([null])
+    runAsUsers?.removeAll([null])
     if (!runAsUsers) {
       return true
     }
@@ -39,7 +40,26 @@ class AuthorizationSupport {
     Authentication auth = SecurityContextHolder.context.authentication
 
     return runAsUsers.findAll { runAsUser ->
-      !permissionEvaluator.hasPermission(auth, runAsUser, 'SERVICE_ACCOUNT', 'ignored-svcAcct-auth')
+      !userCanAccessServiceAccount(auth, runAsUser) ||
+          !serviceAccountCanAccessApplication(runAsUser, pipeline.application as String)
     }.isEmpty()
+  }
+
+  boolean userCanAccessServiceAccount(Authentication auth, String runAsUser) {
+    return permissionEvaluator.hasPermission(auth,
+                                             runAsUser,
+                                             'SERVICE_ACCOUNT',
+                                             'ignored-svcAcct-auth')
+  }
+
+  boolean serviceAccountCanAccessApplication(String runAsUser, String application) {
+    Authentication auth = new PreAuthenticatedAuthenticationToken(runAsUser,
+                                                                  null,
+                                                                  new ArrayList<>());
+
+    return permissionEvaluator.hasPermission(auth,
+                                             application,
+                                             'APPLICATION',
+                                             'WRITE')
   }
 }
