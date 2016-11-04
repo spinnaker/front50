@@ -24,29 +24,26 @@ import spock.lang.Unroll
 
 public class AuthorizationSupportSpec extends Specification {
 
+  FiatPermissionEvaluator evaluator = Mock(FiatPermissionEvaluator)
+
+  @Subject
+  AuthorizationSupport authorizationSupport = new AuthorizationSupport(permissionEvaluator: evaluator)
+
   @Unroll
   def "should validate run as user access"() {
-    setup:
-    FiatPermissionEvaluator evaluator = Mock(FiatPermissionEvaluator)
-    @Subject AuthorizationSupport authorizationSupport = new AuthorizationSupport(permissionEvaluator: evaluator)
+    expect:
+    authorizationSupport.hasRunAsUserPermission(new Pipeline()) == true
+    authorizationSupport.hasRunAsUserPermission(new Pipeline(triggers: [])) == true
 
     when:
-    Pipeline p = new Pipeline()
-    authorizationSupport.hasRunAsUserPermission(p)
-    p = new Pipeline(triggers: [])
-    authorizationSupport.hasRunAsUserPermission(p)
-
-    then:
-    0 * evaluator.hasPermission(*_)
-
-    when:
-    p = new Pipeline(application: "app",
+    Pipeline p = new Pipeline(application: "app",
                      triggers: [["runAsUser": "service-acct"]])
-    authorizationSupport.hasRunAsUserPermission(p) == expected
+    def result = authorizationSupport.hasRunAsUserPermission(p)
 
     then:
     evaluator.hasPermission(_, _, 'SERVICE_ACCOUNT', _) >> userAccess
     evaluator.hasPermission(_, _, 'APPLICATION', _) >> serviceAccountAccess
+    result == expected
 
     where:
     userAccess | serviceAccountAccess || expected

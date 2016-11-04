@@ -31,8 +31,7 @@ class AuthorizationSupport {
   FiatPermissionEvaluator permissionEvaluator
 
   boolean hasRunAsUserPermission(Pipeline pipeline) {
-    List<String> runAsUsers = pipeline.triggers*.runAsUser
-    runAsUsers?.removeAll([null])
+    List<String> runAsUsers = pipeline.triggers?.findResults { it.runAsUser }
     if (!runAsUsers) {
       return true
     }
