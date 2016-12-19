@@ -1,8 +1,14 @@
 server:
   port: 8080
 
+management:
+  health:
+    redis:
+      enabled: ${spinnaker.redis.enabled}
+
 cassandra:
   enabled: true
+
 
 spinnaker:
   cassandra:
