@@ -9,7 +9,6 @@ management:
 cassandra:
   enabled: true
 
-
 spinnaker:
   cassandra:
     enabled: true
