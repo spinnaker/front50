@@ -50,6 +50,9 @@ dependencies {
   compile "org.springframework.security:spring-security-config:3.2.9.RELEASE"
   compile "org.springframework.security:spring-security-core:3.2.9.RELEASE"
   compile "org.springframework.security:spring-security-web:3.2.9.RELEASE"
+  compile "org.springframework.cloud:spring-cloud-starter-config:1.0.6.RELEASE"
+  compile "org.springframework.cloud:spring-cloud-config-server:1.0.4.RELEASE"
+
 
   compile spinnaker.dependency("korkWeb")
   compile spinnaker.dependency("korkStackdriver")
