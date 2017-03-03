@@ -58,6 +58,18 @@ class EntityTagsController {
     return taggedEntityDAO?.all()?.findAll { prefix ? it.id.startsWith(prefix) : true }
   }
 
+  @RequestMapping(value = "/bulkFetch", method = RequestMethod.POST)
+  Set<EntityTags> bulkFetch(@RequestBody final Collection<String> ids) {
+    return findAllByIds(ids)
+  }
+
+  @RequestMapping(value = "/bulkDelete", method = RequestMethod.POST)
+  void bulkDelete(@RequestBody final Collection<String> ids) {
+    ids.each {
+      taggedEntityDAO.delete(it)
+    }
+  }
+
   @RequestMapping(value = "/**", method = RequestMethod.GET)
   EntityTags tag(HttpServletRequest request) {
     String pattern = (String) request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
