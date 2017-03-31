@@ -20,9 +20,13 @@ package com.netflix.spinnaker.front50.model.application
 import com.fasterxml.jackson.annotation.JsonAnyGetter
 import com.fasterxml.jackson.annotation.JsonAnySetter
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonSetter
+import com.netflix.spinnaker.fiat.model.Authorization
 import com.netflix.spinnaker.front50.events.ApplicationEventListener
 import com.netflix.spinnaker.front50.exception.ApplicationAlreadyExistsException
 import com.netflix.spinnaker.front50.exception.NotFoundException
+import com.netflix.spinnaker.front50.model.Permissions
 import com.netflix.spinnaker.front50.model.Timestamped
 import com.netflix.spinnaker.front50.model.notification.HierarchicalLevel
 import com.netflix.spinnaker.front50.model.notification.NotificationDAO
@@ -361,12 +365,27 @@ class Application implements Timestamped {
     String name
     Long lastModified
     String lastModifiedBy
-    List<String> requiredGroupMembership = new ArrayList<>();
+
+    @Deprecated
+    List<String> requiredGroupMembership = []
+
+    Permissions permissions= new Permissions()
 
     @Override
-    @JsonIgnore()
+    @JsonIgnore
     String getId() {
       return name.toLowerCase()
+    }
+
+    @JsonSetter
+    void setRequiredGroupMembership(List<String> requiredGroupMembership) {
+      this.requiredGroupMembership = requiredGroupMembership.collect { it.trim() }
+      if (permissions.isEmpty()) { // Do not overwrite permissions if it contains values
+        requiredGroupMembership.each {
+          permissions.computeIfAbsent(Authorization.READ, { _ -> new ArrayList<>() }).add(it.trim())
+          permissions.computeIfAbsent(Authorization.WRITE, { _ -> new ArrayList<>() }).add(it.trim())
+        }
+      }
     }
   }
 }
