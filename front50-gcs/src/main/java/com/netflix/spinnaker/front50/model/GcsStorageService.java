@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.front50.model;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.netflix.spinnaker.front50.exception.NotFoundException;
@@ -68,7 +69,7 @@ public class GcsStorageService implements StorageService {
   private final GcsSafeRetry gcsSafeRetry = new GcsSafeRetry();
 
   private final Registry registry;
-  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   private final String projectName;
   private final String bucketName;
   private final String basePath;

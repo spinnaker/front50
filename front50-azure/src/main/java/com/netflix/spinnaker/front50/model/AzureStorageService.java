@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.front50.model;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -37,7 +38,7 @@ public class AzureStorageService implements StorageService {
   private CloudStorageAccount storageAccount = null;
   private CloudBlobClient blobClient = null;
   private CloudBlobContainer blobContainer = null;
-  private ObjectMapper objectMapper = new ObjectMapper();
+  private ObjectMapper objectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
   private static final String LAST_MODIFIED_FILENAME = "last_modified";
   private static final String LAST_MODIFIED_METADATA_NAME = "lastmodifydate";
