@@ -19,12 +19,14 @@ package com.netflix.spinnaker.front50.controllers
 import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.model.pipeline.Pipeline
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken
 import org.springframework.stereotype.Component
 
 @Component
+@ConditionalOnBean(FiatPermissionEvaluator)
 class AuthorizationSupport {
 
   @Autowired
