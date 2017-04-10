@@ -53,6 +53,7 @@ class Project implements Timestamped {
     String account
     String stack
     String detail
+    String region
     Collection<String> applications
   }
 
