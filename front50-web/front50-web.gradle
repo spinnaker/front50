@@ -36,6 +36,7 @@ dependencies {
   compile project(":front50-gcs")
   compile project(":front50-redis")
   compile project(":front50-s3")
+  compile project(":front50-swift")
   compile project(":front50-pipelines")
   compile project(":front50-migrations")
   compile project(":front50-azure")
@@ -44,7 +45,7 @@ dependencies {
 
 // Replace below with this line when fiat becomes stable.
 //  spinnaker.group "fiat"
-  compile "com.netflix.spinnaker.fiat:fiat-api:0.21.0"
+  compile "com.netflix.spinnaker.fiat:fiat-api:0.24.0"
   spinnaker.dependency("bootActuator")
   spinnaker.dependency("bootWeb")
   spinnaker.dependency("bootDataRest")
