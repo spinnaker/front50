@@ -26,8 +26,6 @@ import com.netflix.spinnaker.front50.model.notification.DefaultNotificationDAO
 import com.netflix.spinnaker.front50.model.notification.HierarchicalLevel
 import com.netflix.spinnaker.front50.model.notification.Notification
 import com.netflix.spinnaker.front50.model.notification.NotificationDAO
-import com.netflix.spinnaker.front50.notifications.NotificationRepository
-import com.netflix.spinnaker.front50.utils.CassandraTestHelper
 import com.netflix.spinnaker.front50.utils.S3TestHelper
 import org.springframework.context.support.StaticMessageSource
 import org.springframework.http.MediaType
@@ -41,8 +39,10 @@ import spock.lang.Subject
 
 import java.util.concurrent.Executors
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 abstract class NotificationControllerTck extends Specification {
   @Shared
@@ -159,28 +159,6 @@ abstract class NotificationControllerTck extends Specification {
     then:
     response2.andExpect(status().isOk())
     dao.all().isEmpty()
-  }
-}
-
-class CassandraNotificationControllerTck extends NotificationControllerTck {
-  @Shared
-  CassandraTestHelper cassandraHelper = new CassandraTestHelper()
-
-  @Shared
-  NotificationRepository notificationDAO
-
-  @Override
-  NotificationDAO createNotificationDAO() {
-    notificationDAO = new NotificationRepository(keyspace: cassandraHelper.keyspace)
-    notificationDAO.init()
-
-    notificationDAO
-        .keyspace
-        .prepareQuery(NotificationRepository.CF_NOTIFICATIONS)
-        .withCql('''TRUNCATE notifications''')
-        .execute()
-
-    return notificationDAO
   }
 }
 

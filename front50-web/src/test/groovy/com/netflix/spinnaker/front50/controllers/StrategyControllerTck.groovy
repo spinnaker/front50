@@ -17,17 +17,18 @@
 
 package com.netflix.spinnaker.front50.controllers
 
-
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.services.s3.AmazonS3Client
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.NoopRegistry
 import com.netflix.spinnaker.front50.model.S3StorageService
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineStrategyDAO
 import com.netflix.spinnaker.front50.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO
-import com.netflix.spinnaker.front50.pipeline.StrategyRepository
-import com.netflix.spinnaker.front50.utils.CassandraTestHelper
 import com.netflix.spinnaker.front50.utils.S3TestHelper
+import org.springframework.http.MediaType
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import rx.schedulers.Schedulers
 import spock.lang.IgnoreIf
 import spock.lang.Shared
@@ -39,11 +40,6 @@ import java.util.concurrent.Executors
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-
-import com.fasterxml.jackson.databind.ObjectMapper
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 
 abstract class StrategyControllerTck extends Specification {
@@ -194,24 +190,6 @@ abstract class StrategyControllerTck extends Specification {
     then:
     response.status == BAD_REQUEST
     response.contentAsString == '{"error":"A strategy with name pipeline1 already exists in application test","status":"BAD_REQUEST"}'
-  }
-}
-
-class CassandraStrategyControllerTck extends StrategyControllerTck {
-  @Shared
-  CassandraTestHelper cassandraHelper = new CassandraTestHelper()
-
-  @Shared
-  StrategyRepository strategyRepository
-
-  @Override
-  PipelineStrategyDAO createPipelineStrategyDAO() {
-    strategyRepository = new StrategyRepository(keyspace: cassandraHelper.keyspace)
-    strategyRepository.init()
-
-    strategyRepository.runQuery('''TRUNCATE strategy''')
-
-    return strategyRepository
   }
 }
 

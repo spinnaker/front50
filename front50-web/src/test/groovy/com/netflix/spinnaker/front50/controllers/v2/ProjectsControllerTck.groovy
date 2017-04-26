@@ -21,14 +21,11 @@ import com.amazonaws.ClientConfiguration
 import com.amazonaws.services.s3.AmazonS3Client
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.NoopRegistry
-import com.netflix.spinnaker.front50.config.CassandraConfigProps
 import com.netflix.spinnaker.front50.exception.NotFoundException
 import com.netflix.spinnaker.front50.model.S3StorageService
-import com.netflix.spinnaker.front50.model.project.CassandraProjectDAO
 import com.netflix.spinnaker.front50.model.project.DefaultProjectDAO
 import com.netflix.spinnaker.front50.model.project.Project
 import com.netflix.spinnaker.front50.model.project.ProjectDAO
-import com.netflix.spinnaker.front50.utils.CassandraTestHelper
 import com.netflix.spinnaker.front50.utils.S3TestHelper
 import org.springframework.context.support.StaticMessageSource
 import org.springframework.http.MediaType
@@ -296,24 +293,6 @@ abstract class ProjectsControllerTck extends Specification {
 
   private Map toMap(Project project) {
     return objectMapper.convertValue(project, Map)
-  }
-}
-
-class CassandraProjectsControllerTck extends ProjectsControllerTck {
-  @Shared
-  CassandraTestHelper cassandraHelper = new CassandraTestHelper()
-
-  @Shared
-  CassandraProjectDAO projectDAO
-
-  @Override
-  ProjectDAO createProjectDAO() {
-    projectDAO = new CassandraProjectDAO(keyspace: cassandraHelper.keyspace, objectMapper: objectMapper, cassandraConfigProps: new CassandraConfigProps())
-    projectDAO.init()
-
-    projectDAO.runQuery('''TRUNCATE project''')
-
-    return projectDAO
   }
 }
 
