@@ -24,12 +24,15 @@ import com.netflix.spinnaker.front50.model.application.ApplicationDAO
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO
+import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO
+
 import com.netflix.spinnaker.front50.model.project.ProjectDAO
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO
 import com.netflix.spinnaker.kork.web.interceptors.MetricsInterceptor
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.boot.context.embedded.FilterRegistrationBean
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.ComponentScan
 import org.springframework.context.annotation.Configuration
@@ -45,7 +48,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 @Configuration
 @ComponentScan
 @EnableFiatAutoConfig
-class Front50WebConfig extends WebMvcConfigurerAdapter {
+@EnableConfigurationProperties(StorageServiceConfigurationProperties)
+public class Front50WebConfig extends WebMvcConfigurerAdapter {
   @Autowired
   Registry registry
 
@@ -78,6 +82,11 @@ class Front50WebConfig extends WebMvcConfigurerAdapter {
   @Bean
   ItemDAOHealthIndicator pipelineDAOHealthIndicator(PipelineDAO pipelineDAO) {
     return new ItemDAOHealthIndicator(itemDAO: pipelineDAO)
+  }
+
+  @Bean
+  ItemDAOHealthIndicator pipelineTemplateDAOHealthIndicator(PipelineTemplateDAO pipelineTemplateDAO) {
+    return new ItemDAOHealthIndicator(itemDAO: pipelineTemplateDAO)
   }
 
   @Bean

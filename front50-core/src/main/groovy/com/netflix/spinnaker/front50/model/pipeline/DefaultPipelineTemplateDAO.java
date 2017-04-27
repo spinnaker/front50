@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Netflix, Inc.
+ * Copyright 2017 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,55 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.netflix.spinnaker.front50.model.pipeline;
 
 import com.netflix.spectator.api.Registry;
-import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.model.ObjectType;
 import com.netflix.spinnaker.front50.model.StorageService;
 import com.netflix.spinnaker.front50.model.StorageServiceSupport;
+import org.springframework.util.Assert;
 import rx.Scheduler;
 
 import java.util.Collection;
-import java.util.UUID;
+import java.util.List;
 import java.util.stream.Collectors;
 
-public class DefaultPipelineStrategyDAO extends StorageServiceSupport<Pipeline> implements PipelineStrategyDAO {
-  public DefaultPipelineStrategyDAO(StorageService service,
+public class DefaultPipelineTemplateDAO extends StorageServiceSupport<PipelineTemplate> implements PipelineTemplateDAO {
+
+  public DefaultPipelineTemplateDAO(StorageService service,
                                     Scheduler scheduler,
                                     long refreshIntervalMs,
                                     Registry registry) {
-    super(ObjectType.STRATEGY, service, scheduler, refreshIntervalMs, registry);
+    super(ObjectType.PIPELINE_TEMPLATE, service, scheduler, refreshIntervalMs, registry);
   }
 
   @Override
-  public String getPipelineId(String application, String pipelineName) {
-    Pipeline matched = getPipelinesByApplication(application)
-      .stream()
-      .filter(pipeline -> pipeline.getName().equalsIgnoreCase(pipelineName))
-      .findFirst()
-      .orElseThrow(() -> new NotFoundException(
-        String.format("No pipeline strategy found with name '%s' in application '%s'", pipelineName, application)
-      ));
-
-    return matched.getId();
-  }
-
-  @Override
-  public Collection<Pipeline> getPipelinesByApplication(String application) {
+  public Collection<PipelineTemplate> getPipelineTemplatesByScope(List<String> scope) {
     return all()
       .stream()
-      .filter(pipelineStrategy -> pipelineStrategy.getApplication().equalsIgnoreCase(application))
+      .filter(pt -> pt.containsAnyScope(scope))
       .collect(Collectors.toList());
   }
 
   @Override
-  public Pipeline create(String id, Pipeline item) {
-    if (id == null) {
-      id = UUID.randomUUID().toString();
-    }
-    item.setId(id);
+  public PipelineTemplate create(String id, PipelineTemplate item) {
+    Assert.notNull(item.getId(), "id field must NOT to be null!");
+    Assert.notEmpty(item.getScopes(), "scopes field must have at least ONE scope!");
 
     update(id, item);
     return findById(id);

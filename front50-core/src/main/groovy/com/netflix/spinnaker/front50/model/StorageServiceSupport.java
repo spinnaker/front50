@@ -47,7 +47,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   private final ObjectType objectType;
   private final StorageService service;
   private final Scheduler scheduler;
-  private final int refreshIntervalMs;
+  private final long refreshIntervalMs;
   private final Registry registry;
   private final Timer cacheRefreshTimer;      // All refreshes
   private final Timer autoRefreshTimer;       // Only spontaneous refreshes in all()
@@ -61,13 +61,13 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   public StorageServiceSupport(ObjectType objectType,
                                StorageService service,
                                Scheduler scheduler,
-                               int refreshIntervalMs,
+                               long refreshIntervalMs,
                                Registry registry) {
     this.objectType = objectType;
     this.service = service;
     this.scheduler = scheduler;
     this.refreshIntervalMs = refreshIntervalMs;
-    if (refreshIntervalMs >= HEALTH_MILLIS) {
+    if (refreshIntervalMs >= getHealthMillis()) {
       throw new IllegalArgumentException("Cache refresh time must be more frequent than cache health timeout");
     }
     String typeName = objectType.name();
@@ -91,9 +91,10 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
       this, new ToDoubleFunction() {
         @Override
         public double applyAsDouble(Object ignore) {
-          return allItemsCache.get().size();
+          Set itemCache = allItemsCache.get();
+          return itemCache != null ? itemCache.size() : 0;
         }
-    });
+      });
     registry.gauge(
       registry.createId("storageServiceSupport.cacheAge", "objectType", typeName),
       lastRefreshedTime,
@@ -127,17 +128,25 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   public Collection<T> all() {
-    long lastModified = readLastModified();
-    if (lastModified > lastRefreshedTime.get() || allItemsCache.get() == null) {
-        // only refresh if there was a modification since our last refresh cycle
-        log.debug("all() forcing refresh");
-        long startTime = System.nanoTime();
-        refresh();
-        long elapsed = System.nanoTime() - startTime;
-        autoRefreshTimer.record(elapsed, TimeUnit.NANOSECONDS);
+    return all(true);
+  }
+
+  public Collection<T> all(boolean refresh) {
+    if (!refresh) {
+      return new ArrayList<>(allItemsCache.get());
     }
 
-    return allItemsCache.get().stream().collect(Collectors.toList());
+    long lastModified = readLastModified();
+    if (lastModified > lastRefreshedTime.get() || allItemsCache.get() == null) {
+      // only refresh if there was a modification since our last refresh cycle
+      log.debug("all() forcing refresh");
+      long startTime = System.nanoTime();
+      refresh();
+      long elapsed = System.nanoTime() - startTime;
+      autoRefreshTimer.record(elapsed, TimeUnit.NANOSECONDS);
+    }
+
+    return new ArrayList<>(allItemsCache.get());
   }
 
   public Collection<T> all(String prefix, int maxResults) {
@@ -149,10 +158,10 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   /**
-   * @return Healthy if refreshed in the past HEALTH_MILLIS
+   * @return Healthy if refreshed in the past `getHealthMillis()`
    */
   public boolean isHealthy() {
-    return (System.currentTimeMillis() - lastRefreshedTime.get()) < HEALTH_MILLIS && allItemsCache.get() != null;
+    return (System.currentTimeMillis() - lastRefreshedTime.get()) < getHealthMillis() && allItemsCache.get() != null;
   }
 
   public T findById(String id) throws NotFoundException {
@@ -211,8 +220,8 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     allItemsCache.set(fetchAllItems(allItemsCache.get()));
     long elapsed = System.nanoTime() - startTime;
     registry.timer("storageServiceSupport.cacheRefreshTime",
-                   "objectType", objectType.name())
-        .record(elapsed, TimeUnit.NANOSECONDS);
+      "objectType", objectType.name())
+      .record(elapsed, TimeUnit.NANOSECONDS);
 
     log.debug("Refreshed (" + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms)");
   }
@@ -314,5 +323,9 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   private Long readLastModified() {
     return service.getLastModified(objectType);
+  }
+
+  protected long getHealthMillis() {
+    return HEALTH_MILLIS;
   }
 }
