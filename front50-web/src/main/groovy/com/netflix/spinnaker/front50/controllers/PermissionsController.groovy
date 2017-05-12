@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.front50.controllers
 
+import com.netflix.spinnaker.fiat.model.Authorization
 import com.netflix.spinnaker.fiat.shared.FiatClientConfigurationProperties
 import com.netflix.spinnaker.fiat.shared.FiatService
 import com.netflix.spinnaker.front50.model.application.Application
@@ -54,11 +55,6 @@ public class PermissionsController {
   @RequestMapping(method = RequestMethod.GET, value = "/applications")
   Set<Application.Permission> getAllApplicationPermissions() {
     Map<String, Application.Permission> actualPermissions = applicationPermissionDAO.all().collectEntries { Application.Permission perm ->
-      if (perm.requiredGroupMembership) {
-        // Deck added trailing whitespace for a while, so this is now needed.
-        def copy = perm.requiredGroupMembership
-        perm.requiredGroupMembership = copy.collect { it.trim() }
-      }
       return [(perm.name.toLowerCase()): perm]
     }
 

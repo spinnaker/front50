@@ -8,6 +8,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.awsobjectmapper.AmazonObjectMapperConfigurer;
 import com.netflix.spinnaker.clouddriver.aws.bastion.BastionConfig;
@@ -72,7 +73,7 @@ public class S3Config extends CommonStorageServiceDAOConfig {
 
   @Bean
   public S3StorageService s3StorageService(AmazonS3 amazonS3, S3Properties s3Properties) {
-    ObjectMapper awsObjectMapper = new ObjectMapper();
+    ObjectMapper awsObjectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     AmazonObjectMapperConfigurer.configure(awsObjectMapper);
 
     S3StorageService service = new S3StorageService(awsObjectMapper, amazonS3, s3Properties.getBucket(), s3Properties.getRootFolder(), s3Properties.isFailoverEnabled(), s3Properties.getRegion());

@@ -52,6 +52,9 @@ public class DefaultApplicationDAO extends StorageServiceSupport<Application> im
   @Override
   public void update(String id, Application application) {
     application.setName(id);
+    // Ensure the permissions objects are not persisted to the application document.
+    application.details().remove("requiredGroupMembership");
+    application.details().remove("permissions");
     super.update(id, application);
   }
 
