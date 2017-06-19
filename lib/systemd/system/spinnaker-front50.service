@@ -1,0 +1,18 @@
+[Unit]
+Description=Spinnaker Front50
+After=network.target
+
+[Service]
+Type=simple
+GuessMainPID=yes
+Environment=logfile=/var/log/spinnaker/front50/front50.log
+ExecStartPre=/usr/bin/touch /etc/default/spinnaker
+ExecStartPre=/bin/bash -c '. /etc/default/spinnaker'
+ExecStart=/opt/front50/bin/front50 2>&1 ${logfile} &
+ExecStop=/bin/kill $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+StandardOutput=journal+console
+WorkingDirectory=/opt/front50
+
+[Install]
+WantedBy=multi-user.target
