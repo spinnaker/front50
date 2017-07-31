@@ -44,15 +44,6 @@ dependencies {
 
   spinnaker.group "bootWeb"
 
-// Replace below with this line when fiat becomes stable.
-//  spinnaker.group "fiat"
-  spinnaker.dependency("bootActuator")
-  spinnaker.dependency("bootWeb")
-  spinnaker.dependency("bootDataRest")
-  spinnaker.dependency("springSecurityConfig")
-  spinnaker.dependency("springSecurityCore")
-  spinnaker.dependency("springSecurityWeb")
-
   compile spinnaker.dependency("korkWeb")
   compile spinnaker.dependency("korkStackdriver")
   compile spinnaker.dependency("korkSwagger")
