@@ -36,7 +36,7 @@ allprojects { project ->
   group = "com.netflix.spinnaker.front50"
 
   ext {
-    spinnakerDependenciesVersion = project.hasProperty('spinnakerDependenciesVersion') ? project.property('spinnakerDependenciesVersion') : '0.104.0'
+    spinnakerDependenciesVersion = project.hasProperty('spinnakerDependenciesVersion') ? project.property('spinnakerDependenciesVersion') : '0.106.0-rc.4-springBoot154'
   }
 
   def checkLocalVersions = [spinnakerDependenciesVersion: spinnakerDependenciesVersion]
@@ -80,9 +80,6 @@ allprojects { project ->
         }
         if (it.requested.group == "org.apache.xbean") {
           it.useVersion "4.4"
-        }
-        if (it.requested.group == "org.springframework.data" && it.requested.name == "spring-data-commons") {
-          it.useVersion "1.12.0.RELEASE"
         }
       }
     }
