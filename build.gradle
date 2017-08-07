@@ -70,6 +70,7 @@ allprojects { project ->
     exclude group: 'javax.servlet', module: 'servlet-api'
 
     resolutionStrategy {
+      force 'com.google.guava:guava:15.0'
       eachDependency {
         if (it.requested.group == "asm" || it.requested.group == "org.ow2.asm") {
           it.useTarget group: "org.ow2.asm", name: "asm-all", version: "5.0.4"
