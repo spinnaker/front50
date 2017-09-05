@@ -169,7 +169,6 @@ public class S3StorageService implements StorageService {
 
   @Override
   public Map<String, Long> listObjectKeys(ObjectType objectType) {
-    long startTime = System.currentTimeMillis();
     ObjectListing bucketListing = amazonS3.listObjects(
       new ListObjectsRequest(bucket, buildTypedFolder(rootFolder, objectType.group), null, null, 10000)
     );
@@ -179,8 +178,6 @@ public class S3StorageService implements StorageService {
       bucketListing = amazonS3.listNextBatchOfObjects(bucketListing);
       summaries.addAll(bucketListing.getObjectSummaries());
     }
-
-    log.debug("Took {}ms to fetch {} object keys for {}", (System.currentTimeMillis() - startTime), summaries.size(), objectType);
 
     return summaries
       .stream()
