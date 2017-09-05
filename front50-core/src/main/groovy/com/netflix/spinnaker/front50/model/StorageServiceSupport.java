@@ -15,9 +15,6 @@
  */
 package com.netflix.spinnaker.front50.model;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
@@ -31,8 +28,13 @@ import rx.Observable;
 import rx.Scheduler;
 
 import javax.annotation.PostConstruct;
-import java.util.*;
-import java.util.concurrent.ExecutionException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -60,8 +62,6 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   private final AtomicLong lastRefreshedTime = new AtomicLong();
 
-  private final LoadingCache<Long, Map<String, Long>> objectKeysByLastModifiedCache;
-
   public StorageServiceSupport(ObjectType objectType,
                                StorageService service,
                                Scheduler scheduler,
@@ -77,24 +77,6 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     }
     this.shouldWarmCache = shouldWarmCache;
     this.registry = registry;
-
-    // cache object keys for at least two refresh intervals
-    // (will ensure that concurrent requests are debounced across a refresh cycle)
-    long cacheExpiry = refreshIntervalMs * 2;
-    log.debug("Creating object keys cache (expiry: {} minutes)", TimeUnit.MILLISECONDS.toMinutes(cacheExpiry));
-    this.objectKeysByLastModifiedCache = CacheBuilder
-      .newBuilder()
-      .expireAfterWrite(cacheExpiry, TimeUnit.MILLISECONDS)
-      .recordStats()
-      .build(
-        new CacheLoader<Long, Map<String, Long>>() {
-          @Override
-          public Map<String, Long> load(Long lastModified) throws Exception {
-            log.debug("Cache miss! Fetching all object keys (lastModified: {})", new Date(lastModified));
-            return service.listObjectKeys(objectType);
-          }
-        }
-      );
 
     String typeName = objectType.name();
     this.cacheRefreshTimer = registry.timer(
@@ -165,7 +147,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     long lastModified = readLastModified();
     if (lastModified > lastRefreshedTime.get() || allItemsCache.get() == null) {
       // only refresh if there was a modification since our last refresh cycle
-      log.debug("all() forcing refresh (lastModified: {}, lastRefreshed: {})", new Date(lastModified), new Date(lastRefreshedTime.get()));
+      log.debug("all() forcing refresh");
       long startTime = System.nanoTime();
       refresh();
       long elapsed = System.nanoTime() - startTime;
@@ -286,17 +268,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     }
 
     Long refreshTime = System.currentTimeMillis();
-    Long lastModified = existingItems.isEmpty() ? 0L : readLastModified();
-
-    Map<String, Long> keyUpdateTime;
-    try {
-      keyUpdateTime = objectKeysByLastModifiedCache.get(lastModified);
-    } catch (ExecutionException e) {
-      log.error("Error fetching object keys from cache (lastModified: {})", new Date(lastModified), e);
-      keyUpdateTime = service.listObjectKeys(objectType);
-    }
-
-    log.debug(objectKeysByLastModifiedCache.stats().toString());
+    Map<String, Long> keyUpdateTime = service.listObjectKeys(objectType);
 
     // Expanded from a stream collector to avoid DuplicateKeyExceptions
     Map<String, T> resultMap = new HashMap<>();
@@ -326,11 +298,6 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
           return false;
          })
         .collect(Collectors.toList());
-
-    if (lastModified > 0) {
-      // only log keys that have been modified after initial cache load
-      log.debug("Modified object keys: {}", modifiedKeys);
-    }
 
     Observable
         .from(modifiedKeys)
