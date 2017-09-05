@@ -61,6 +61,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   private final Counter updateCounter;   // Updates discovered during refresh
 
   private final AtomicLong lastRefreshedTime = new AtomicLong();
+  private final AtomicLong refreshCount = new AtomicLong();
 
   public StorageServiceSupport(ObjectType objectType,
                                StorageService service,
@@ -227,7 +228,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   /**
    * Update local cache with any recently modified items.
    */
-  protected void refresh() {
+  private void unguardedRefresh() {
     long startTime = System.nanoTime();
     allItemsCache.set(fetchAllItems(allItemsCache.get()));
     long elapsed = System.nanoTime() - startTime;
@@ -236,6 +237,23 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
       .record(elapsed, TimeUnit.NANOSECONDS);
 
     log.debug("Refreshed (" + TimeUnit.NANOSECONDS.toMillis(elapsed) + "ms)");
+  }
+
+  protected void refresh() {
+    long enterTime = System.nanoTime();
+    long enterRefreshCount = refreshCount.get();
+    synchronized(this) {
+      if (enterRefreshCount != refreshCount.get()) {
+        long contentionNs = enterTime = System.nanoTime();
+        log.debug("Reusing concurrent update. Refresh contention was " + TimeUnit.NANOSECONDS.toMillis(contentionNs) + "ms");
+        registry.timer("storageServiceSupport.refreshReuseContentionTime",
+          "objectType", objectType.name())
+          .record(contentionNs, TimeUnit.NANOSECONDS);
+        return;
+      }
+      unguardedRefresh();
+      refreshCount.getAndIncrement();
+    }
   }
 
   private String buildObjectKey(T item) {
