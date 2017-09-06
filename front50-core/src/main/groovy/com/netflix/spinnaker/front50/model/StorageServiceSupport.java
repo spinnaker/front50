@@ -15,6 +15,10 @@
  */
 package com.netflix.spinnaker.front50.model;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Lists;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
@@ -28,13 +32,8 @@ import rx.Observable;
 import rx.Scheduler;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,6 +49,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   private final ObjectType objectType;
   private final StorageService service;
   private final Scheduler scheduler;
+  private final ObjectKeyLoader objectKeyLoader;
   private final long refreshIntervalMs;
   private final boolean shouldWarmCache;
   private final Registry registry;
@@ -65,12 +65,14 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   public StorageServiceSupport(ObjectType objectType,
                                StorageService service,
                                Scheduler scheduler,
+                               ObjectKeyLoader objectKeyLoader,
                                long refreshIntervalMs,
                                boolean shouldWarmCache,
                                Registry registry) {
     this.objectType = objectType;
     this.service = service;
     this.scheduler = scheduler;
+    this.objectKeyLoader = objectKeyLoader;
     this.refreshIntervalMs = refreshIntervalMs;
     if (refreshIntervalMs >= getHealthMillis()) {
       throw new IllegalArgumentException("Cache refresh time must be more frequent than cache health timeout");
@@ -147,7 +149,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     long lastModified = readLastModified();
     if (lastModified > lastRefreshedTime.get() || allItemsCache.get() == null) {
       // only refresh if there was a modification since our last refresh cycle
-      log.debug("all() forcing refresh");
+      log.debug("all() forcing refresh (lastModified: {}, lastRefreshed: {})", new Date(lastModified), new Date(lastRefreshedTime.get()));
       long startTime = System.nanoTime();
       refresh();
       long elapsed = System.nanoTime() - startTime;
@@ -162,7 +164,11 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   public Collection<T> history(String id, int maxResults) {
-    return service.listObjectVersions(objectType, id, maxResults);
+    if (service.supportsVersioning()) {
+      return service.listObjectVersions(objectType, id, maxResults);
+    } else {
+      return Lists.newArrayList(findById(id));
+    }
   }
 
   /**
@@ -170,6 +176,10 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
    */
   public boolean isHealthy() {
     return (System.currentTimeMillis() - lastRefreshedTime.get()) < getHealthMillis() && allItemsCache.get() != null;
+  }
+
+  public long getHealthIntervalMillis() {
+    return service.getHealthIntervalMillis();
   }
 
   public T findById(String id) throws NotFoundException {
@@ -294,6 +304,11 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
           return false;
          })
         .collect(Collectors.toList());
+
+    if (!existingItems.isEmpty()) {
+      // only log keys that have been modified after initial cache load
+      log.debug("Modified object keys: {}", modifiedKeys);
+    }
 
     Observable
         .from(modifiedKeys)

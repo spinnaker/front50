@@ -45,14 +45,30 @@ class PipelineController {
   @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
   @PostFilter("#restricted ? hasPermission(filterObject.name, 'APPLICATION', 'READ') : true")
   @RequestMapping(value = '', method = RequestMethod.GET)
-  List<Pipeline> list(@RequestParam(required = false, value = 'restricted', defaultValue = 'true') boolean restricted) {
-    pipelineDAO.all()
+  List<Pipeline> list(@RequestParam(required = false, value = 'restricted', defaultValue = 'true') boolean restricted,
+                      @RequestParam(required = false, value = 'refresh', defaultValue = 'true') boolean refresh) {
+    pipelineDAO.all(refresh)
   }
 
   @PreAuthorize("hasPermission(#application, 'APPLICATION', 'READ')")
   @RequestMapping(value = '{application:.+}', method = RequestMethod.GET)
-  List<Pipeline> listByApplication(@PathVariable(value = 'application') String application) {
-    pipelineDAO.getPipelinesByApplication(application)
+  List<Pipeline> listByApplication(@PathVariable(value = 'application') String application,
+                                   @RequestParam(required = false, value = 'refresh', defaultValue = 'true') boolean refresh) {
+    List<Pipeline> pipelines = pipelineDAO.getPipelinesByApplication(application, refresh)
+    pipelines.sort { p1, p2 ->
+      if (p1.index != null && p2.index == null) {
+        return -1
+      }
+      if (p1.index == null && p2.index != null) {
+        return 1
+      }
+      if (p1.index != p2.index) {
+        return p1.index - p2.index
+      }
+      return (p1.getName() ?: p1.getId()).compareToIgnoreCase(p2.getName() ?: p2.getId())
+    }
+    pipelines.eachWithIndex{ Pipeline entry, int i -> entry.index = i }
+    return pipelines
   }
 
   @PreAuthorize("@fiatPermissionEvaluator.storeWholePermission()")

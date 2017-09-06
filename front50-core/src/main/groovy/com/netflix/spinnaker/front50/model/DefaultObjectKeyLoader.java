@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Netflix, Inc.
+ * Copyright 2017 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
+package com.netflix.spinnaker.front50.model;
 
-package com.netflix.spinnaker.front50.model.pipeline
+import java.util.Map;
 
-import com.netflix.spinnaker.front50.model.ItemDAO
+public class DefaultObjectKeyLoader implements ObjectKeyLoader {
+  private final StorageService storageService;
 
+  public DefaultObjectKeyLoader(StorageService storageService) {
+    this.storageService = storageService;
+  }
 
-interface PipelineDAO extends ItemDAO<Pipeline> {
-  String getPipelineId(String application, String pipelineName)
-  Collection<Pipeline> getPipelinesByApplication(String application)
-  Collection<Pipeline> getPipelinesByApplication(String application, boolean refresh)
+  @Override
+  public Map<String, Long> listObjectKeys(ObjectType objectType) {
+    return storageService.listObjectKeys(objectType);
+  }
 }
