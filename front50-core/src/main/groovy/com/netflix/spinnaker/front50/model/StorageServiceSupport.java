@@ -18,6 +18,7 @@ package com.netflix.spinnaker.front50.model;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Lists;
 import com.netflix.hystrix.exception.HystrixRuntimeException;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
@@ -48,6 +49,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   private final ObjectType objectType;
   private final StorageService service;
   private final Scheduler scheduler;
+  private final ObjectKeyLoader objectKeyLoader;
   private final long refreshIntervalMs;
   private final boolean shouldWarmCache;
   private final Registry registry;
@@ -60,41 +62,23 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   private final AtomicLong lastRefreshedTime = new AtomicLong();
 
-  private final LoadingCache<Long, Map<String, Long>> objectKeysByLastModifiedCache;
-
   public StorageServiceSupport(ObjectType objectType,
                                StorageService service,
                                Scheduler scheduler,
+                               ObjectKeyLoader objectKeyLoader,
                                long refreshIntervalMs,
                                boolean shouldWarmCache,
                                Registry registry) {
     this.objectType = objectType;
     this.service = service;
     this.scheduler = scheduler;
+    this.objectKeyLoader = objectKeyLoader;
     this.refreshIntervalMs = refreshIntervalMs;
     if (refreshIntervalMs >= getHealthMillis()) {
       throw new IllegalArgumentException("Cache refresh time must be more frequent than cache health timeout");
     }
     this.shouldWarmCache = shouldWarmCache;
     this.registry = registry;
-
-    // cache object keys for at least two refresh intervals
-    // (will ensure that concurrent requests are debounced across a refresh cycle)
-    long cacheExpiry = refreshIntervalMs * 2;
-    log.debug("Creating object keys cache (expiry: {} minutes)", TimeUnit.MILLISECONDS.toMinutes(cacheExpiry));
-    this.objectKeysByLastModifiedCache = CacheBuilder
-      .newBuilder()
-      .expireAfterWrite(cacheExpiry, TimeUnit.MILLISECONDS)
-      .recordStats()
-      .build(
-        new CacheLoader<Long, Map<String, Long>>() {
-          @Override
-          public Map<String, Long> load(Long lastModified) throws Exception {
-            log.debug("Cache miss! Fetching all object keys (lastModified: {})", new Date(lastModified));
-            return service.listObjectKeys(objectType);
-          }
-        }
-      );
 
     String typeName = objectType.name();
     this.cacheRefreshTimer = registry.timer(
@@ -180,7 +164,11 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   public Collection<T> history(String id, int maxResults) {
-    return service.listObjectVersions(objectType, id, maxResults);
+    if (service.supportsVersioning()) {
+      return service.listObjectVersions(objectType, id, maxResults);
+    } else {
+      return Lists.newArrayList(findById(id));
+    }
   }
 
   /**
@@ -286,17 +274,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     }
 
     Long refreshTime = System.currentTimeMillis();
-    Long lastModified = existingItems.isEmpty() ? 0L : readLastModified();
-
-    Map<String, Long> keyUpdateTime;
-    try {
-      keyUpdateTime = objectKeysByLastModifiedCache.get(lastModified);
-    } catch (ExecutionException e) {
-      log.error("Error fetching object keys from cache (lastModified: {})", new Date(lastModified), e);
-      keyUpdateTime = service.listObjectKeys(objectType);
-    }
-
-    log.debug(objectKeysByLastModifiedCache.stats().toString());
+    Map<String, Long> keyUpdateTime = service.listObjectKeys(objectType);
 
     // Expanded from a stream collector to avoid DuplicateKeyExceptions
     Map<String, T> resultMap = new HashMap<>();
@@ -327,7 +305,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
          })
         .collect(Collectors.toList());
 
-    if (lastModified > 0) {
+    if (!existingItems.isEmpty()) {
       // only log keys that have been modified after initial cache load
       log.debug("Modified object keys: {}", modifiedKeys);
     }
