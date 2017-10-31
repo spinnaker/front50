@@ -117,7 +117,7 @@ public class ApplicationsController {
   @RequestMapping(method = RequestMethod.GET, value = "/{applicationName:.+}")
   Application get(@PathVariable final String applicationName) {
     def app = applicationDAO.findByName(applicationName.toUpperCase())
-    if (app != null) {
+    if (app && app.name) {
       try {
         def perm = applicationPermissionDAO?.findById(app.name)
         if (perm?.permissions?.isRestricted()) {
