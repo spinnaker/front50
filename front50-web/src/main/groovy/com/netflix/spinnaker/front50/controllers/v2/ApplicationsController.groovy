@@ -117,13 +117,15 @@ public class ApplicationsController {
   @RequestMapping(method = RequestMethod.GET, value = "/{applicationName:.+}")
   Application get(@PathVariable final String applicationName) {
     def app = applicationDAO.findByName(applicationName.toUpperCase())
-    try {
-      def perm = applicationPermissionDAO?.findById(app.name)
-      if (perm?.permissions?.isRestricted()) {
-        app.details().put("permissions", perm.permissions)
+    if (app && app.name) {
+      try {
+        def perm = applicationPermissionDAO?.findById(app.name)
+        if (perm?.permissions?.isRestricted()) {
+          app.details().put("permissions", perm.permissions)
+        }
+      } catch (NotFoundException nfe) {
+        // ignored.
       }
-    } catch (NotFoundException nfe) {
-      // ignored.
     }
     return app
   }
