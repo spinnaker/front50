@@ -17,6 +17,7 @@ package com.netflix.spinnaker.front50.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spinnaker.front50.config.Front50WebConfig;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
@@ -27,6 +28,7 @@ import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplate;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO;
 import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,6 +45,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @ConditionalOnBean(PipelineTemplateDAO.class)
+@AutoConfigureAfter(Front50WebConfig.class)
 @RequestMapping("pipelineTemplates")
 public class PipelineTemplateController {
 

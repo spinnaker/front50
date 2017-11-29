@@ -44,10 +44,12 @@ import com.netflix.spinnaker.front50.model.tag.DefaultEntityTagsDAO;
 import com.netflix.spinnaker.front50.model.tag.EntityTagsDAO;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import rx.schedulers.Schedulers;
 
 import java.util.concurrent.Executors;
 
+@Configuration
 public class CommonStorageServiceDAOConfig {
   @Bean
   @ConditionalOnMissingBean(ObjectKeyLoader.class)
