@@ -47,6 +47,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static net.logstash.logback.argument.StructuredArguments.value;
+
 public class SwiftStorageService implements StorageService {
   private static final Logger log = LoggerFactory.getLogger(SwiftStorageService.class);
 
@@ -124,17 +126,6 @@ public class SwiftStorageService implements StorageService {
   }
 
   @Override
-  public <T extends Timestamped> Collection<T> loadObjectsWithPrefix(ObjectType objectType, String prefix, int maxResults) {
-    List<? extends SwiftObject> objects = getSwift().objects().list(containerName, ObjectListOptions.create().path(objectType.group).startsWith(prefix).limit(maxResults));
-    return objects.stream()
-      .map(obj -> {
-        T item = deserialize(obj, (Class<T>) objectType.clazz);
-        item.setLastModified(obj.getLastModified().getTime());
-        return item;
-      }).collect(Collectors.toSet());
-  }
-
-  @Override
   public <T extends Timestamped> T loadObject(ObjectType objectType, String objectKey) throws NotFoundException {
     SwiftObject o = getSwift().objects().get(containerName, objectKey);
     return deserialize(o, (Class<T>) objectType.clazz);
@@ -153,7 +144,7 @@ public class SwiftStorageService implements StorageService {
 
       getSwift().objects().put(containerName, objectKey, Payloads.create(is), ObjectPutOptions.create().path(objectType.group));
     } catch (IOException e) {
-      log.error("failed to write object={}: {}", objectKey, e);
+      log.error("failed to write object={}: {}", value("key", objectKey), e);
       throw new IllegalStateException(e);
     }
   }
@@ -197,7 +188,7 @@ public class SwiftStorageService implements StorageService {
       item.setLastModified(object.getLastModified().getTime());
       return item;
     } catch (Exception e) {
-      log.error("Error reading {}: {}", object.getName(), e);
+      log.error("Error reading {}: {}", value("key", object.getName()), e);
     }
     return null;
   }

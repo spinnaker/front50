@@ -8,11 +8,20 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
+import com.amazonaws.services.sns.AmazonSNS;
+import com.amazonaws.services.sns.AmazonSNSClientBuilder;
+import com.amazonaws.services.sqs.AmazonSQS;
+import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.appinfo.ApplicationInfoManager;
 import com.netflix.awsobjectmapper.AmazonObjectMapperConfigurer;
+import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.clouddriver.aws.bastion.BastionConfig;
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider;
+import com.netflix.spinnaker.front50.model.EventingS3ObjectKeyLoader;
+import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.S3StorageService;
+import com.netflix.spinnaker.front50.model.TemporarySQSQueue;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,7 +30,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 
 @Configuration
 @ConditionalOnExpression("${spinnaker.s3.enabled:false}")
@@ -65,18 +77,99 @@ public class S3Config extends CommonStorageServiceDAOConfig {
   }
 
   @Bean
+  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  public AmazonSQS awsSQSClient(AWSCredentialsProvider awsCredentialsProvider, S3Properties s3Properties) {
+    return AmazonSQSClientBuilder
+      .standard()
+      .withCredentials(awsCredentialsProvider)
+      .withClientConfiguration(new ClientConfiguration())
+      .withRegion(s3Properties.getRegion())
+      .build();
+  }
+
+  @Bean
+  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  public AmazonSNS awsSNSClient(AWSCredentialsProvider awsCredentialsProvider, S3Properties s3Properties) {
+    return AmazonSNSClientBuilder
+      .standard()
+      .withCredentials(awsCredentialsProvider)
+      .withClientConfiguration(new ClientConfiguration())
+      .withRegion(s3Properties.getRegion())
+      .build();
+  }
+
+  @Bean
   @ConditionalOnMissingBean(RestTemplate.class)
   public RestTemplate restTemplate() {
     return new RestTemplate();
   }
 
   @Bean
-  public S3StorageService s3StorageService(AmazonS3 amazonS3, S3Properties s3Properties) {
+  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  public TemporarySQSQueue temporaryQueueSupport(Optional<ApplicationInfoManager> applicationInfoManager,
+                                                 AmazonSQS amazonSQS,
+                                                 AmazonSNS amazonSNS,
+                                                 S3Properties s3Properties) {
+    return new TemporarySQSQueue(
+      amazonSQS,
+      amazonSNS,
+      s3Properties.eventing.getSnsTopicName(),
+      getInstanceId(applicationInfoManager)
+    );
+  }
+
+  @Bean
+  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  public ObjectKeyLoader eventingS3ObjectKeyLoader(ObjectMapper objectMapper,
+                                                   S3Properties s3Properties,
+                                                   S3StorageService s3StorageService,
+                                                   TemporarySQSQueue temporaryQueueSupport,
+                                                   Registry registry) {
+    return new EventingS3ObjectKeyLoader(
+      Executors.newFixedThreadPool(1),
+      objectMapper,
+      s3Properties,
+      temporaryQueueSupport,
+      s3StorageService,
+      registry,
+      true
+    );
+  }
+
+  @Bean
+  public S3StorageService s3StorageService(AmazonS3 amazonS3,
+                                           S3Properties s3Properties) {
     ObjectMapper awsObjectMapper = new ObjectMapper();
     AmazonObjectMapperConfigurer.configure(awsObjectMapper);
 
-    S3StorageService service = new S3StorageService(awsObjectMapper, amazonS3, s3Properties.getBucket(), s3Properties.getRootFolder(), s3Properties.isFailoverEnabled(), s3Properties.getRegion());
+    S3StorageService service = new S3StorageService(
+      awsObjectMapper,
+      amazonS3,
+      s3Properties.getBucket(),
+      s3Properties.getRootFolder(),
+      s3Properties.isFailoverEnabled(),
+      s3Properties.getRegion(),
+      s3Properties.getVersioning()
+    );
     service.ensureBucketExists();
+
     return service;
+  }
+
+  /**
+   * This will likely need improvement should it ever need to run in a non-eureka environment.
+   *
+   * @return instance identifier that will be used to create a uniquely named sqs queue
+   */
+  private static String getInstanceId(Optional<ApplicationInfoManager> applicationInfoManager) {
+    if (applicationInfoManager.isPresent()) {
+      return applicationInfoManager.get().getInfo().getInstanceId();
+    }
+
+    try {
+      return InetAddress.getLocalHost().getHostName();
+    } catch (UnknownHostException e) {
+      throw new IllegalStateException(e);
+    }
   }
 }

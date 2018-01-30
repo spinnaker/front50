@@ -30,8 +30,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static net.logstash.logback.argument.StructuredArguments.value;
 
 public class S3StorageService implements StorageService {
   private static final Logger log = LoggerFactory.getLogger(S3StorageService.class);
@@ -42,19 +45,22 @@ public class S3StorageService implements StorageService {
   private final String rootFolder;
   private final Boolean readOnlyMode;
   private final String region;
+  private final Boolean versioning;
 
   public S3StorageService(ObjectMapper objectMapper,
                           AmazonS3 amazonS3,
                           String bucket,
                           String rootFolder,
                           Boolean readOnlyMode,
-                          String region) {
+                          String region,
+                          Boolean versioning) {
     this.objectMapper = objectMapper;
     this.amazonS3 = amazonS3;
     this.bucket = bucket;
     this.rootFolder = rootFolder;
     this.readOnlyMode = readOnlyMode;
     this.region = region;
+    this.versioning = versioning;
   }
 
   @Override
@@ -65,12 +71,27 @@ public class S3StorageService implements StorageService {
     } catch (AmazonServiceException e) {
       if (e.getStatusCode() == 404) {
         if (StringUtils.isNullOrEmpty(region)) {
-          log.info("Creating bucket " + bucket + " in default region");
+          log.info("Creating bucket {} in default region", value("bucket", bucket));
           amazonS3.createBucket(bucket);
         } else {
-          log.info("Creating bucket " + bucket + " in region " + region + "...");
+          log.info("Creating bucket {} in region {}",
+            value("bucket", bucket),
+            value("region", region)
+          );
           amazonS3.createBucket(bucket, region);
         }
+
+        if (versioning) {
+          log.info("Enabling versioning of the S3 bucket {}", value("bucket", bucket));
+          BucketVersioningConfiguration configuration =
+            new BucketVersioningConfiguration().withStatus("Enabled");
+
+          SetBucketVersioningConfigurationRequest setBucketVersioningConfigurationRequest =
+            new SetBucketVersioningConfigurationRequest(bucket, configuration);
+
+          amazonS3.setBucketVersioningConfiguration(setBucketVersioningConfigurationRequest);
+        }
+
       } else {
         throw e;
       }
@@ -79,30 +100,7 @@ public class S3StorageService implements StorageService {
 
   @Override
   public boolean supportsVersioning() {
-    return true;
-  }
-
-  @Override
-  public <T extends Timestamped> Collection<T> loadObjectsWithPrefix(ObjectType objectType, String prefix, int maxResults) {
-    ObjectListing bucketListing = amazonS3.listObjects(
-      new ListObjectsRequest(bucket, (buildTypedFolder(rootFolder, objectType.group) + "/" + prefix).toLowerCase(), null, null, maxResults)
-    );
-    List<S3ObjectSummary> summaries = bucketListing.getObjectSummaries();
-
-    // TODO-AJ this is naive and inefficient
-    return summaries.stream()
-      .map(s3ObjectSummary -> amazonS3.getObject(s3ObjectSummary.getBucketName(), s3ObjectSummary.getKey()))
-      .map(s3Object -> {
-        T item = null;
-        try {
-          item = deserialize(s3Object, (Class<T>) objectType.clazz);
-          item.setLastModified(s3Object.getObjectMetadata().getLastModified().getTime());
-        } catch (IOException e) {
-          // do nothing
-        }
-        return item;
-      })
-      .collect(Collectors.toSet());
+    return versioning;
   }
 
   @Override
@@ -158,6 +156,7 @@ public class S3StorageService implements StorageService {
 
   @Override
   public Map<String, Long> listObjectKeys(ObjectType objectType) {
+    long startTime = System.currentTimeMillis();
     ObjectListing bucketListing = amazonS3.listObjects(
       new ListObjectsRequest(bucket, buildTypedFolder(rootFolder, objectType.group), null, null, 10000)
     );
@@ -167,6 +166,11 @@ public class S3StorageService implements StorageService {
       bucketListing = amazonS3.listNextBatchOfObjects(bucketListing);
       summaries.addAll(bucketListing.getObjectSummaries());
     }
+
+    log.debug("Took {}ms to fetch {} object keys for {}",
+      value("fetchTime", (System.currentTimeMillis() - startTime)),
+      summaries.size(),
+      value("type", objectType));
 
     return summaries
       .stream()
@@ -224,6 +228,11 @@ public class S3StorageService implements StorageService {
     }
   }
 
+  @Override
+  public long getHealthIntervalMillis() {
+    return Duration.ofSeconds(2).toMillis();
+  }
+
   private void writeLastModified(String group) {
     if (readOnlyMode) {
       throw new ReadOnlyModeException();
@@ -268,7 +277,7 @@ public class S3StorageService implements StorageService {
       .replaceAll("/" + objectType.defaultMetadataFilename, "");
   }
 
-  private String buildTypedFolder(String rootFolder, String type) {
+  private static String buildTypedFolder(String rootFolder, String type) {
     return (rootFolder + "/" + type).replaceAll("//", "/");
   }
 }

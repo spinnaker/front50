@@ -42,6 +42,8 @@ import groovy.transform.stc.SimpleType
 import groovy.util.logging.Slf4j
 import org.springframework.validation.Errors
 
+import static net.logstash.logback.argument.StructuredArguments.value
+
 @ToString
 @Slf4j
 class Application implements Timestamped {
@@ -56,17 +58,17 @@ class Application implements Timestamped {
 
   String getName() {
     // there is an expectation that application names are uppercased (historical)
-    return name?.toUpperCase()
+    return name?.toUpperCase()?.trim()
   }
 
   @JsonAnyGetter
   public Map<String,Object> details() {
-    return details;
+    return details
   }
 
   @JsonAnySetter
   public void set(String name, Object value) {
-    details.put(name, value);
+    details.put(name, value)
   }
 
   @JsonIgnore
@@ -146,7 +148,7 @@ class Application implements Timestamped {
     }
 
     if (!currentApplication) {
-      log.warn("Application does not exist (name: ${name}), nothing to delete")
+      log.warn("Application does not exist (name: {}), nothing to delete", value("application", name))
       return
     }
 
@@ -196,7 +198,7 @@ class Application implements Timestamped {
   }
 
   private void deletePipelines(String application) {
-    pipelineDao.getPipelinesByApplication(application).each { Pipeline p -> pipelineDao.delete(p.id) }
+    pipelineDao.getPipelinesByApplication(application, true).each { Pipeline p -> pipelineDao.delete(p.id) }
     pipelineStrategyDao.getPipelinesByApplication(application).each { Pipeline p -> pipelineStrategyDao.delete(p.id) }
   }
 
@@ -326,7 +328,8 @@ class Application implements Timestamped {
         log.error("Rollback failed (onRollback)", rollbackException)
       }
 
-      log.error("Failed to perform action (name: ${originalApplication?.name ?: updatedApplication?.name})")
+      log.error("Failed to perform action (name: {})",
+        value("application", originalApplication?.name ?: updatedApplication?.name))
       throw e
     }
   }
@@ -371,8 +374,8 @@ class Application implements Timestamped {
 
     @JsonSetter
     void setRequiredGroupMembership(List<String> requiredGroupMembership) {
-      log.warn("Required group membership settings detected in application ${name}. " +
-        "Please update to `permissions` format.")
+      log.warn("Required group membership settings detected in application {} " +
+        "Please update to `permissions` format.", value("application", name))
 
       if (!permissions.isRestricted()) { // Do not overwrite permissions if it contains values
         Permissions.Builder b = new Permissions.Builder()

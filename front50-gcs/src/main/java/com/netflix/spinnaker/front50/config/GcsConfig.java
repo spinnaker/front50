@@ -35,6 +35,8 @@ import rx.schedulers.Schedulers;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 
+import static net.logstash.logback.argument.StructuredArguments.value;
+
 @Configuration
 @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
 @EnableConfigurationProperties(GcsProperties.class)
@@ -95,9 +97,10 @@ public class GcsConfig extends CommonStorageServiceDAOConfig {
     }
     service.ensureBucketExists();
     log.info("Using Google Cloud Storage bucket={} in project={}",
-      gcsProperties.getBucket(), gcsProperties.getProject());
+      value("bucket", gcsProperties.getBucket()),
+      value("project", gcsProperties.getProject()));
     log.info("Bucket versioning is {}.",
-      service.supportsVersioning() ? "enabled" : "DISABLED");
+      value("versioning", service.supportsVersioning() ? "enabled" : "DISABLED"));
     return service;
   }
 
@@ -110,11 +113,13 @@ public class GcsConfig extends CommonStorageServiceDAOConfig {
   @Override
   public ApplicationPermissionDAO applicationPermissionDAO(StorageService storageService,
                                                            StorageServiceConfigurationProperties storageServiceConfigurationProperties,
+                                                           ObjectKeyLoader objectKeyLoader,
                                                            Registry registry) {
     GcsStorageService service = googleCloudStorageService(ApplicationPermissionDAO.DEFAULT_DATA_FILENAME, gcsProperties);
     return new DefaultApplicationPermissionDAO(
       service,
       Schedulers.from(Executors.newFixedThreadPool(storageServiceConfigurationProperties.getApplicationPermission().getThreadPool())),
+      objectKeyLoader,
       storageServiceConfigurationProperties.getApplicationPermission().getRefreshMs(),
       storageServiceConfigurationProperties.getApplicationPermission().getShouldWarmCache(),
       registry

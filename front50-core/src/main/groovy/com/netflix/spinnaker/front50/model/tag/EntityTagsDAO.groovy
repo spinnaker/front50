@@ -20,9 +20,4 @@ package com.netflix.spinnaker.front50.model.tag
 import com.netflix.spinnaker.front50.model.ItemDAO
 
 interface EntityTagsDAO extends ItemDAO<EntityTags> {
-  /**
-   * @param prefix TaggedEntity.id prefix (application/front50, etc.)
-   * @return All tagged entities with an id beginning with {@code prefix}
-   */
-  Collection<EntityTags> all(String prefix, int maxResults)
 }

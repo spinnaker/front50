@@ -18,6 +18,7 @@ package com.netflix.spinnaker.front50.model.pipeline;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.front50.exception.NotFoundException;
+import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.ObjectType;
 import com.netflix.spinnaker.front50.model.StorageService;
 import com.netflix.spinnaker.front50.model.StorageServiceSupport;
@@ -31,15 +32,16 @@ import java.util.stream.Collectors;
 public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implements PipelineDAO {
   public DefaultPipelineDAO(StorageService service,
                             Scheduler scheduler,
+                            ObjectKeyLoader objectKeyLoader,
                             long refreshIntervalMs,
                             boolean shouldWarmCache,
                             Registry registry) {
-    super(ObjectType.PIPELINE, service, scheduler, refreshIntervalMs, shouldWarmCache, registry);
+    super(ObjectType.PIPELINE, service, scheduler, objectKeyLoader, refreshIntervalMs, shouldWarmCache, registry);
   }
 
   @Override
   public String getPipelineId(String application, String pipelineName) {
-    Pipeline matched = getPipelinesByApplication(application)
+    Pipeline matched = getPipelinesByApplication(application, true)
       .stream()
       .filter(pipeline -> pipeline.getName().equalsIgnoreCase(pipelineName))
       .findFirst()
@@ -52,7 +54,12 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
 
   @Override
   public Collection<Pipeline> getPipelinesByApplication(String application) {
-    return all()
+    return getPipelinesByApplication(application, true);
+  }
+
+  @Override
+  public Collection<Pipeline> getPipelinesByApplication(String application, boolean refresh) {
+    return all(refresh)
       .stream()
       .filter(pipeline -> pipeline.getApplication() != null && pipeline.getApplication().equalsIgnoreCase(application))
       .collect(Collectors.toList());
