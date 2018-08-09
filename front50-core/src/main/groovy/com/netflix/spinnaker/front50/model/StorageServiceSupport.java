@@ -182,26 +182,29 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   public T findById(String id) throws NotFoundException {
-    try {
-      return new SimpleHystrixCommand<T>(
-          getClass().getSimpleName(),
-          getClass().getSimpleName() + "-findById",
-          ClosureHelper.toClosure(args -> service.loadObject(objectType, buildObjectKey(id))),
-          ClosureHelper.toClosure(
-              args -> allItemsCache.get().stream()
-              .filter(item -> item.getId().equalsIgnoreCase(id))
-              .findFirst()
-              .orElseThrow(() -> new NotFoundException(
-                  String.format("No item found in cache with id of %s", id.toLowerCase()))))
-      ).execute();
-    } catch (HystrixRuntimeException e) {
-      // This handles the case where the hystrix command times out.
-      if (e.getFallbackException() instanceof NotFoundException) {
-        throw (NotFoundException)e.getFallbackException();
-      } else {
-        throw e;
-      }
+    T result = new SimpleHystrixCommand<T>(
+        getClass().getSimpleName(),
+        getClass().getSimpleName() + "-findById",
+        ClosureHelper.toClosure(args -> {
+            try {
+              return service.loadObject(objectType, buildObjectKey(id));
+            } catch (NotFoundException e) {
+              return null;
+            }
+          }),
+        ClosureHelper.toClosure(
+            args -> allItemsCache.get().stream()
+            .filter(item -> item.getId().equalsIgnoreCase(id))
+            .findFirst()
+            .orElse(null))
+    ).execute();
+
+    if (result == null) {
+      throw new NotFoundException(
+        String.format("No item found with id of %s", id.toLowerCase())
+      );
     }
+    return result;
   }
 
   public void update(String id, T item) {
