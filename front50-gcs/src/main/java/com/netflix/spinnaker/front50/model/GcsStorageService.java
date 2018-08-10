@@ -512,33 +512,33 @@ GcsStorageService implements StorageService {
 
   @VisibleForTesting
   public void scheduleWriteLastModified(String daoTypeName) {
+    Date when = new Date();
+    when.setSeconds(when.getSeconds() + 2);
+    GcsStorageService service = this;
+    Runnable task = new Runnable() {
+      public void run() {
+        // Release the scheduled update lock, and perform the actual update
+        scheduledUpdateLock(daoTypeName).set(false);
+        log.info("RUNNING {}", daoTypeName);
+        service.writeLastModified(daoTypeName);
+      }
+    };
     if (scheduledUpdateLock(daoTypeName).compareAndSet(false, true)) {
-      Date when = new Date();
-      GcsStorageService service = this;
-      Runnable task = new Runnable() {
-        public void run() {
-          log.info("RUNNING {}", daoTypeName);
-          // Release the scheduled update lock, and perform the actual update
-          scheduledUpdateLock(daoTypeName).set(false);
-          service.writeLastModified(daoTypeName);
-        }
-      };
-      when.setSeconds(when.getSeconds() + 2);
       log.info("Scheduling deferred update {} timestamp.", daoTypeName);
       taskScheduler.schedule(task, when);
     }
   }
 
   private void writeLastModified(String daoTypeName) {
+    // We'll just touch the file since the StorageObject manages a timestamp.
+    String timestamp_path = daoRoot(daoTypeName) + '/' + LAST_MODIFIED_FILENAME;
+    StorageObject object = new StorageObject()
+      .setBucket(bucketName)
+      .setName(timestamp_path)
+      .setUpdated(new DateTime(System.currentTimeMillis()));
     // Short-circuit if there's a scheduled update, or if another thread has already acquired the
     // lock and is updating lastModified.
     if (!scheduledUpdateLock(daoTypeName).get() && updateLock(daoTypeName).compareAndSet(false, true)) {
-      // We'll just touch the file since the StorageObject manages a timestamp.
-      String timestamp_path = daoRoot(daoTypeName) + '/' + LAST_MODIFIED_FILENAME;
-      StorageObject object = new StorageObject()
-        .setBucket(bucketName)
-        .setName(timestamp_path)
-        .setUpdated(new DateTime(System.currentTimeMillis()));
       try {
         synchronized (updateLock(daoTypeName)) {
           // Release the update lock *before* actually updating lastModified as any thread observing
