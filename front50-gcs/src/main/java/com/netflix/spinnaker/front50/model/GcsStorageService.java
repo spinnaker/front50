@@ -540,7 +540,7 @@ GcsStorageService implements StorageService {
         .setName(timestamp_path)
         .setUpdated(new DateTime(System.currentTimeMillis()));
       try {
-        synchronized (this) {
+        synchronized (updateLock(daoTypeName)) {
           // Release the update lock *before* actually updating lastModified as any thread observing
           // the lock as set must know that the last modified time will be updated *after* it observed
           // the lock
