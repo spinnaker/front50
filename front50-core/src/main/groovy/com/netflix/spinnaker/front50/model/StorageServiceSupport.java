@@ -330,20 +330,31 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
             .from(ids)
             .flatMap(entry -> {
                   try {
-                    T object = (T) service.loadObject(objectType, entry.getKey());
+                    String key = entry.getKey();
+                    T object = (T) service.loadObject(objectType, key);
 
-                    Long expectedLastModifiedTime = keyUpdateTime.get(entry.getKey());
+                    Long expectedLastModifiedTime = keyUpdateTime.get(key);
                     Long currentLastModifiedTime = object.getLastModified();
 
                     if (expectedLastModifiedTime != null && currentLastModifiedTime != null) {
                       if (currentLastModifiedTime < expectedLastModifiedTime) {
                         log.warn(
                           "Unexpected stale read for {} (current: {}, expected: {})",
-                          entry.getKey(),
+                          key,
                           new Date(currentLastModifiedTime),
                           new Date(expectedLastModifiedTime)
                         );
                       }
+                    }
+
+                    if (!key.equals(buildObjectKey(object))) {
+                      log.warn(
+                        "Found an item whose key did not match its expected key.  (key: {}, expected key: {})",
+                        key,
+                        buildObjectKey(object)
+                      );
+                      // Should return Observable.empty() to skip caching, but will wait until the
+                      // logging has been present for a release.
                     }
 
                     return Observable.just(object);
@@ -361,7 +372,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
         .toBlocking()
         .single()
         .forEach(item -> {
-          resultMap.put(item.getId().toLowerCase(), item);
+          resultMap.put(buildObjectKey(item), item);
         });
 
     Set<T> result = resultMap.values().stream().collect(Collectors.toSet());
