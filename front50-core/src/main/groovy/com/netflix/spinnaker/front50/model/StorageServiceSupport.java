@@ -58,6 +58,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   private final Counter addCounter;      // Newly discovered files during refresh
   private final Counter removeCounter;   // Deletes discovered during refresh
   private final Counter updateCounter;   // Updates discovered during refresh
+  private final Counter mismatchedIdCounter;   // Items whose id does not match its cache key
 
   private final AtomicLong lastRefreshedTime = new AtomicLong();
   private final AtomicLong lastSeenStorageTime = new AtomicLong();
@@ -93,6 +94,8 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
       registry.createId("storageServiceSupport.numRemoved", "objectType", typeName));
     this.updateCounter = registry.counter(
       registry.createId("storageServiceSupport.numUpdated", "objectType", typeName));
+    this.mismatchedIdCounter = registry.counter(
+      registry.createId("storageServiceSupport.mismatchedIds", "objectType", typeName));
 
     registry.gauge(
       registry.createId("storageServiceSupport.cacheSize", "objectType", typeName),
@@ -348,8 +351,10 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
                     }
 
                     if (!key.equals(buildObjectKey(object))) {
+                      mismatchedIdCounter.increment();
                       log.warn(
-                        "Found an item whose key did not match its expected key.  (key: {}, expected key: {})",
+                        "{} '{}' has non-matching id '{}'",
+                        objectType.group,
                         key,
                         buildObjectKey(object)
                       );
