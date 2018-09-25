@@ -71,7 +71,9 @@ public class S3Config extends CommonStorageServiceDAOConfig {
         client.setSignerRegionOverride(s3Properties.getRegionOverride());
       }
 
-      client.setS3ClientOptions(S3ClientOptions.builder().setPathStyleAccess(true).build());
+      if (s3Properties.getEnablePathStyleAccess()) {
+        client.setS3ClientOptions(S3ClientOptions.builder().setPathStyleAccess(true).build());
+      }
     } else {
       Optional.ofNullable(s3Properties.getRegion())
         .map(Regions::fromName)

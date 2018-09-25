@@ -16,6 +16,8 @@
 
 package com.netflix.spinnaker.front50.config;
 
+import java.util.Objects;
+
 public class S3BucketProperties {
   private String bucket;
   private String region;
@@ -23,6 +25,7 @@ public class S3BucketProperties {
   // some s3 compatible solutions allow non-aws region identifiers to be used
   private String regionOverride;
   private String endpoint;
+  private Boolean enablePathStyleAccess;
   private String proxyHost;
   private String proxyPort;
   private String proxyProtocol;
@@ -87,4 +90,16 @@ public class S3BucketProperties {
   public Boolean getVersioning() { return versioning; }
 
   public void setVersioning(Boolean versioning) { this.versioning = versioning; }
+
+  public Boolean getEnablePathStyleAccess() {
+    if (Objects.isNull(enablePathStyleAccess)) {
+      return true;
+    }
+
+    return enablePathStyleAccess;
+  }
+
+  public void setEnablePathStyleAccess(Boolean enablePathStyleAccess) {
+    this.enablePathStyleAccess = enablePathStyleAccess;
+  }
 }
