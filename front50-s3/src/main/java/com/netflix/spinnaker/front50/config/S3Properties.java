@@ -91,6 +91,14 @@ public class S3Properties extends S3BucketProperties {
   }
 
   @Override
+  public Boolean getEnablePathStyleAccess() {
+    if (isFailoverEnabled()) {
+      return failover.getEnablePathStyleAccess();
+    }
+    return super.getEnablePathStyleAccess();
+  }
+
+  @Override
   public String getProxyHost() {
     if (isFailoverEnabled()) {
       return failover.getProxyHost();
