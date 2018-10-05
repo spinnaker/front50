@@ -29,12 +29,23 @@ public class S3Properties extends S3BucketProperties {
   @NestedConfigurationProperty
   S3EventingProperties eventing = new S3EventingProperties();
 
+  private Integer maxKeys = 10000;
+
+
   public String getRootFolder() {
     return rootFolder;
   }
 
   public void setRootFolder(String rootFolder) {
     this.rootFolder = rootFolder;
+  }
+
+  public Integer getMaxKeys() {
+    return maxKeys;
+  }
+
+  public void setMaxKeys(Integer maxKeys) {
+    this.maxKeys = maxKeys;
   }
 
   public S3FailoverProperties getFailover() {
