@@ -16,7 +16,6 @@
 
 package com.netflix.spinnaker.front50.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
@@ -31,8 +30,7 @@ public class S3Properties extends S3BucketProperties {
   S3EventingProperties eventing = new S3EventingProperties();
 
   // Front50 retrieves objects in batches of this size. Some S3 compatible store enforce a maximum number of keys
-  @Value("${spinnaker.s3.maxKeys:10000}")
-  private Integer maxKeys;
+  private Integer maxKeys = 10000;
 
 
   public String getRootFolder() {
