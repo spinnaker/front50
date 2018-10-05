@@ -43,9 +43,13 @@ public class S3Properties extends S3BucketProperties {
     this.rootFolder = rootFolder;
   }
 
-  public Integer getMaxKeys() { return maxKeys; }
+  public Integer getMaxKeys() {
+    return maxKeys;
+  }
 
-  public void setMaxKeys(Integer maxKeys) { this.maxKeys = maxKeys; }
+  public void setMaxKeys(Integer maxKeys) {
+    this.maxKeys = maxKeys;
+  }
 
   public S3FailoverProperties getFailover() {
     return failover;
