@@ -16,6 +16,9 @@
 
 apply plugin: 'spinnaker.application'
 
+tasks.startScripts.dependsOn(':front50-oracle:unpackSdk')
+tasks.startScripts.mustRunAfter(':front50-oracle:unpackSdk')
+
 ext {
   springConfigLocation = System.getProperty('spring.config.location', "${System.getProperty('user.home')}/.spinnaker/")
 }
