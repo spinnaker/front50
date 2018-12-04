@@ -50,6 +50,7 @@ class ServiceAccountsControllerSpec extends Specification {
     controller.createServiceAccount(serviceAccount)
     then:
     1 * fiatService.loginWithRoles(serviceAccount.name, serviceAccount.memberOf)
+    1 * fiatService.sync([])
   }
 
 }
