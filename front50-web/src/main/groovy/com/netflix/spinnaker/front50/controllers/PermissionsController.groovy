@@ -82,6 +82,7 @@ public class PermissionsController {
   Application.Permission createApplicationPermission(
       @RequestBody Application.Permission newPermission) {
     def perm = applicationPermissionDAO.create(newPermission.id, newPermission)
+    fiatService.createApplication(newPermission.name, "ignored")
     syncUsers(perm, null)
     return perm
   }
@@ -93,6 +94,7 @@ public class PermissionsController {
     try {
       def oldPermission = applicationPermissionDAO.findById(appName)
       applicationPermissionDAO.update(appName, newPermission)
+      fiatService.createApplication(newPermission.name, "ignored")
       syncUsers(newPermission, oldPermission)
     } catch (NotFoundException nfe) {
       createApplicationPermission(newPermission)

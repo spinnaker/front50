@@ -36,6 +36,9 @@ allprojects { project ->
     if (project.hasProperty('spinnakerDependenciesVersion')) {
       spinnakerDependenciesVersion = project.property('spinnakerDependenciesVersion')
     }
+    versions = [
+     fiat:'0.53.0-SNAPSHOT'
+    ]
   }
 
   def checkLocalVersions = [spinnakerDependenciesVersion: spinnakerDependenciesVersion]
