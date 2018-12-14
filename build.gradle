@@ -21,7 +21,7 @@ buildscript {
     maven { url "https://plugins.gradle.org/m2/" }
   }
   dependencies {
-    classpath 'com.netflix.spinnaker.gradle:spinnaker-dev-plugin:5.1.4'
+    classpath 'com.netflix.spinnaker.gradle:spinnaker-dev-plugin:5.2.2'
   }
 }
 
@@ -32,7 +32,7 @@ allprojects { project ->
   group = "com.netflix.spinnaker.front50"
 
   ext {
-    spinnakerDependenciesVersion = '1.7.0'
+    spinnakerDependenciesVersion = '1.9.0'
     if (project.hasProperty('spinnakerDependenciesVersion')) {
       spinnakerDependenciesVersion = project.property('spinnakerDependenciesVersion')
     }
