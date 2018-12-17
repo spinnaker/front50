@@ -58,7 +58,7 @@ public class ServiceAccountsController {
 
   @RequestMapping(method = RequestMethod.POST)
   ServiceAccount createServiceAccount(@RequestBody ServiceAccount serviceAccount) {
-    def acct = serviceAccountDAO.create(serviceAccount.id, serviceAccount)
+    ServiceAccount acct = serviceAccountDAO.create(serviceAccount.id, serviceAccount)
     syncUsers(acct)
     return acct
   }
@@ -81,7 +81,9 @@ public class ServiceAccountsController {
     }
     try {
       // Empty body to keep OkHttp happy: https://github.com/square/retrofit/issues/854
+      fiatService.createServiceAccount(serviceAccount.name, serviceAccount.memberOf)
       fiatService.sync(new ArrayList<String>())
+
       log.debug("Synced users with roles")
       // Invalidate the current user's permissions in the local cache
       Authentication auth = SecurityContextHolder.getContext().getAuthentication()
