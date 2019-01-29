@@ -84,6 +84,7 @@ class Application implements Timestamped {
         name: this.name,
         description: this.description,
         email: this.email,
+        cloudProviders: this.cloudProviders,
         updateTs: this.updateTs,
         createTs: this.createTs,
         details: this.details
