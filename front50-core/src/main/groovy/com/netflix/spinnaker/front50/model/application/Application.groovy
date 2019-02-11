@@ -54,12 +54,21 @@ class Application implements Timestamped {
   String createTs
   String lastModifiedBy
   public List<TrafficGuard> trafficGuards = []
+  Object cloudProviders // might be persisted as a List or a String
 
   private Map<String, Object> details = new HashMap<String, Object>()
 
   String getName() {
     // there is an expectation that application names are uppercased (historical)
     return name?.toUpperCase()?.trim()
+  }
+
+  List<TrafficGuard> getTrafficGuards() {
+    (List<TrafficGuard>) details.trafficGuards ?: []
+  }
+
+  void setTrafficGuards(List<TrafficGuard> trafficGuards) {
+    set("trafficGuards", trafficGuards)
   }
 
   @JsonAnyGetter
