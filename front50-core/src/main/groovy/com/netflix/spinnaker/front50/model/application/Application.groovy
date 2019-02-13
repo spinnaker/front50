@@ -53,8 +53,6 @@ class Application implements Timestamped {
   String updateTs
   String createTs
   String lastModifiedBy
-  public List<TrafficGuard> trafficGuards = []
-  Object cloudProviders // might be persisted as a List or a String
 
   private Map<String, Object> details = new HashMap<String, Object>()
 
