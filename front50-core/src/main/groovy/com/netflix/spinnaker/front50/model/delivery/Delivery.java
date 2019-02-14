@@ -14,8 +14,8 @@ public class Delivery implements Timestamped {
   private Long updateTs;
   private Long createTs;
   private String lastModifiedBy;
-  private List<Map<String,Object>> artifacts;
-  private List<Map<String,Object>> environments;
+  private List<Map<String,Object>> deliveryArtifacts;
+  private List<Map<String,Object>> deliveryEnvironments;
   private Map<String,Object> details = new HashMap<>();
 
   public Delivery() {
@@ -58,20 +58,20 @@ public class Delivery implements Timestamped {
     this.lastModifiedBy = lastModifiedBy;
   }
 
-  public List<Map<String,Object>> getArtifacts() {
-    return artifacts;
+  public List<Map<String,Object>> getDeliveryArtifacts() {
+    return deliveryArtifacts;
   }
 
-  public void setArtifacts(List<Map<String,Object>> artifacts) {
-    this.artifacts = artifacts;
+  public void setArtifacts(List<Map<String,Object>> deliveryEnvironments) {
+    this.deliveryArtifacts = deliveryEnvironments;
   }
 
-  public List<Map<String,Object>> getEnvironments() {
-    return environments;
+  public List<Map<String,Object>> getDeliveryEnvironments() {
+    return deliveryEnvironments;
   }
 
-  public void setEnvironments(List<Map<String,Object>> environments) {
-    this.environments = environments;
+  public void setEnvironments(List<Map<String,Object>> deliveryEnvironments) {
+    this.deliveryEnvironments = deliveryEnvironments;
   }
 
   public Long getCreateTs() {

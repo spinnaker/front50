@@ -15,15 +15,14 @@ class DeliveryControllerSpec extends Specification {
     deliveryRepository: configRepository
   )
 
-  def "reject deletion if config id is not in the right account"() {
-    given:
-    def config = new Delivery(
-      id: "aaa",
-      application: "ooboy",
-      artifacts: [],
-      environments: []
-    )
+  def config = new Delivery(
+    id: "aaa",
+    application: "ooboy",
+    deliveryArtifacts: [],
+    deliveryEnvironments: []
+  )
 
+  def "reject deletion if config id is not in the right account"() {
     when:
     configRepository.findById("aaa") >> config
     controller.deleteConfig("myapp", "aaa")
@@ -33,14 +32,6 @@ class DeliveryControllerSpec extends Specification {
   }
 
   def "reject new config if application doesn't match request url"() {
-    given:
-    def config = new Delivery(
-      id: "aaa",
-      application: "ooboy",
-      artifacts: [],
-      environments: []
-    )
-
     when:
     controller.createConfig("myapp", config)
 
@@ -49,14 +40,6 @@ class DeliveryControllerSpec extends Specification {
   }
 
   def "reject update to config if application doesn't match request url"() {
-    given:
-    def config = new Delivery(
-      id: "aaa",
-      application: "ooboy",
-      artifacts: [],
-      environments: []
-    )
-
     when:
     controller.upsertConfig("myapp", config)
 

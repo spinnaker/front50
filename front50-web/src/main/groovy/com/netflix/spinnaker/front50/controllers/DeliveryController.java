@@ -16,7 +16,7 @@ import java.util.Collection;
 @Slf4j
 @RestController
 @RequestMapping("")
-@ConditionalOnExpression("${spinnaker.managedDelivery.enabled:true}")
+@ConditionalOnExpression("${spinnaker.delivery.enabled:false}")
 public class DeliveryController {
 
   @Autowired
