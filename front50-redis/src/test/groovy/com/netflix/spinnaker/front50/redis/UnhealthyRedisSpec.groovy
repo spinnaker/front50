@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2019 Google, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
@@ -67,9 +67,6 @@ class UnhealthyRedisSpec extends Specification {
   }
 
   def "pipelineStrategyDAO report failing redis connection as not healthy"() {
-    given:
-    redisPipelineStrategyDAO.redisTemplate.connectionFactory = Mock(RedisConnectionFactory)
-
     when:
     def healthy = redisPipelineStrategyDAO.healthy
 
@@ -81,9 +78,6 @@ class UnhealthyRedisSpec extends Specification {
   }
 
   def "projectDAO should report failing redis connection as not healthy"() {
-    given:
-    redisProjectDAO.redisTemplate.connectionFactory = Mock(RedisConnectionFactory)
-
     when:
     def healthy = redisProjectDAO.healthy
 
