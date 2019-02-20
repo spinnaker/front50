@@ -17,8 +17,6 @@
 package com.netflix.spinnaker.front50.redis
 
 
-import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO
-import com.netflix.spinnaker.front50.model.project.ProjectDAO
 import com.netflix.spinnaker.front50.redis.config.UnhealthyRedisConfig
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -26,7 +24,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory
 import org.springframework.test.context.TestPropertySource
 import spock.lang.Specification
 
-@SpringBootTest(classes = [UnhealthyRedisConfig])
+@SpringBootTest(classes = [RedisConfig, UnhealthyRedisConfig])
 @TestPropertySource(properties = ["spinnaker.redis.enabled = true"])
 class UnhealthyRedisSpec extends Specification {
   @Autowired
@@ -39,10 +37,10 @@ class UnhealthyRedisSpec extends Specification {
   RedisPipelineDAO redisPipelineDAO
 
   @Autowired
-  PipelineStrategyDAO redisPipelineStrategyDAO
+  RedisPipelineStrategyDAO redisPipelineStrategyDAO
 
   @Autowired
-  ProjectDAO redisProjectDAO
+  RedisProjectDAO redisProjectDAO
 
   def "applicationDAO should report failing redis connection as not healthy"() {
     when:

@@ -26,7 +26,7 @@ import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
 
-@SpringBootTest(classes = [EmbeddedRedisConfig])
+@SpringBootTest(classes = [RedisConfig, EmbeddedRedisConfig])
 @TestPropertySource(properties = ["spinnaker.redis.enabled = true"])
 class RedisApplicationDAOSpec extends Specification {
   @Autowired

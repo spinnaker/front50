@@ -24,7 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.TestPropertySource
 import spock.lang.Specification
 
-@SpringBootTest(classes = [EmbeddedRedisConfig])
+@SpringBootTest(classes = [RedisConfig, EmbeddedRedisConfig])
 @TestPropertySource(properties = ["spinnaker.redis.enabled = true"])
 class RedisPipelineStrategyDAOSpec extends Specification {
   @Autowired
