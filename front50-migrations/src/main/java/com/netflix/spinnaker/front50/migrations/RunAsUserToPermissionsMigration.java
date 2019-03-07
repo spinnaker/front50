@@ -71,7 +71,6 @@ public class RunAsUserToPermissionsMigration implements Migration {
     LOG.info("Finished runAsUser to automatic service user migration");
   }
 
-  @SuppressWarnings("unchecked")
   private void migrate(Pipeline pipeline, Map<String, ServiceAccount> serviceAccounts) {
     LOG.info("Starting migration of pipeline '{}' (application: '{}', pipelineId: '{}')",
         value("pipelineName", pipeline.getName()),
