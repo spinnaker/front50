@@ -9,6 +9,7 @@ import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 
 import static net.logstash.logback.argument.StructuredArguments.value;
 
+@Slf4j
 @Component
 @ConditionalOnProperty("migrations.migrateToManagedServiceAccounts")
 public class RunAsUserToPermissionsMigration implements Migration {
@@ -36,7 +38,6 @@ public class RunAsUserToPermissionsMigration implements Migration {
   // Only valid until April 1, 2020
   private static final LocalDate VALID_UNTIL = LocalDate.of(2020, Month.APRIL, 1);
 
-  private static final Logger LOG = LoggerFactory.getLogger(RunAsUserToPermissionsMigration.class);
   private static final String SERVICE_ACCOUNT_SUFFIX = "@managed-service-account";
   private static final String RUN_AS_USER = "runAsUser";
   private static final String ROLES = "roles";
@@ -58,7 +59,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
 
   @Override
   public void run() {
-    LOG.info("Starting runAsUser to automatic service user migration ({})", this.getClass().getSimpleName());
+    log.info("Starting runAsUser to automatic service user migration ({})", this.getClass().getSimpleName());
 
     Map<String, ServiceAccount> serviceAccounts = serviceAccountDAO.all().stream()
         .collect(Collectors.toMap(ServiceAccount::getName, Function.identity()));
@@ -68,11 +69,11 @@ public class RunAsUserToPermissionsMigration implements Migration {
         .filter(p -> p.getTriggers().stream().anyMatch(this::hasManualServiceUser))
         .forEach(pipeline -> migrate(pipeline, serviceAccounts));
 
-    LOG.info("Finished runAsUser to automatic service user migration");
+    log.info("Finished runAsUser to automatic service user migration");
   }
 
   private void migrate(Pipeline pipeline, Map<String, ServiceAccount> serviceAccounts) {
-    LOG.info("Starting migration of pipeline '{}' (application: '{}', pipelineId: '{}')",
+    log.info("Starting migration of pipeline '{}' (application: '{}', pipelineId: '{}')",
         value("pipelineName", pipeline.getName()),
         value("application", pipeline.getApplication()),
         value("pipelineId", pipeline.getId())
@@ -98,7 +99,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
           newRoles.addAll(oldRoles);
         }
       }
-      LOG.info("Replacing '{}' with automatic service user '{}' (application: '{}', pipelineName: '{}', "
+      log.info("Replacing '{}' with automatic service user '{}' (application: '{}', pipelineName: '{}', "
               + "pipelineId: '{}')",
           value("oldServiceUser", runAsUser),
           value("newServiceUser", serviceAccountName),
@@ -109,7 +110,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
       trigger.put(RUN_AS_USER, serviceAccountName);
     });
 
-    LOG.info("Creating service user '{}' with roles {}", serviceAccountName, newRoles);
+    log.info("Creating service user '{}' with roles {}", serviceAccountName, newRoles);
     automaticServiceAccount.getMemberOf().addAll(newRoles);
     pipeline.put(ROLES, new ArrayList<>(newRoles));
     pipeline.setTriggers(triggers);
