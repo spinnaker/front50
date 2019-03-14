@@ -81,7 +81,7 @@ public class ServiceAccountsController {
     }
     try {
       // Empty body to keep OkHttp happy: https://github.com/square/retrofit/issues/854
-      fiatService.sync(new ArrayList<String>())
+      fiatService.sync(serviceAccount.memberOf)
       log.debug("Synced users with roles")
       // Invalidate the current user's permissions in the local cache
       Authentication auth = SecurityContextHolder.getContext().getAuthentication()
