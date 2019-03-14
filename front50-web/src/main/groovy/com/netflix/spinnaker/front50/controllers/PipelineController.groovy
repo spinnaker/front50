@@ -108,15 +108,19 @@ class PipelineController {
     pipeline.name = pipeline.getName().trim()
     pipeline = ensureCronTriggersHaveIdentifier(pipeline)
 
-    if (!pipeline.id) {
+    if (!pipeline.id || extractCronTriggersWithoutId(pipeline)) {
       // ensure that cron triggers are assigned a unique identifier for new pipelines
-      def triggers = (pipeline.triggers ?: []) as List<Map>
-      triggers.findAll { it.type == "cron" }.each { Map trigger ->
+      extractCronTriggersWithoutId(pipeline).each { Map trigger ->
         trigger.id = UUID.randomUUID().toString()
       }
     }
 
     return pipelineDAO.create(pipeline.id as String, pipeline)
+  }
+
+  private static List<Map> extractCronTriggersWithoutId(Pipeline pipeline) {
+    def triggers = (pipeline.triggers ?: []) as List<Map>
+    triggers.findAll { it.type == "cron" && !it.id }
   }
 
   @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
