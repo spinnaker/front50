@@ -16,7 +16,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 
-class   RunAsUserToPermissionsMigrationSpec extends Specification {
+class RunAsUserToPermissionsMigrationSpec extends Specification {
   PipelineDAO pipelineDAO = Mock()
   ServiceAccountDAO serviceAccountDAO = Mock()
 

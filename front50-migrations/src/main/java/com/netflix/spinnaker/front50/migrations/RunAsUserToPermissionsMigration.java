@@ -97,10 +97,9 @@ public class RunAsUserToPermissionsMigration implements Migration {
       if (runAsUser != null && !runAsUser.endsWith(SERVICE_ACCOUNT_SUFFIX)) {
         ServiceAccount manualServiceAccount = serviceAccounts.get(runAsUser);
         if (manualServiceAccount != null && !manualServiceAccount.getMemberOf().isEmpty()) {
-          List<String> oldRoles = manualServiceAccount.getMemberOf().stream()
+          manualServiceAccount.getMemberOf().stream()
               .map(String::toLowerCase) // Because roles in Spinnaker are always lowercase
-              .collect(Collectors.toList());
-          newRoles.addAll(oldRoles);
+              .forEach(newRoles::add);
         }
       }
       log.info("Replacing '{}' with automatic service user '{}' (application: '{}', pipelineName: '{}', "
