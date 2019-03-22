@@ -112,7 +112,11 @@ public class S3StorageService implements StorageService {
     try {
       S3Object s3Object = amazonS3.getObject(bucket, buildS3Key(objectType.group, objectKey, objectType.defaultMetadataFilename));
       T item = deserialize(s3Object, (Class<T>) objectType.clazz);
-      item.setLastModified(s3Object.getObjectMetadata().getLastModified().getTime());
+
+      if (item.getLastModified() == null) {
+        item.setLastModified(s3Object.getObjectMetadata().getLastModified().getTime());
+      }
+
       return item;
     } catch (AmazonS3Exception e) {
       if (e.getStatusCode() == 404) {
@@ -230,7 +234,11 @@ public class S3StorageService implements StorageService {
             new GetObjectRequest(bucket, buildS3Key(objectType.group, objectKey, objectType.defaultMetadataFilename), s3VersionSummary.getVersionId())
           );
           T item = deserialize(s3Object, (Class<T>) objectType.clazz);
-          item.setLastModified(s3Object.getObjectMetadata().getLastModified().getTime());
+
+          if (item.getLastModified() == null) {
+            item.setLastModified(s3Object.getObjectMetadata().getLastModified().getTime());
+          }
+
           return item;
         } catch (IOException e) {
           throw new IllegalStateException(e);
