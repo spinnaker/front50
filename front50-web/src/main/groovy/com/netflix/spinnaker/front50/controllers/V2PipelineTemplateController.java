@@ -83,24 +83,21 @@ public class V2PipelineTemplateController {
 
     // NOTE: We need to store the tag in the template blob to resolve the proper id later.
     String templateId;
-    if (StringUtils.isNotEmpty(tag)) {
+    boolean nonEmptyTag = StringUtils.isNotEmpty(tag);
+    if (nonEmptyTag) {
       templateId = String.format("%s:%s", pipelineTemplate.undecoratedId(), tag);
       pipelineTemplate.setTag(tag);
     } else {
       templateId = pipelineTemplate.undecoratedId();
     }
 
-    try {
-      checkForDuplicatePipelineTemplate(templateId);
-    } catch (DuplicateEntityException dee) {
-      log.debug("Updating latest tag for template with id: {}", templateId);
-      return;
-    }
+    checkForDuplicatePipelineTemplate(templateId);
     getPipelineTemplateDAO().create(templateId, pipelineTemplate);
+    saveLatest(pipelineTemplate, tag);
     saveDigest(pipelineTemplate);
   }
 
-  public void saveDigest(PipelineTemplate pipelineTemplate) {
+  private void saveDigest(PipelineTemplate pipelineTemplate) {
     pipelineTemplate.remove("digest");
     String digest = computeSHA256Digest(pipelineTemplate);
     String digestId = String.format("%s@sha256:%s", pipelineTemplate.undecoratedId(), digest);
@@ -114,22 +111,31 @@ public class V2PipelineTemplateController {
     getPipelineTemplateDAO().create(digestId, pipelineTemplate);
   }
 
+  private void saveLatest(PipelineTemplate pipelineTemplate, String tag) {
+    boolean emptyTag = StringUtils.isEmpty(tag);
+    boolean nonLatestTag = !emptyTag && !tag.equals("latest");
+    if (emptyTag || nonLatestTag) {
+      String latestTemplateId = String.format("%s:latest", pipelineTemplate.undecoratedId());
+      pipelineTemplate.setTag("latest");
+      getPipelineTemplateDAO().update(latestTemplateId, pipelineTemplate);
+      log.debug("Wrote latest tag for template: {}", pipelineTemplate.undecoratedId());
+    }
+  }
+
   @RequestMapping(value = "{id}", method = RequestMethod.PUT)
   PipelineTemplate update(@PathVariable String id, @RequestParam(value = "tag", required = false) String tag, @RequestBody PipelineTemplate pipelineTemplate) {
-    if (StringUtils.isNotEmpty(tag)) {
+    boolean nonEmptyTag = StringUtils.isNotEmpty(tag);
+    if (nonEmptyTag) {
       validatePipelineTemplateTag(tag);
     }
 
-    String templateId = StringUtils.isNotEmpty(tag) ? String.format("%s:%s", id, tag) : pipelineTemplate.undecoratedId();
+    String templateId = nonEmptyTag ? String.format("%s:%s", id, tag) : pipelineTemplate.undecoratedId();
     pipelineTemplate.setLastModified(System.currentTimeMillis());
+    pipelineTemplate.setTag(tag);
     getPipelineTemplateDAO().update(templateId, pipelineTemplate);
-    updateDigest(pipelineTemplate);
+    saveLatest(pipelineTemplate, tag);
+    saveDigest(pipelineTemplate);
     return pipelineTemplate;
-  }
-
-  private void updateDigest(PipelineTemplate pipelineTemplate) {
-    String digestId = String.format("%s@sha256:%s", pipelineTemplate.undecoratedId(), computeSHA256Digest(pipelineTemplate));
-    getPipelineTemplateDAO().update(digestId, pipelineTemplate);
   }
 
   @RequestMapping(value = "{id}", method = RequestMethod.GET)
