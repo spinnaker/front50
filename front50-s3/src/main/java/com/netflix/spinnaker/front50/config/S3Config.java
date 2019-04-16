@@ -140,7 +140,6 @@ public class S3Config extends CommonStorageServiceDAOConfig {
   public S3StorageService s3StorageService(AmazonS3 amazonS3,
                                            S3Properties s3Properties) {
     ObjectMapper awsObjectMapper = new ObjectMapper();
-//    AmazonObjectMapperConfigurer.configure(awsObjectMapper);
 
     S3StorageService service = new S3StorageService(
       awsObjectMapper,
