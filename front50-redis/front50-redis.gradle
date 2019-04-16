@@ -20,8 +20,8 @@ configurations.all {
 
 dependencies {
   compile project(":front50-core")
-  compile 'org.springframework.data:spring-data-redis:1.7.1.RELEASE'
-  compile 'redis.clients:jedis:2.8.1'
+  compile 'org.springframework.data:spring-data-redis:2.1.6.RELEASE'
+  compile 'redis.clients:jedis:2.9.3'
 
   testCompile project(":front50-test")
   testCompile spinnaker.dependency('korkJedisTest')

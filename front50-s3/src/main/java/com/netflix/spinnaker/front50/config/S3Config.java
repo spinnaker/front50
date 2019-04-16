@@ -14,14 +14,12 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.appinfo.ApplicationInfoManager;
-import com.netflix.awsobjectmapper.AmazonObjectMapperConfigurer;
 import com.netflix.spectator.api.Registry;
-import com.netflix.spinnaker.clouddriver.aws.bastion.BastionConfig;
-import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider;
 import com.netflix.spinnaker.front50.model.EventingS3ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.S3StorageService;
 import com.netflix.spinnaker.front50.model.TemporarySQSQueue;
+import com.netflix.spinnaker.kork.aws.bastion.BastionConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -41,10 +39,6 @@ import java.util.concurrent.Executors;
 @Import(BastionConfig.class)
 @EnableConfigurationProperties(S3Properties.class)
 public class S3Config extends CommonStorageServiceDAOConfig {
-  @Bean
-  public AmazonClientProvider amazonClientProvider() {
-    return new AmazonClientProvider();
-  }
 
   @Bean
   public AmazonS3 awsS3Client(AWSCredentialsProvider awsCredentialsProvider, S3Properties s3Properties) {
@@ -146,7 +140,7 @@ public class S3Config extends CommonStorageServiceDAOConfig {
   public S3StorageService s3StorageService(AmazonS3 amazonS3,
                                            S3Properties s3Properties) {
     ObjectMapper awsObjectMapper = new ObjectMapper();
-    AmazonObjectMapperConfigurer.configure(awsObjectMapper);
+//    AmazonObjectMapperConfigurer.configure(awsObjectMapper);
 
     S3StorageService service = new S3StorageService(
       awsObjectMapper,

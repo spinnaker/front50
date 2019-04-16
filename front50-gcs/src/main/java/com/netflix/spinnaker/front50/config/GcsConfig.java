@@ -42,22 +42,22 @@ import static net.logstash.logback.argument.StructuredArguments.value;
 @ConditionalOnExpression("${spinnaker.gcs.enabled:false}")
 @EnableConfigurationProperties(GcsProperties.class)
 public class GcsConfig extends CommonStorageServiceDAOConfig {
-  @Value("${spinnaker.gcs.safeRetry.maxWaitIntervalMs:60000}")
+  @Value("${spinnaker.gcs.safe-retry.max-wait-interval-ms:60000}")
   Long maxWaitInterval;
 
-  @Value("${spinnaker.gcs.safeRetry.retryIntervalBaseSec:2}")
+  @Value("${spinnaker.gcs.safe-retry.retry-interval-base-sec:2}")
   Long retryIntervalBase;
 
-  @Value("${spinnaker.gcs.safeRetry.jitterMultiplier:1000}")
+  @Value("${spinnaker.gcs.safe-retry.jitter-multiplier:1000}")
   Long jitterMultiplier;
 
-  @Value("${spinnaker.gcs.safeRetry.maxRetries:10}")
+  @Value("${spinnaker.gcs.safe-retry.max-retries:10}")
   Long maxRetries;
 
-  @Value("${spinnaker.gcs.connectTimeoutSec:45}")
+  @Value("${spinnaker.gcs.connect-timeout-sec:45}")
   Integer connectTimeoutSec;
 
-  @Value("${spinnaker.gcs.readTimeoutSec:45}")
+  @Value("${spinnaker.gcs.read-timeout-sec:45}")
   Integer readTimeoutSec;
 
   @Autowired
