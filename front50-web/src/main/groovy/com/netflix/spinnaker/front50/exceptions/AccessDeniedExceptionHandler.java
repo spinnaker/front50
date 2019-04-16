@@ -16,7 +16,8 @@
 
 package com.netflix.spinnaker.front50.exceptions;
 
-import org.springframework.boot.autoconfigure.web.DefaultErrorAttributes;
+
+import org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;

@@ -17,7 +17,8 @@
 dependencies {
   compile project(":front50-core")
 
-  compile spinnaker.dependency("clouddriverAws")
+  compile spinnaker.dependency("korkAws")
+//  compile spinnaker.dependency("clouddriverAws")
 //  compile 'com.aestasit.infrastructure.sshoogr:sshoogr:0.9.15'
 
   testCompile project(":front50-test")

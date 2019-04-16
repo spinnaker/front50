@@ -30,7 +30,7 @@ import static net.logstash.logback.argument.StructuredArguments.value;
 
 @Slf4j
 @Component
-@ConditionalOnProperty("migrations.migrateToManagedServiceAccounts")
+@ConditionalOnProperty("migrations.migrate-to-managed-service-accounts")
 public class RunAsUserToPermissionsMigration implements Migration {
 
   // Only valid until April 1, 2020
