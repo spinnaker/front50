@@ -134,6 +134,8 @@ public class ApplicationsController {
       def perm = applicationPermissionDAO?.findById(app.name)
       if (perm?.permissions?.isRestricted()) {
         app.details().put("permissions", perm.permissions)
+      } else {
+        app.details().remove("permissions")
       }
     } catch (NotFoundException nfe) {
       // ignored.
