@@ -3,6 +3,7 @@ package com.netflix.spinnaker.front50.config;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
@@ -18,11 +19,13 @@ import com.netflix.awsobjectmapper.AmazonObjectMapperConfigurer;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.clouddriver.aws.bastion.BastionConfig;
 import com.netflix.spinnaker.clouddriver.aws.security.AmazonClientProvider;
+import com.netflix.spinnaker.clouddriver.aws.security.NetflixSTSAssumeRoleSessionCredentialsProvider;
 import com.netflix.spinnaker.front50.model.EventingS3ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.S3StorageService;
 import com.netflix.spinnaker.front50.model.TemporarySQSQueue;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -33,6 +36,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 
@@ -41,9 +45,35 @@ import java.util.concurrent.Executors;
 @Import(BastionConfig.class)
 @EnableConfigurationProperties(S3Properties.class)
 public class S3Config extends CommonStorageServiceDAOConfig {
+  private final static String ASSUME_ROLE_SESSION = "front50";
+
+  @Value("${spinnaker.s3.assumeRole:}")
+  String assumeRole;
+
+  @Value("${spinnaker.s3.assumeRoleAccountId:}")
+  String assumeRoleAccountId;
+
   @Bean
   public AmazonClientProvider amazonClientProvider() {
     return new AmazonClientProvider();
+  }
+
+  protected AWSCredentialsProvider awsAssumeRoleCredentialsProvider(AWSCredentialsProvider awsCredentialsProvider) {
+    String assumeRoleArn,
+      accountId;
+
+    if (assumeRole.startsWith("arn:")) {
+      assumeRoleArn = assumeRole;
+      String[] parts = assumeRoleArn.split(":");
+      accountId = parts.length > 4 ? parts[4] : "";
+    } else {
+      accountId = Objects.requireNonNull(assumeRoleAccountId, "accountId");
+      assumeRoleArn = String.format("arn:aws:iam::%s:%s", assumeRoleAccountId, assumeRole);
+    }
+    return new NetflixSTSAssumeRoleSessionCredentialsProvider(awsCredentialsProvider,
+      assumeRoleArn,
+      ASSUME_ROLE_SESSION,
+      accountId);
   }
 
   @Bean
@@ -60,6 +90,10 @@ public class S3Config extends CommonStorageServiceDAOConfig {
       Optional.ofNullable(s3Properties.getProxyPort())
         .map(Integer::parseInt)
         .ifPresent(clientConfiguration::setProxyPort);
+    }
+
+    if (!StringUtils.isEmpty(assumeRole)) {
+      awsCredentialsProvider = awsAssumeRoleCredentialsProvider(awsCredentialsProvider);
     }
 
     AmazonS3Client client = new AmazonS3Client(awsCredentialsProvider, clientConfiguration);
