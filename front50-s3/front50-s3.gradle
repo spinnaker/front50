@@ -15,9 +15,10 @@
  */
 
 dependencies {
-  compile project(":front50-core")
+  implementation project(":front50-core")
 
-  compile spinnaker.dependency("korkAws")
+  implementation "com.netflix.spinnaker.kork:kork-aws"
+  implementation "com.amazonaws:aws-java-sdk-s3"
 
-  testCompile project(":front50-test")
+  testImplementation project(":front50-test")
 }

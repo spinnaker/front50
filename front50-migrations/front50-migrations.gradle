@@ -15,7 +15,7 @@
  */
 
 dependencies {
-  compile project(":front50-core")
+  implementation project(":front50-core")
 
-  testCompile project(":front50-test")
+  testImplementation project(":front50-test")
 }

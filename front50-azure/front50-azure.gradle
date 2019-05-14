@@ -22,12 +22,11 @@ repositories {
 }
 
 dependencies {
-  compile project(":front50-core")
-  compile 'com.microsoft.azure:azure:1.0.0-beta3'
-  compile 'com.microsoft.azure:azure-storage:4.4.0'
-  compile 'com.microsoft.azure:azure-mgmt-storage:1.0.0-beta3'
+  implementation project(":front50-core")
+  implementation 'com.microsoft.azure:azure:1.0.0-beta3'
+  implementation 'com.microsoft.azure:azure-storage:4.4.0'
+  implementation 'com.microsoft.azure:azure-mgmt-storage:1.0.0-beta3'
 
-  compile spinnaker.dependency("korkSecurity")
-  testCompile project(":front50-test")
+  implementation "com.netflix.spinnaker.kork:kork-security"
+  testImplementation project(":front50-test")
 }
-

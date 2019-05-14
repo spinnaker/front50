@@ -15,13 +15,17 @@
  */
 
 dependencies {
-  spinnaker.group "bootWeb"
-  spinnaker.group "fiat"
+  implementation "org.springframework.boot:spring-boot-starter-web"
+  implementation "org.springframework.boot:spring-boot-starter-actuator"
+  api "com.netflix.spinnaker.fiat:fiat-api:$fiatVersion"
+  implementation "com.netflix.spinnaker.fiat:fiat-core:$fiatVersion"
+  implementation "org.springframework.security:spring-security-config"
+  implementation "org.springframework.security:spring-security-core"
+  implementation "org.springframework.security:spring-security-web"
 
-  compile spinnaker.dependency('kork')
-  compile spinnaker.dependency('korkExceptions')
-  compile spinnaker.dependency('korkHystrix')
-  compile spinnaker.dependency('korkSecurity')
-  compile spinnaker.dependency('korkArtifacts')
-  compile spinnaker.dependency('lombok')
+  api "com.netflix.spinnaker.kork:kork-core"
+  implementation "com.netflix.spinnaker.kork:kork-exceptions"
+  api "com.netflix.spinnaker.kork:kork-hystrix"
+  api "com.netflix.spinnaker.kork:kork-security"
+  implementation "com.netflix.spinnaker.kork:kork-artifacts"
 }

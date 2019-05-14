@@ -35,23 +35,23 @@ configurations.all {
 }
 
 dependencies {
-  compile project(":front50-core")
-  compile project(":front50-migrations")
+  implementation project(":front50-core")
+  implementation project(":front50-migrations")
 
-  spinnaker.group "bootWeb"
+  implementation "org.springframework.boot:spring-boot-starter-web"
+  implementation "org.springframework.boot:spring-boot-starter-actuator"
 
-  compile spinnaker.dependency("korkWeb")
-  compile spinnaker.dependency("korkStackdriver")
-  compile spinnaker.dependency("korkSwagger")
-  compile spinnaker.dependency("kork")
-  compile spinnaker.dependency("lombok")
-  compile spinnaker.dependency("retrofitJackson")
+  implementation "com.netflix.spinnaker.kork:kork-web"
+  implementation "com.netflix.spinnaker.kork:kork-stackdriver"
+  implementation "com.netflix.spinnaker.kork:kork-swagger"
+  implementation "com.netflix.spinnaker.kork:kork-core"
+  implementation "com.squareup.retrofit:converter-jackson"
 
-  testCompile project(":front50-test")
+  testImplementation project(":front50-test")
 
   // Add each included cloud provider project as a runtime dependency
   gradle.includedProviderProjects.each {
-    runtime project(it)
+    runtimeOnly project(it)
   }
 }
 

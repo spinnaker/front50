@@ -57,9 +57,10 @@ tasks.clean.dependsOn('cleanSdk')
 tasks.compileJava.dependsOn('unpackSdk')
 
 dependencies {
-  compile project(":front50-core")
+  implementation project(":front50-core")
 
-  compile fileTree(sdkLocation)
+  implementation fileTree(sdkLocation)
+  implementation "com.sun.jersey:jersey-client"
 
-  testCompile project(":front50-test")
+  testImplementation project(":front50-test")
 }
