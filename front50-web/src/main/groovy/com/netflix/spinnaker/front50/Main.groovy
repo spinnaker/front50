@@ -19,7 +19,6 @@
 package com.netflix.spinnaker.front50
 
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
-import org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration
 import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
 import org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 import org.springframework.boot.autoconfigure.groovy.template.GroovyTemplateAutoConfiguration
@@ -35,7 +34,6 @@ import org.springframework.scheduling.annotation.EnableScheduling
 @EnableScheduling
 @EnableAutoConfiguration(exclude = [
   GroovyTemplateAutoConfiguration,
-  CassandraAutoConfiguration,
   RedisAutoConfiguration,
   RedisRepositoriesAutoConfiguration,
   DataSourceAutoConfiguration,
