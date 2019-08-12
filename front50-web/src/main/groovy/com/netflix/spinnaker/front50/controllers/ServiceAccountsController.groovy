@@ -60,6 +60,18 @@ public class ServiceAccountsController {
     serviceAccountDAO.all();
   }
 
+  @RequestMapping(method = RequestMethod.GET, value = "/{serviceAccountId:.+}")
+  ServiceAccount getServiceAccount(@PathVariable String serviceAccountId) {
+    serviceAccountDAO.findById(serviceAccountId)
+  }
+
+  @RequestMapping(method = RequestMethod.POST, value = "/{serviceAccountId:.+}/invalidateCache")
+  void invalidateCache(@PathVariable String serviceAccountId) {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication()
+    fiatPermissionEvaluator.invalidatePermission((String) auth?.principal)
+    fiatPermissionEvaluator.invalidatePermission(serviceAccountId)
+  }
+
   @RequestMapping(method = RequestMethod.POST)
   ServiceAccount createServiceAccount(@RequestBody ServiceAccount serviceAccount) {
     def acct = serviceAccountDAO.create(serviceAccount.id, serviceAccount)
