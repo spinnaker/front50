@@ -11,3 +11,5 @@ vendor/
 .idea
 
 front50-oracle-bmcs/bmcs-sdk
+
+build-gen/

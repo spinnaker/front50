@@ -1,0 +1,242 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+package spinnaker.front50.v3;
+
+option java_package = "com.netflix.spinnaker.front50.proto";
+option java_multiple_files = true;
+
+// ApplicationService is the service for interacting with the Spinnaker application domain.
+service ApplicationService {
+  // ListApplications provides a way of searching through Applications..
+  rpc ListApplications (ListApplicationsRequest) returns (ListApplicationsResponse);
+
+  // GetApplication returns a single Application matching the criteria provided.
+  rpc GetApplication (GetApplicationRequest) returns (Application);
+
+  // CreateApplication will create a new Application. If an Application already exists by its name, this operation
+  // will raise a PreconditionFailure.
+  rpc CreateApplication (CreateApplicationRequest) returns (Application);
+
+  // UpdateApplication will update an existing Application. If an Application does not exist at the provided name, this
+  // operation will raise a PreconditionFailure.
+  rpc UpdateApplication (UpdateApplicationRequest) returns (Application);
+
+  // DeleteApplication will delete an Application. This operation is unaffected by prior state.
+  rpc DeleteApplication (DeleteApplicationRequest) returns (google.protobuf.Empty);
+
+  // ListApplicationRevisions returns an Application's revision history.
+  rpc ListApplicationRevisions (ListApplicationRevisionsRequest) returns (ListApplicationRevisionsResponse);
+}
+
+// An Application includes all configuration for a particular service within Spinnaker, and is an aggregate of
+// associated infrastructure collections such as clusters, server groups, firewalls, load balancers, etc.
+//
+// You will typically create a different application for each service, though Spinnaker does not enforce that.
+message Application {
+  // Required. Resource name for the application (e.g. "applications/front50")
+  string name = 1;
+
+  // Required. The official name of the application (e.g. "front50")
+  string title = 2;
+
+  // The description of the application's purpose and function.
+  string description = 3;
+
+  // Required. The email address (typically a distribution list) of the owner to the application.
+  repeated string owner_email = 4;
+
+  // Output only. When the application was first created.
+  google.protobuf.Timestamp create_time = 5;
+
+  // Output only. When the application was last updated.
+  google.protobuf.Timestamp update_time = 6;
+
+  // Output only. The actor which updated the application.
+  string updated_by = 7;
+
+  // A list of cloud providers that the application has configured.
+  //
+  // While not required, defining cloud providers will help inform Spinnaker's behavior for the application.
+  repeated string cloud_providers = 8;
+
+  // A bucket of named, client-typed application attributes.
+  //
+  // This allows extension of the configuration that Front50 provides for an application without modification of its
+  // core data model.
+  map<string, AttributeGroup> attribute_groups = 9;
+
+  // A named collection of instance links for an application.
+  repeated InstanceLinkGroup instance_links = 10;
+
+  // A list of all accounts an application resides in.
+  //
+  // While not required, defining accounts will help inform Spinnaker's behavior for the application.
+  repeated string accounts = 11;
+
+  // A list of application-wide notification configurations.
+  //
+  // Notifications can be triggered in response to a number of events within Spinnaker, including pipeline execution
+  // lifecycle changes.
+  repeated Notification notifications = 12;
+
+  // An arbitrary bucket of labels for the application that can be used by end-users and integrators alike.
+  map<string, string> labels = 13;
+}
+
+// AttributeGroup is a named, client-typed bucket of data used for extending Front50's data model.
+message AttributeGroup {
+  // Resource name for the attribute group (e.g. "attributeGroups/netflixTimelines")
+  string name = 1;
+
+  // The data associated with the attribute group.
+  google.protobuf.Struct data = 2;
+
+  // The required permissions for updating an attribute group.
+  repeated Permission permissions = 3;
+}
+
+// InstanceLinkGroup is a titled collection of InstanceLinks.
+message InstanceLinkGroup {
+  // The title of the group.
+  string title = 1;
+
+  // A collection of instance links.
+  repeated InstanceLink links = 2;
+}
+
+// InstanceLink is a titled URL link template for server group instances.
+message InstanceLink {
+  // The title of an instance link.
+  string title = 1;
+
+  // The link template value.
+  string link = 2;
+}
+
+// Notification is the configuration for application-wide notification recipients.
+message Notification {
+  // The type of notification (e.g. slack, email, webhook...)
+  string notification_type = 1;
+
+  // The type-specific notification recipient (e.g. email address, slack channel(s), webhook endpoint...)
+  string recipient = 2;
+
+  // A collection of event names to notify on.
+  repeated string notifying_events = 3;
+
+  // A bucket of type-specific notification config.
+  google.protobuf.Struct metadata = 6;
+}
+
+// Permission defines an authorization and its allowed prinicpals.
+message Permission {
+  // The privilege that is being granted.
+  Privilege name = 1;
+
+  enum Privilege {
+    UNKNOWN = 0;
+    READ = 1;
+    WRITE = 2;
+    EXECUTE = 3;
+  }
+
+  // A collection of principals who are allowed this permission.
+  repeated string allowed_principals = 2;
+}
+
+// ListApplicationsRequest can be used to list and search applications known to Spinnaker.
+message ListApplicationsRequest {
+  // The number of applications to return in the response.
+  //
+  // Defaults to 100.
+  int32 page_size = 1;
+
+  // The page token to continue pagination from. If left unset, the first `page_size` results will be returned.
+  string page_token = 2;
+
+  // Allows filtering of applications by fields.
+  string filter = 3;
+
+  // Order applications by fields and direction.
+  string order_by = 4;
+
+  // Define partial responses of an application.
+  google.protobuf.FieldMask fields = 5;
+}
+
+// ListApplicationsResponse returns a page of applications matching the provided request.
+message ListApplicationsResponse {
+  // The applications returned.
+  repeated Application applications = 1;
+
+  // The next page token, if any.
+  string next_page_token = 2;
+}
+
+// GetApplicationRequest returns a single application.
+message GetApplicationRequest {
+  // Required. Resource name for the application (e.g. "applications/front50")
+  string name = 1;
+
+  // Define partial responses of an application.
+  google.protobuf.FieldMask fields = 2;
+}
+
+// CreateApplicationRequest will attempt to create an application.
+message CreateApplicationRequest {
+  // Required. The application to be created.
+  Application application = 1;
+
+  // If true, it indicates that the given request should only be validated, not executed.
+  bool validate_only = 2;
+}
+
+// UpdateApplicationRequest will attempt to update an existing application.
+message UpdateApplicationRequest {
+  // Required. Resource name for the application (e.g. "applications/front50")
+  string name = 1;
+
+  // Required. The application payload to update with.
+  Application application = 2;
+
+  // Allows partial update on an application. This mask is relative to the resource, not to the request message.
+  google.protobuf.FieldMask update_mask = 3;
+
+  // If true, it indicates that the given request should only be validated, not executed.
+  bool validate_only = 4;
+}
+
+// DeleteApplicationRequest will delete an application.
+message DeleteApplicationRequest {
+  // Required. Resource name for the application (e.g. "applications/front50")
+  string name = 1;
+}
+
+// ListApplicationRevisionsRequest will return a list of application history revisions, ordered newest to oldest.
+message ListApplicationRevisionsRequest {
+  // Required. The parent resource name (e.g. "applications/front50")
+  string parent = 1;
+
+  // The number of revisions to return in the response.
+  //
+  // Defaults to 20.
+  int32 page_size = 2;
+
+  // The page token to continue pagination from. If left unset, the first `page_size` results will be returned.
+  string page_token = 3;
+}
+
+// ListApplicationRevisionsResponse
+message ListApplicationRevisionsResponse {
+  // The revisions of an application.
+  repeated Application revisions = 1;
+
+  // The next page token, if any.
+  string next_page_token = 2;
+}
