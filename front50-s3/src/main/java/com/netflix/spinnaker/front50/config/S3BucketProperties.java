@@ -28,6 +28,7 @@ public class S3BucketProperties {
   private String proxyProtocol;
   private Boolean versioning = true; // enabled by default
   private Boolean pathStyleAccess = true; // enable by default
+  private Boolean serverSideEncryption = false; // disabled by default
 
   public String getBucket() {
     return bucket;
@@ -99,5 +100,13 @@ public class S3BucketProperties {
 
   public void setPathStyleAccess(Boolean pathStyleAccess) {
     this.pathStyleAccess = pathStyleAccess;
+  }
+
+  public Boolean getServerSideEncryption() {
+    return serverSideEncryption;
+  }
+
+  public void setServerSideEncryption(Boolean serverSideEncryption) {
+    this.serverSideEncryption = serverSideEncryption;
   }
 }

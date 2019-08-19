@@ -46,6 +46,7 @@ public class S3StorageService implements StorageService {
   private final String region;
   private final Boolean versioning;
   private final Integer maxKeys;
+  private final Boolean serverSideEncryption;
 
   public S3StorageService(
       ObjectMapper objectMapper,
@@ -55,7 +56,8 @@ public class S3StorageService implements StorageService {
       Boolean readOnlyMode,
       String region,
       Boolean versioning,
-      Integer maxKeys) {
+      Integer maxKeys,
+      Boolean serverSideEncryption) {
     this.objectMapper = objectMapper;
     this.amazonS3 = amazonS3;
     this.bucket = bucket;
@@ -64,6 +66,7 @@ public class S3StorageService implements StorageService {
     this.region = region;
     this.versioning = versioning;
     this.maxKeys = maxKeys;
+    this.serverSideEncryption = serverSideEncryption;
   }
 
   @Override
@@ -170,6 +173,9 @@ public class S3StorageService implements StorageService {
       objectMetadata.setContentLength(bytes.length);
       objectMetadata.setContentMD5(
           new String(org.apache.commons.codec.binary.Base64.encodeBase64(DigestUtils.md5(bytes))));
+      if (serverSideEncryption) {
+        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+      }
 
       amazonS3.putObject(
           bucket,
@@ -294,6 +300,9 @@ public class S3StorageService implements StorageService {
       objectMetadata.setContentLength(bytes.length);
       objectMetadata.setContentMD5(
           new String(org.apache.commons.codec.binary.Base64.encodeBase64(DigestUtils.md5(bytes))));
+      if (serverSideEncryption) {
+        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+      }
 
       amazonS3.putObject(
           bucket,
