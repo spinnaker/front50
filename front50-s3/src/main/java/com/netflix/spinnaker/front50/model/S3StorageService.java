@@ -46,7 +46,7 @@ public class S3StorageService implements StorageService {
   private final String region;
   private final Boolean versioning;
   private final Integer maxKeys;
-  private final Boolean serverSideEncryption;
+  private final String serverSideEncryption;
 
   public S3StorageService(
       ObjectMapper objectMapper,
@@ -57,7 +57,7 @@ public class S3StorageService implements StorageService {
       String region,
       Boolean versioning,
       Integer maxKeys,
-      Boolean serverSideEncryption) {
+      String serverSideEncryption) {
     this.objectMapper = objectMapper;
     this.amazonS3 = amazonS3;
     this.bucket = bucket;
@@ -173,8 +173,11 @@ public class S3StorageService implements StorageService {
       objectMetadata.setContentLength(bytes.length);
       objectMetadata.setContentMD5(
           new String(org.apache.commons.codec.binary.Base64.encodeBase64(DigestUtils.md5(bytes))));
-      if (serverSideEncryption) {
+
+      if (serverSideEncryption != null && serverSideEncryption.equalsIgnoreCase("AES256")) {
         objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+      } else if (serverSideEncryption != null && serverSideEncryption.equalsIgnoreCase("AWSKMS")) {
+        objectMetadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
       }
 
       amazonS3.putObject(
@@ -300,8 +303,11 @@ public class S3StorageService implements StorageService {
       objectMetadata.setContentLength(bytes.length);
       objectMetadata.setContentMD5(
           new String(org.apache.commons.codec.binary.Base64.encodeBase64(DigestUtils.md5(bytes))));
-      if (serverSideEncryption) {
+
+      if (serverSideEncryption != null && serverSideEncryption.equalsIgnoreCase("AES256")) {
         objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+      } else if (serverSideEncryption != null && serverSideEncryption.equalsIgnoreCase("AWSKMS")) {
+        objectMetadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
       }
 
       amazonS3.putObject(
