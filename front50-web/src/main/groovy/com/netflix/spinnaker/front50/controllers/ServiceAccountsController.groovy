@@ -21,6 +21,7 @@ import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.fiat.shared.FiatService
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO
+import com.netflix.spinnaker.kork.exceptions.SystemException
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
@@ -37,11 +38,10 @@ import retrofit.RetrofitError
 @Slf4j
 @RestController
 @RequestMapping("/serviceAccounts")
-@ConditionalOnExpression('${spinnaker.gcs.enabled:false} || ${spinnaker.s3.enabled:false} || ${spinnaker.azs.enabled:false} || ${spinnaker.oracle.enabled:false}')
 public class ServiceAccountsController {
 
   @Autowired
-  ServiceAccountDAO serviceAccountDAO;
+  Optional<ServiceAccountDAO> serviceAccountDAO;
 
   @Autowired(required = false)
   FiatService fiatService
@@ -57,20 +57,20 @@ public class ServiceAccountsController {
 
   @RequestMapping(method = RequestMethod.GET)
   Set<ServiceAccount> getAllServiceAccounts() {
-    serviceAccountDAO.all();
+    serviceAccountDAO().all();
   }
 
   @RequestMapping(method = RequestMethod.POST)
   ServiceAccount createServiceAccount(@RequestBody ServiceAccount serviceAccount) {
-    def acct = serviceAccountDAO.create(serviceAccount.id, serviceAccount)
+    def acct = serviceAccountDAO().create(serviceAccount.id, serviceAccount)
     syncUsers(acct)
     return acct
   }
 
   @RequestMapping(method = RequestMethod.DELETE, value = "/{serviceAccountId:.+}")
   void deleteServiceAccount(@PathVariable String serviceAccountId) {
-    def acct = serviceAccountDAO.findById(serviceAccountId)
-    serviceAccountDAO.delete(serviceAccountId)
+    def acct = serviceAccountDAO().findById(serviceAccountId)
+    serviceAccountDAO().delete(serviceAccountId)
     try {
       fiatService.logoutUser(serviceAccountId)
     } catch (RetrofitError re) {
@@ -93,4 +93,13 @@ public class ServiceAccountsController {
       log.warn("Error syncing users", re)
     }
   }
+
+   private ServiceAccountDAO serviceAccountDAO() {
+    if (!serviceAccountDAO.isPresent()) {
+      throw new SystemException("Configured storage service does not support service account permissions")
+    }
+
+    return serviceAccountDAO.get()
+  }
+
 }
