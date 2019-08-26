@@ -175,10 +175,10 @@ public class S3StorageService implements StorageService {
           new String(org.apache.commons.codec.binary.Base64.encodeBase64(DigestUtils.md5(bytes))));
 
       if (serverSideEncryption != null
-          && serverSideEncryption.toString().equalsIgnoreCase("AES256")) {
+          && serverSideEncryption.equals(ServerSideEncryption.AES256)) {
         objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
       } else if (serverSideEncryption != null
-          && serverSideEncryption.toString().equalsIgnoreCase("AWSKMS")) {
+          && serverSideEncryption.equals(ServerSideEncryption.AWSKMS)) {
         objectMetadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
       }
 
@@ -312,10 +312,10 @@ public class S3StorageService implements StorageService {
           new String(org.apache.commons.codec.binary.Base64.encodeBase64(DigestUtils.md5(bytes))));
 
       if (serverSideEncryption != null
-          && serverSideEncryption.toString().equalsIgnoreCase("AES256")) {
+          && serverSideEncryption.equals(ServerSideEncryption.AES256)) {
         objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
       } else if (serverSideEncryption != null
-          && serverSideEncryption.toString().equalsIgnoreCase("AWSKMS")) {
+          && serverSideEncryption.equals(ServerSideEncryption.AWSKMS)) {
         objectMetadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
       }
 
