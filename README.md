@@ -28,6 +28,7 @@ The following types are represented in Front50 ([data models](https://github.com
 | ------ | ------------- |
 | Application | Defines a set of commonly named resources managed by Spinnaker (metadata includes name, ownership, description, source code repository, etc.). |
 | Application Permission | Defines the group memberships required to read/write any application resource. |
+| Group Permission | Defines the group memberships required to access **groups** of resources. |
 | Entity Tags | Provides a general purpose and cloud agnostic tagging mechanism. |
 | Notification | Defines application-wide notification schemes (email, slack and sms). |
 | Pipeline | Defines a reusable delivery workflow (exists within the context of a specific application). |

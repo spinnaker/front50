@@ -26,6 +26,8 @@ import com.netflix.spinnaker.front50.model.application.DefaultApplicationDAO;
 import com.netflix.spinnaker.front50.model.application.DefaultApplicationPermissionDAO;
 import com.netflix.spinnaker.front50.model.delivery.DefaultDeliveryRepository;
 import com.netflix.spinnaker.front50.model.delivery.DeliveryRepository;
+import com.netflix.spinnaker.front50.model.grouppermission.DefaultGroupPermissionDAO;
+import com.netflix.spinnaker.front50.model.grouppermission.GroupPermissionDAO;
 import com.netflix.spinnaker.front50.model.notification.DefaultNotificationDAO;
 import com.netflix.spinnaker.front50.model.notification.NotificationDAO;
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineDAO;
@@ -85,6 +87,23 @@ public class CommonStorageServiceDAOConfig {
         objectKeyLoader,
         storageServiceConfigurationProperties.getApplicationPermission().getRefreshMs(),
         storageServiceConfigurationProperties.getApplicationPermission().getShouldWarmCache(),
+        registry);
+  }
+
+  @Bean
+  GroupPermissionDAO groupPermissionDAO(
+      StorageService storageService,
+      StorageServiceConfigurationProperties storageServiceConfigurationProperties,
+      ObjectKeyLoader objectKeyLoader,
+      Registry registry) {
+    return new DefaultGroupPermissionDAO(
+        storageService,
+        Schedulers.from(
+            Executors.newFixedThreadPool(
+                storageServiceConfigurationProperties.getGroupPermission().getThreadPool())),
+        objectKeyLoader,
+        storageServiceConfigurationProperties.getGroupPermission().getRefreshMs(),
+        storageServiceConfigurationProperties.getGroupPermission().getShouldWarmCache(),
         registry);
   }
 

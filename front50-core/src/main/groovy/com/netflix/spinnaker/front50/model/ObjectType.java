@@ -18,6 +18,7 @@ package com.netflix.spinnaker.front50.model;
 
 import com.netflix.spinnaker.front50.model.application.Application;
 import com.netflix.spinnaker.front50.model.delivery.Delivery;
+import com.netflix.spinnaker.front50.model.grouppermission.GroupPermission;
 import com.netflix.spinnaker.front50.model.notification.Notification;
 import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplate;
@@ -39,6 +40,7 @@ public enum ObjectType {
   // other providers.
   APPLICATION_PERMISSION(
       Application.Permission.class, "applications", "application-permission.json"),
+  GROUP_PERMISSION(GroupPermission.class, "group-permissions", "group-permission.json"),
   SNAPSHOT(Snapshot.class, "snapshots", "snapshot.json"),
   ENTITY_TAGS(EntityTags.class, "tags", "entity-tags-metadata.json"),
   DELIVERY(Delivery.class, "delivery", "delivery-metadata.json");

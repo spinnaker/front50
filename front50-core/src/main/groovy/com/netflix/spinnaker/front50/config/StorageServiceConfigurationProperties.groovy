@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 class StorageServiceConfigurationProperties {
   PerObjectType application = new PerObjectType(20, TimeUnit.MINUTES.toMillis(1))
   PerObjectType applicationPermission = new PerObjectType(20, TimeUnit.MINUTES.toMillis(1))
+  PerObjectType groupPermission = new PerObjectType(20, TimeUnit.MINUTES.toMillis(1))
   PerObjectType serviceAccount = new PerObjectType(20, TimeUnit.MINUTES.toMillis(1))
   PerObjectType project = new PerObjectType(20, TimeUnit.MINUTES.toMillis(1))
   PerObjectType notification = new PerObjectType(20, TimeUnit.MINUTES.toMillis(1))

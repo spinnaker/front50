@@ -23,6 +23,7 @@ import com.netflix.spinnaker.filters.AuthenticatedRequestFilter
 import com.netflix.spinnaker.front50.exceptions.AccessDeniedExceptionHandler
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO
+import com.netflix.spinnaker.front50.model.grouppermission.GroupPermissionDAO
 import com.netflix.spinnaker.front50.model.delivery.DeliveryRepository
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO
@@ -115,6 +116,12 @@ public class Front50WebConfig extends WebMvcConfigurerAdapter {
   @ConditionalOnBean(ApplicationPermissionDAO)
   ItemDAOHealthIndicator applicationPermissionDAOHealthIndicator(ApplicationPermissionDAO applicationPermissionDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(applicationPermissionDAO, taskScheduler)
+  }
+
+  @Bean
+  @ConditionalOnBean(GroupPermissionDAO)
+  ItemDAOHealthIndicator groupPermissionDAOHealthIndicator(GroupPermissionDAO groupPermissionDAO, TaskScheduler taskScheduler) {
+    return new ItemDAOHealthIndicator(groupPermissionDAO, taskScheduler)
   }
 
   @Bean

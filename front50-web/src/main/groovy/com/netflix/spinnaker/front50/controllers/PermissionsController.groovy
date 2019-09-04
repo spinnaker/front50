@@ -22,12 +22,12 @@ import com.netflix.spinnaker.front50.exception.NotFoundException
 import com.netflix.spinnaker.front50.model.application.Application
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO
+import com.netflix.spinnaker.front50.model.grouppermission.GroupPermissionDAO
 import com.netflix.spinnaker.kork.exceptions.SystemException
 import groovy.util.logging.Slf4j
 import io.swagger.annotations.ApiOperation
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.web.bind.annotation.*
 import retrofit.RetrofitError
 
@@ -41,6 +41,9 @@ public class PermissionsController {
 
   @Autowired
   ApplicationDAO applicationDAO
+
+  @Autowired
+  GroupPermissionDAO groupPermissionDAO
 
   @Autowired(required = false)
   FiatService fiatService
@@ -105,6 +108,30 @@ public class PermissionsController {
     def oldPermission = applicationPermissionDAO().findById(appName)
     applicationPermissionDAO().delete(appName)
     syncUsers(null, oldPermission)
+  }
+
+  @ApiOperation(value = "", notes = "Get all permissions for a given resource type")
+  @RequestMapping(method = RequestMethod.GET, value = "/groups/resourceType/{resourceType}")
+  GroupPermission getAllGroupPermissions(@PathVariable String resourceType) {
+    return groupPermissionDAO.findAllByResourceType(resourceType)
+  }
+
+  @ApiOperation(value = "", notes = "Create a new group permission")
+  @RequestMapping(method = RequestMethod.POST, value = "/groups")
+  GroupPermission createGroupPermission(@RequestBody GroupPermission groupPermission) {
+    return groupPermissionDAO.create(groupPermission.getId(), groupPermission);
+  }
+
+  @ApiOperation(value = "", notes = "Update an existing group permission")
+  @RequestMapping(method = RequestMethod.PUT, value = "/groups/{groupId}")
+  GroupPermission updateGroupPermission(@PathVariable groupId, @RequestBody GroupPermission groupPermission) {
+    groupPermissionDAO.update(groupId, groupPermission);
+  }
+
+  @ApiOperation(value = "", notes = "Delete a group permission")
+  @RequestMapping(method = RequestMethod.DELETE, value = "/groups/{groupId}")
+  GroupPermission deleteGroupPermission(@PathVariable groupId) {
+    groupPermissionDAO.delete(groupId);
   }
 
   private void syncUsers(Application.Permission newPermission, Application.Permission oldPermission) {
