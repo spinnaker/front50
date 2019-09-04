@@ -17,42 +17,45 @@
 package com.netflix.spinnaker.front50.model.grouppermission;
 
 import com.netflix.spectator.api.Registry;
-import com.netflix.spinnaker.fiat.model.resources.ResourceType
+import com.netflix.spinnaker.fiat.model.resources.ResourceType;
 import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.ObjectType;
 import com.netflix.spinnaker.front50.model.StorageService;
 import com.netflix.spinnaker.front50.model.StorageServiceSupport;
+import java.util.Collection;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import rx.Scheduler;
 
-class DefaultGroupPermissionDAO extends StorageServiceSupport<GroupPermission>
-  implements GroupPermissionDAO {
+public class DefaultGroupPermissionDAO extends StorageServiceSupport<GroupPermission>
+    implements GroupPermissionDAO {
 
   public DefaultGroupPermissionDAO(
-    StorageService service,
-    Scheduler scheduler,
-    ObjectKeyLoader objectKeyLoader,
-    long refreshIntervalMs,
-    boolean shouldWarmCache,
-    Registry registry) {
+      StorageService service,
+      Scheduler scheduler,
+      ObjectKeyLoader objectKeyLoader,
+      long refreshIntervalMs,
+      boolean shouldWarmCache,
+      Registry registry) {
     super(
-      ObjectType.GROUP_PERMISSION,
-      service,
-      scheduler,
-      objectKeyLoader,
-      refreshIntervalMs,
-      shouldWarmCache,
-      registry);
+        ObjectType.GROUP_PERMISSION,
+        service,
+        scheduler,
+        objectKeyLoader,
+        refreshIntervalMs,
+        shouldWarmCache,
+        registry);
   }
 
   @Override
   public GroupPermission create(String id, GroupPermission groupPermission) {
     if (id == null) {
-      id = UUID.randomUUID().toString()
+      id = UUID.randomUUID().toString();
     }
-    groupPermission.setId(id)
+    groupPermission.setId(id);
 
-    update(id, groupPermission)
-    return findById(id)
+    update(id, groupPermission);
+    return findById(id);
   }
 
   @Override
@@ -62,6 +65,8 @@ class DefaultGroupPermissionDAO extends StorageServiceSupport<GroupPermission>
 
   @Override
   public Collection<GroupPermission> findAllByResourceType(ResourceType resourceType) {
-    return all().findAll { it -> it.resourceType == resourceType };
+    return all().stream()
+        .filter(item -> item.getResourceType() == resourceType)
+        .collect(Collectors.toSet());
   }
 }

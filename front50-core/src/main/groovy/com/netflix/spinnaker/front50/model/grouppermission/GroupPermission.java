@@ -15,35 +15,26 @@
  */
 package com.netflix.spinnaker.front50.model.grouppermission;
 
-import com.fasterxml.jackson.annotation.JsonAnyGetter
-import com.fasterxml.jackson.annotation.JsonAnySetter
-import com.netflix.spinnaker.fiat.model.resources.Permissions
-import com.netflix.spinnaker.fiat.model.resources.ResourceType
-import com.netflix.spinnaker.front50.model.Timestamped
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
+import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.netflix.spinnaker.fiat.model.resources.Permissions;
+import com.netflix.spinnaker.fiat.model.resources.ResourceType;
+import com.netflix.spinnaker.front50.model.Timestamped;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
 
-class GroupPermission implements Timestamped {
-  Permissions permissions = Permissions.EMPTY
-
-  String resourceGroupType
-
-  ResourceType resourceType
-
-  Long lastModified
-
-  String lastModifiedBy
-
-  String id;
+public class GroupPermission implements Timestamped {
+  private @Setter @Getter Permissions permissions = Permissions.EMPTY;
+  private @Setter @Getter String resourceGroupType;
+  private @Setter @Getter ResourceType resourceType;
+  private @Setter @Getter Long lastModified;
+  private @Setter @Getter String lastModifiedBy;
+  private @Setter @Getter String id;
 
   // Fields filled depending on the group type
-  Map<String, Object> details = new HashMap<String, Object>();
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
+  private Map<String, Object> details = new HashMap<>();
 
   @JsonAnyGetter
   public Map<String, Object> getDetails() {

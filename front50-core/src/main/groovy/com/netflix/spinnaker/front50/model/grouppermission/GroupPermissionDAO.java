@@ -16,9 +16,10 @@
 
 package com.netflix.spinnaker.front50.model.grouppermission;
 
-import com.netflix.spinnaker.front50.model.ItemDAO
-import com.netflix.spinnaker.fiat.model.resources.ResourceType
+import com.netflix.spinnaker.fiat.model.resources.ResourceType;
+import com.netflix.spinnaker.front50.model.ItemDAO;
+import java.util.Collection;
 
-interface GroupPermissionDAO extends ItemDAO<GroupPermission> {
+public interface GroupPermissionDAO extends ItemDAO<GroupPermission> {
   Collection<GroupPermission> findAllByResourceType(ResourceType resourceType);
 }
