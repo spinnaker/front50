@@ -22,6 +22,7 @@ import com.netflix.spinnaker.front50.exception.NotFoundException
 import com.netflix.spinnaker.front50.model.application.Application
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO
+import com.netflix.spinnaker.front50.model.grouppermission.GroupPermission
 import com.netflix.spinnaker.front50.model.grouppermission.GroupPermissionDAO
 import com.netflix.spinnaker.kork.exceptions.SystemException
 import groovy.util.logging.Slf4j
