@@ -113,10 +113,14 @@ public class PermissionsController {
   }
 
   @ApiOperation(value = "", notes = "Get all permissions for a given resource type")
-  @RequestMapping(method = RequestMethod.GET, value = "/groups/resourceType/{resourceType}")
-  Set<GroupPermission> getAllGroupPermissions(@PathVariable String resourceType) {
-    ResourceType parsedResourceType = ResourceType.parse(resourceType);
-    return groupPermissionDAO.findAllByResourceType(parsedResourceType)
+  @RequestMapping(method = RequestMethod.GET, value = "/groups")
+  Set<GroupPermission> getAllGroupPermissions(@RequestParam(required = false) String resourceType) {
+    if (resourceType != null) {
+      ResourceType parsedResourceType = ResourceType.parse(resourceType);
+      return groupPermissionDAO.findAllByResourceType(parsedResourceType);
+    } else {
+      return groupPermissionDAO.all();
+    }
   }
 
   @ApiOperation(value = "", notes = "Create a new group permission")
