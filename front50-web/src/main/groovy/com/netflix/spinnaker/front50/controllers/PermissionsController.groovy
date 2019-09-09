@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.front50.controllers
 
+import com.netflix.spinnaker.fiat.model.resources.ResourceType
 import com.netflix.spinnaker.fiat.shared.FiatClientConfigurationProperties
 import com.netflix.spinnaker.fiat.shared.FiatService
 import com.netflix.spinnaker.front50.exception.NotFoundException
@@ -114,7 +115,8 @@ public class PermissionsController {
   @ApiOperation(value = "", notes = "Get all permissions for a given resource type")
   @RequestMapping(method = RequestMethod.GET, value = "/groups/resourceType/{resourceType}")
   GroupPermission getAllGroupPermissions(@PathVariable String resourceType) {
-    return groupPermissionDAO.findAllByResourceType(resourceType)
+    ResourceType parsedResourceType = ResourceType.parse(resourceType);
+    return groupPermissionDAO.findAllByResourceType(parsedResourceType)
   }
 
   @ApiOperation(value = "", notes = "Create a new group permission")
@@ -125,13 +127,14 @@ public class PermissionsController {
 
   @ApiOperation(value = "", notes = "Update an existing group permission")
   @RequestMapping(method = RequestMethod.PUT, value = "/groups/{groupId}")
-  GroupPermission updateGroupPermission(@PathVariable groupId, @RequestBody GroupPermission groupPermission) {
+  GroupPermission updateGroupPermission(@PathVariable String groupId, @RequestBody GroupPermission groupPermission) {
     groupPermissionDAO.update(groupId, groupPermission);
+    return groupPermission;
   }
 
   @ApiOperation(value = "", notes = "Delete a group permission")
   @RequestMapping(method = RequestMethod.DELETE, value = "/groups/{groupId}")
-  GroupPermission deleteGroupPermission(@PathVariable groupId) {
+  void deleteGroupPermission(@PathVariable String groupId) {
     groupPermissionDAO.delete(groupId);
   }
 

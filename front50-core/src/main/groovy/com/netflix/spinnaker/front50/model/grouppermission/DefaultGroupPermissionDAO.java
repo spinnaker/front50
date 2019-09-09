@@ -49,17 +49,17 @@ public class DefaultGroupPermissionDAO extends StorageServiceSupport<GroupPermis
 
   @Override
   public GroupPermission create(String id, GroupPermission groupPermission) {
-    if (id == null) {
-      id = UUID.randomUUID().toString();
-    }
-    groupPermission.setId(id);
-
     update(id, groupPermission);
     return findById(id);
   }
 
   @Override
   public void update(String id, GroupPermission groupPermission) {
+    if (id == null) {
+      id = UUID.randomUUID().toString();
+    }
+    groupPermission.setId(id);
+
     super.update(id, groupPermission);
   }
 

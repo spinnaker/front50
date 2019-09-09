@@ -94,7 +94,7 @@ public class ApplicationsController {
     return results
   }
 
-  @PreAuthorize("hasPermission(#app.name, 'APPLICATION', 'CREATE'")
+  @PreAuthorize("hasPermission(#app.name, 'APPLICATION', 'CREATE')")
   @ApiOperation(value = "", notes = "Create an application")
   @RequestMapping(method = RequestMethod.POST)
   Application create(@RequestBody final Application app) {
