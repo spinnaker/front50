@@ -70,9 +70,10 @@ class PipelineController {
     pipelineDAO.all(refresh)
   }
 
-  @PreAuthorize("hasPermission(#application, 'APPLICATION', 'READ')")
+  @PreAuthorize("#restricted ? hasPermission(#application, 'APPLICATION', 'READ') : true")
   @RequestMapping(value = '{application:.+}', method = RequestMethod.GET)
   List<Pipeline> listByApplication(@PathVariable(value = 'application') String application,
+                                   @RequestParam(required = false, value = 'restricted', defaultValue = 'true') boolean restricted,
                                    @RequestParam(required = false, value = 'refresh', defaultValue = 'true') boolean refresh) {
     List<Pipeline> pipelines = pipelineDAO.getPipelinesByApplication(application, refresh)
     pipelines.sort { p1, p2 ->
@@ -91,10 +92,11 @@ class PipelineController {
     return pipelines
   }
 
-  @PreAuthorize("@fiatPermissionEvaluator.storeWholePermission()")
-  @PostFilter("hasPermission(filterObject.application, 'APPLICATION', 'READ')")
+  @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
+  @PostFilter("#restricted ? hasPermission(filterObject.application, 'APPLICATION', 'READ') : true")
   @RequestMapping(value = '{id:.+}/history', method = RequestMethod.GET)
   Collection<Pipeline> getHistory(@PathVariable String id,
+                                  @RequestParam(required = false, value = 'restricted', defaultValue = 'true') boolean restricted,
                                   @RequestParam(value = "limit", defaultValue = "20") int limit) {
     return pipelineDAO.history(id, limit)
   }
