@@ -95,6 +95,7 @@ public class ApplicationsController {
   }
 
   // TODO(ttomsu): Think through application creation permissions.
+  @PreAuthorize("@fiatPermissionEvaluator.canCreate('APPLICATION', app)")
   @ApiOperation(value = "", notes = "Create an application")
   @RequestMapping(method = RequestMethod.POST)
   Application create(@RequestBody final Application app) {
