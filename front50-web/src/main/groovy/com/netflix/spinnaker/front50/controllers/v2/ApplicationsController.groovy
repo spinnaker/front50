@@ -61,7 +61,7 @@ public class ApplicationsController {
   List<ApplicationEventListener> applicationEventListeners = []
 
   @Autowired
-  FiatService fiatService;
+  Optional<FiatService> fiatService;
 
   @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
   @PostFilter("#restricted ? hasPermission(filterObject.name, 'APPLICATION', 'READ') : true")
@@ -103,7 +103,11 @@ public class ApplicationsController {
   @RequestMapping(method = RequestMethod.POST)
   Application create(@RequestBody final Application app) {
     Application createdApplication = getApplication().initialize(app).withName(app.getName()).save()
-    fiatService.sync()
+    try {
+      fiatService.ifPresent { it.sync() }
+    } catch (Exception ignored) {
+      log.warn("failed to trigger fiat permission sync", ignored)
+    } 
     return createdApplication
   }
 
