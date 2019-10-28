@@ -77,7 +77,7 @@ abstract class ApplicationsControllerTck extends Specification {
   PipelineStrategyDAO pipelineStrategyDAO = Stub(PipelineStrategyDAO)
 
   @Shared
-  FiatService fiatService = Stub(FiatService);
+  Optional<FiatService> fiatService = Optional.empty();
 
   void setup() {
     this.dao = createApplicationDAO()
