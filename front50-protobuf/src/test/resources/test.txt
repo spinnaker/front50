@@ -1,0 +1,5 @@
+cat src/test/resources/event.txt | protoc --encode "Plugin" src/main/proto/com/netflix/spinnaker/front50/proto/plugins.proto | curl -H "X-SPINNAKER-USER: person@example.com" -H "Content-Type: application/x-protobuf" -X POST http://localhost:7101/plugins --data-binary @-
+
+curl -H "X-SPINNAKER-USER: person@example.com" -H "Content-Type: application/x-protobuf" -X GET http://localhost:7101/plugins/somePlugin/netflix
+
+curl -H "X-SPINNAKER-USER: person@example.com" -H "Content-Type: application/x-protobuf" -X GET http://localhost:7101/plugins

@@ -1,0 +1,94 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-plugins-table
+      author: csmalley
+      changes:
+        - createTable:
+            tableName: plugins
+            columns:
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: namespace
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: author
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dependencies
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: required_versions
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: capabilities
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: enabled
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: in_process_unsafe
+                  type: boolean
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: last_modified_at
+                  type: timestamp
+                  constraints:
+                    nullable: true
+              - column:
+                  name: last_modified_by
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+        - modifySql:
+            dbms: mysql
+            append:
+              value: " engine innodb DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci"
+      rollback:
+        - dropTable:
+            tableName: plugins
+  - changeSet:
+      id: plugins-table-primary-key
+      author: csmalley
+      changes:
+      - addPrimaryKey:
+          constraintName: pk_plugin_id
+          tableName: plugins
+          columnNames: name, namespace
+      rollback:
+        - dropPrimaryKey:
+            constraintName: pk_plugin_id
+            tableName: plugins

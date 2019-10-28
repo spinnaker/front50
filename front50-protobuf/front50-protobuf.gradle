@@ -1,0 +1,45 @@
+buildscript {
+  repositories {
+    jcenter()
+  }
+  dependencies {
+    classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.8'
+  }
+}
+
+apply plugin: 'java'
+apply plugin: 'com.google.protobuf'
+
+ext {
+  protobufVersion = '3.2.+'
+}
+
+dependencies {
+  api "com.google.protobuf:protobuf-java:${protobufVersion}"
+}
+
+protobuf {
+  protoc {
+    artifact = "com.google.protobuf:protoc:$protobufVersion"
+  }
+
+  generateProtoTasks {
+    ofSourceSet('main').each { task ->
+      task.builtins {
+        java {
+          outputSubDir = 'java'
+        }
+      }
+      task.descriptorSetOptions.includeImports = true
+    }
+  }
+}
+
+sourceSets {
+  main {
+    java {
+      srcDir "${protobuf.generatedFilesBaseDir}/main/grpc"
+      srcDir "${protobuf.generatedFilesBaseDir}/main/java"
+    }
+  }
+}

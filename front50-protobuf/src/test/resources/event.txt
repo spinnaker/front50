@@ -1,0 +1,10 @@
+name: "somePlugin-2"
+namespace: "netflix"
+description: "A really cool plugin"
+author: "netflix"
+version: "1.0.0"
+dependencies: ["some-dep"]
+required_versions: ["required-version"]
+capabilities: ["some-capability"]
+enabled: true
+in_process_unsafe: false

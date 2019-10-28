@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option java_package = "com.netflix.spinnaker.front50.proto";
+option java_multiple_files = true;
+
+message Plugin {
+  // ex: "fast-properties"
+  string name = 1;
+
+  // ex: "netflix"
+  string namespace = 2;
+
+  // ex: "Provides rollout safety of runtime application
+  // config via pipelines"
+  string description = 3;
+
+  // ex: "Netflix"
+  string author = 4;
+
+  // ex: "1.0.0"
+  string version = 5;
+
+  // ex: "netflix/somedep>=1.x"
+  repeated string dependencies = 6;
+
+  // ex: "clouddriver>=5.33.0"
+  repeated string required_versions = 7;
+
+  // A list of extension points that the plugin implements.
+  // e.g. "pipelineStage"
+  repeated string capabilities = 8;
+
+  // Whether or not the plugin is enabled. An unset value
+  // should be considered as true.
+  bool enabled = 9;
+
+  // If the plugin is in-process and this flag is set to true,
+  // the plugin will be embedded into the process without
+  // isolation, allowing full modification of the application
+  // lifecycle. This is inherently unsafe and caution must be
+  // used setting this field.
+  bool in_process_unsafe = 10;
+}
+
+message Plugins {
+  repeated Plugin plugin = 1;
+}
+

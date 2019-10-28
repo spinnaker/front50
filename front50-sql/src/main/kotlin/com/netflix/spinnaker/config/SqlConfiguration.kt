@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.Registry
 import com.netflix.spinnaker.front50.config.CommonStorageServiceDAOConfig
 import com.netflix.spinnaker.front50.model.SqlStorageService
+import com.netflix.spinnaker.front50.model.plugin.SqlPluginRepository
 import com.netflix.spinnaker.kork.sql.config.DefaultSqlConfiguration
 import com.netflix.spinnaker.kork.sql.config.SqlProperties
 import org.jooq.DSLContext
@@ -48,5 +49,13 @@ class SqlConfiguration : CommonStorageServiceDAOConfig() {
       Clock.systemDefaultZone(),
       sqlProperties.retries,
       1000
+    )
+
+  @Bean
+  fun sqlPluginRepository(
+    jooq: DSLContext
+  ): SqlPluginRepository =
+    SqlPluginRepository(
+      jooq
     )
 }

@@ -30,6 +30,9 @@ configurations.all {
 }
 
 dependencies {
+  implementation project(":front50-protobuf")
+  implementation project(":front50-sql")
+
   implementation project(":front50-core")
   implementation project(":front50-migrations")
   implementation "org.springframework.boot:spring-boot-starter-web"

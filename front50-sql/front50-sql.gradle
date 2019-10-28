@@ -6,6 +6,8 @@ dependencies {
     runtimeOnly project(":front50-sql-mysql")
   }
 
+  implementation project(":front50-protobuf")
+
   implementation "com.netflix.spinnaker.kork:kork-sql"
   implementation "com.netflix.spinnaker.kork:kork-exceptions"
 
