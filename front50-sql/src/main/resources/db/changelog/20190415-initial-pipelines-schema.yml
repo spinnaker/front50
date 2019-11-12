@@ -2,6 +2,10 @@ databaseChangeLog:
   - changeSet:
       id: create-pipelines-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: pipelines
@@ -58,13 +62,17 @@ databaseChangeLog:
   - changeSet:
       id: create-pipelines-history-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: pipelines_history
             columns:
               - column:
                   name: id
-                  type: char(255)
+                  type: varchar(255)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -75,7 +83,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: body_sig
-                  type: char(32)
+                  type: varchar(32)
                   constraints:
                     primaryKey: true
                     nullable: false

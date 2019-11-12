@@ -2,6 +2,10 @@ databaseChangeLog:
   - changeSet:
       id: create-pipeline-strategies-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: pipeline_strategies
@@ -58,6 +62,10 @@ databaseChangeLog:
   - changeSet:
       id: create-pipeline-strategies-history-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: pipeline_strategies_history

@@ -2,6 +2,10 @@ databaseChangeLog:
   - changeSet:
       id: create-projects-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: projects
@@ -53,6 +57,10 @@ databaseChangeLog:
   - changeSet:
       id: create-projects-history-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: projects_history

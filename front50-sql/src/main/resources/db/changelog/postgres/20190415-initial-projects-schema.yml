@@ -1,20 +1,25 @@
 databaseChangeLog:
   - changeSet:
-      id: create-notifications-table
-      author: ajordens
+      id: create-projects-table
+      author: srekapalli
       preConditions:
         - onFail: CONTINUE
         - dbms:
-            type: mysql
+            type: postgresql
       changes:
         - createTable:
-            tableName: notifications
+            tableName: projects
             columns:
               - column:
                   name: id
-                  type: char(255)
+                  type: varchar(255)
                   constraints:
                     primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
                     nullable: false
               - column:
                   name: body
@@ -42,27 +47,23 @@ databaseChangeLog:
                   defaultValueBoolean: false
                   constraints:
                     nullable: false
-        - modifySql:
-            dbms: mysql
-            append:
-              value: " engine innodb DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci"
       rollback:
         - dropTable:
-            tableName: notifications
+            tableName: projects
   - changeSet:
-      id: create-notifications-history-table
-      author: ajordens
+      id: create-projects-history-table
+      author: srekapalli
       preConditions:
         - onFail: CONTINUE
         - dbms:
-            type: mysql
+            type: postgresql
       changes:
         - createTable:
-            tableName: notifications_history
+            tableName: projects_history
             columns:
               - column:
                   name: id
-                  type: char(255)
+                  type: varchar(255)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -73,7 +74,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: body_sig
-                  type: char(32)
+                  type: varchar(32)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -88,10 +89,6 @@ databaseChangeLog:
                   type: bigint
                   constraints:
                     nullable: false
-        - modifySql:
-            dbms: mysql
-            append:
-              value: " engine innodb DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci"
       rollback:
         - dropTable:
-            tableName: notifications_history
+            tableName: projects_history

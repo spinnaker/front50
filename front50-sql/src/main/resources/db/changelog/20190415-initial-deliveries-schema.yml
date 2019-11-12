@@ -2,6 +2,10 @@ databaseChangeLog:
   - changeSet:
       id: create-deliveries-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: deliveries
@@ -53,6 +57,10 @@ databaseChangeLog:
   - changeSet:
       id: create-deliveries-history-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: deliveries_history

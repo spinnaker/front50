@@ -1,18 +1,18 @@
 databaseChangeLog:
   - changeSet:
-      id: create-notifications-table
-      author: ajordens
+      id: create-application-permissions-table
+      author: srekapalli
       preConditions:
         - onFail: CONTINUE
         - dbms:
-            type: mysql
+            type: postgresql
       changes:
         - createTable:
-            tableName: notifications
+            tableName: application_permissions
             columns:
               - column:
                   name: id
-                  type: char(255)
+                  type: varchar(255)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -42,27 +42,23 @@ databaseChangeLog:
                   defaultValueBoolean: false
                   constraints:
                     nullable: false
-        - modifySql:
-            dbms: mysql
-            append:
-              value: " engine innodb DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci"
       rollback:
         - dropTable:
-            tableName: notifications
+            tableName: applications
   - changeSet:
-      id: create-notifications-history-table
-      author: ajordens
+      id: create-application-permissions-history-table
+      author: srekapalli
       preConditions:
         - onFail: CONTINUE
         - dbms:
-            type: mysql
+            type: postgresql
       changes:
         - createTable:
-            tableName: notifications_history
+            tableName: application_permissions_history
             columns:
               - column:
                   name: id
-                  type: char(255)
+                  type: varchar(255)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -73,7 +69,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: body_sig
-                  type: char(32)
+                  type: varchar(32)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -88,10 +84,6 @@ databaseChangeLog:
                   type: bigint
                   constraints:
                     nullable: false
-        - modifySql:
-            dbms: mysql
-            append:
-              value: " engine innodb DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci"
       rollback:
         - dropTable:
-            tableName: notifications_history
+            tableName: application_permissions_history

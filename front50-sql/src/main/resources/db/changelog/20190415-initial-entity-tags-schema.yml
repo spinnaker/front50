@@ -2,6 +2,10 @@ databaseChangeLog:
   - changeSet:
       id: create-entity-tags-table
       author: ajordens
+      preConditions:
+        - onFail: CONTINUE
+        - dbms:
+            type: mysql
       changes:
         - createTable:
             tableName: entity_tags

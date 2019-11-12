@@ -31,7 +31,6 @@ import org.jooq.impl.DSL
 import strikt.api.expectThat
 import strikt.api.expectThrows
 import strikt.assertions.isEqualTo
-import strikt.assertions.trim
 import java.time.Clock
 
 internal object SqlStorageServiceTests : JUnit5Minutests {
@@ -157,7 +156,7 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
                 DSL.field("name", String::class.java).eq("pipeline001_updated")
               )
               .fetchOne(DSL.field("id", String::class.java))
-          ).trim().isEqualTo("id-pipeline001")
+          ).isEqualTo("id-pipeline001")
 
           // delete the pipeline
           sqlStorageService.deleteObject(ObjectType.PIPELINE, "id-pipeline001")
@@ -269,7 +268,7 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
     }
 
     context("postgresql CRUD operations") {
-      crudOperations(JooqConfig(SQLDialect.POSTGRES_9_5, "jdbc:tc:postgresql:9.5-alpine://somehostname:someport/databasename"))
+      crudOperations(JooqConfig(SQLDialect.POSTGRES, "jdbc:tc:postgresql:12-alpine://somehostname:someport/databasename"))
     }
   }
 }

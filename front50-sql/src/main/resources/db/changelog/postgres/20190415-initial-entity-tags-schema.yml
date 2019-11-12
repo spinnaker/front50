@@ -1,18 +1,18 @@
 databaseChangeLog:
   - changeSet:
-      id: create-snapshots-table
-      author: ajordens
+      id: create-entity-tags-table
+      author: srekapalli
       preConditions:
         - onFail: CONTINUE
         - dbms:
-            type: mysql
+            type: postgresql
       changes:
         - createTable:
-            tableName: snapshots
+            tableName: entity_tags
             columns:
               - column:
                   name: id
-                  type: char(255)
+                  type: varchar(255)
                   constraints:
                     primaryKey: true
                     nullable: false
@@ -42,10 +42,6 @@ databaseChangeLog:
                   defaultValueBoolean: false
                   constraints:
                     nullable: false
-        - modifySql:
-            dbms: mysql
-            append:
-              value: " engine innodb DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_unicode_ci"
       rollback:
         - dropTable:
-            tableName: snapshots
+            tableName: entity_tags
