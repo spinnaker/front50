@@ -5,14 +5,14 @@
 ```yaml
 sql:
   enabled: true
-  baseUrl: jdbc:mysql://localhost:3306
+  baseUrl: jdbc:mysql://localhost:3306/front50
   connectionPools:
     default:
-      jdbcUrl: ${sql.baseUrl}/front50?useSSL=false&serverTimezone=UTC
+      jdbcUrl: ${sql.baseUrl}?useSSL=false&serverTimezone=UTC
       user: 
       password:
   migration:
-    jdbcUrl: ${sql.baseUrl}/front50?useSSL=false&serverTimezone=UTC
+    jdbcUrl: ${sql.baseUrl}?useSSL=false&serverTimezone=UTC
     user: 
     password:
 ```
@@ -21,15 +21,15 @@ sql:
 ```yaml
 sql:
   enabled: true
-  baseUrl: jdbc:postgresql://localhost:5432
+  baseUrl: jdbc:postgresql://localhost:5432/front50
   connectionPools:
     default:
-      jdbcUrl: ${sql.baseUrl}/front50?useSSL=false&serverTimezone=UTC
+      jdbcUrl: ${sql.baseUrl}
       dialect: POSTGRES
       user: 
       password:
   migration:
-    jdbcUrl: ${sql.baseUrl}/front50?useSSL=false&serverTimezone=UTC
+    jdbcUrl: ${sql.baseUrl}
     user: 
     password:
 ```
