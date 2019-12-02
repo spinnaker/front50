@@ -26,6 +26,8 @@ dependencies {
   testImplementation "org.testcontainers:postgresql"
   testImplementation "org.postgresql:postgresql"
 
+  testImplementation "com.h2database:h2"
+
 }
 
 test {

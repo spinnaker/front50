@@ -23,6 +23,8 @@ import com.netflix.spinnaker.front50.model.SqlStorageService
 import com.netflix.spinnaker.kork.sql.config.DefaultSqlConfiguration
 import com.netflix.spinnaker.kork.sql.config.SqlProperties
 import org.jooq.DSLContext
+import org.springframework.beans.factory.annotation.Qualifier
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -39,7 +41,8 @@ class SqlConfiguration : CommonStorageServiceDAOConfig() {
     objectMapper: ObjectMapper,
     registry: Registry,
     jooq: DSLContext,
-    sqlProperties: SqlProperties
+    sqlProperties: SqlProperties,
+    @Value("\${sql.primary.pool-name:default}") poolName: String
   ): SqlStorageService =
     SqlStorageService(
       objectMapper,
@@ -47,6 +50,26 @@ class SqlConfiguration : CommonStorageServiceDAOConfig() {
       jooq,
       Clock.systemDefaultZone(),
       sqlProperties.retries,
-      1000
+      1000,
+      poolName
+    )
+
+  @Bean
+  @ConditionalOnProperty("sql.secondary.enabled", matchIfMissing = false)
+  fun secondarySqlStorageService(
+    objectMapper: ObjectMapper,
+    registry: Registry,
+    @Qualifier("secondaryJooq") jooq: DSLContext,
+    sqlProperties: SqlProperties,
+    @Value("\${sql.secondary.pool-name}") poolName: String
+  ): SqlStorageService =
+    SqlStorageService(
+      objectMapper,
+      registry,
+      jooq,
+      Clock.systemDefaultZone(),
+      sqlProperties.retries,
+      1000,
+      poolName
     )
 }
