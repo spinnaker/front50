@@ -57,7 +57,7 @@ class SqlStorageService(
   private val clock: Clock,
   private val sqlRetryProperties: SqlRetryProperties,
   private val chunkSize: Int,
-  private val poolName: String = "default"
+  private val poolName: String
 ) : StorageService, AdminOperations {
 
   companion object {
