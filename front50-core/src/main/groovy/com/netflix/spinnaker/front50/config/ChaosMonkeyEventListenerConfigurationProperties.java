@@ -15,12 +15,17 @@
  */
 package com.netflix.spinnaker.front50.config;
 
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Configuration
-@EnableConfigurationProperties({
-  ChaosMonkeyEventListenerConfigurationProperties.class,
-  FiatConfigurationProperties.class
-})
-public class Front50CoreConfiguration {}
+@Data
+@ConfigurationProperties("spinnaker.chaos-monkey")
+public class ChaosMonkeyEventListenerConfigurationProperties {
+  /** The user role (as it would be known to Fiat) for Chaos Monkey. */
+  String userRole;
+
+  /** @return True if a userRole has been defined. */
+  public boolean isEnabled() {
+    return userRole != null;
+  }
+}
