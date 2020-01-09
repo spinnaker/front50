@@ -93,12 +93,7 @@ class ChaosMonkeyEventListenerSpec extends Specification {
     subject.call(application, application)
 
     then:
-    if (chaosMonkeyEnabled) {
-      permission == updatedPermissions
-    } else {
-      permission.getPermissions().get(Authorization.READ) == readPermissionsExpected
-      permission.getPermissions().get(Authorization.WRITE) == writePermissionsExpected
-    }
+    permission.getPermissions() == updatedPermissions.getPermissions()
 
     where:
     chaosMonkeyEnabled | readPermissions               | writePermissions               | readPermissionsExpected       | writePermissionsExpected
