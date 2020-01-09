@@ -96,12 +96,15 @@ class ChaosMonkeyEventListenerSpec extends Specification {
     permission.getPermissions() == updatedPermissions.getPermissions()
 
     where:
-    chaosMonkeyEnabled | readPermissions               | writePermissions               | readPermissionsExpected       | writePermissionsExpected
-    true               | ["a"]                         | ["b"]                          | ["a", CHAOS_MONKEY_PRINCIPAL] | ["b", CHAOS_MONKEY_PRINCIPAL]
-    true               | [CHAOS_MONKEY_PRINCIPAL]      | ["a"]                          | [CHAOS_MONKEY_PRINCIPAL]      | ["a", CHAOS_MONKEY_PRINCIPAL]
-    true               | ["a"]                         | [CHAOS_MONKEY_PRINCIPAL]       | ["a", CHAOS_MONKEY_PRINCIPAL] | [CHAOS_MONKEY_PRINCIPAL]
-    true               | [CHAOS_MONKEY_PRINCIPAL]      | [CHAOS_MONKEY_PRINCIPAL]       | [CHAOS_MONKEY_PRINCIPAL]      | [CHAOS_MONKEY_PRINCIPAL]
-    false              | ["a"]                         | ["b"]                          | ["a"]                         | ["b"]
-    false              | ["a", CHAOS_MONKEY_PRINCIPAL] | ["b", CHAOS_MONKEY_PRINCIPAL]  | ["a"]                         | ["b"]
+    chaosMonkeyEnabled | readPermissions                                 | writePermissions                                | readPermissionsExpected       | writePermissionsExpected
+    true               | ["a"]                                           | ["b"]                                           | ["a", CHAOS_MONKEY_PRINCIPAL] | ["b", CHAOS_MONKEY_PRINCIPAL]
+    true               | [CHAOS_MONKEY_PRINCIPAL]                        | ["a"]                                           | []                            | ["a", CHAOS_MONKEY_PRINCIPAL]
+    true               | ["a"]                                           | [CHAOS_MONKEY_PRINCIPAL]                        | ["a", CHAOS_MONKEY_PRINCIPAL] | []
+    true               | [CHAOS_MONKEY_PRINCIPAL]                        | [CHAOS_MONKEY_PRINCIPAL]                        | []                            | []
+    true               | [CHAOS_MONKEY_PRINCIPAL,CHAOS_MONKEY_PRINCIPAL] | [CHAOS_MONKEY_PRINCIPAL,CHAOS_MONKEY_PRINCIPAL] | []                            | []
+    false              | ["a"]                                           | ["b"]                                           | ["a"]                         | ["b"]
+    false              | ["a", CHAOS_MONKEY_PRINCIPAL]                   | ["b", CHAOS_MONKEY_PRINCIPAL]                   | ["a"]                         | ["b"]
+    false              | [CHAOS_MONKEY_PRINCIPAL]                        | [CHAOS_MONKEY_PRINCIPAL]                        | []                            | []
+    false              | [CHAOS_MONKEY_PRINCIPAL,CHAOS_MONKEY_PRINCIPAL] | [CHAOS_MONKEY_PRINCIPAL,CHAOS_MONKEY_PRINCIPAL] | []                            | []
   }
 }

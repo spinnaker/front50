@@ -23,6 +23,7 @@ import com.netflix.spinnaker.front50.config.ChaosMonkeyEventListenerConfiguratio
 import com.netflix.spinnaker.front50.events.ApplicationEventListener;
 import com.netflix.spinnaker.front50.model.application.Application;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -97,13 +98,13 @@ public class ChaosMonkeyEventListener implements ApplicationEventListener {
         (key, value) -> {
           List<String> roles = new ArrayList<>(value);
           if (key == Authorization.READ || key == Authorization.WRITE) {
-            if (addRole) {
+            if (addRole && !onlyChaosMonkeyPermissions(updatedPermission, key)) {
               // Only add the chaos monkey role if it doesn't already exist
               if (!hasChaosMonkeyPermissions(updatedPermission, key)) {
                 roles.add(properties.getUserRole());
               }
             } else {
-              roles.remove(properties.getUserRole());
+              roles.removeAll(Collections.singletonList(properties.getUserRole()));
             }
           }
           unpackedPermissions.put(key, roles);
@@ -127,6 +128,15 @@ public class ChaosMonkeyEventListener implements ApplicationEventListener {
         .getPermissions()
         .get(authorizationType)
         .contains(properties.getUserRole());
+  }
+
+  private boolean onlyChaosMonkeyPermissions(
+      Application.Permission updatedPermission, Authorization authorizationType) {
+    return updatedPermission.getPermissions().get(authorizationType).stream()
+            .filter(role -> role.equals(properties.getUserRole()))
+            .distinct()
+            .count()
+        == 1;
   }
 
   private static class ChaosMonkeyConfig {
