@@ -24,11 +24,7 @@ import com.netflix.spinnaker.front50.events.ApplicationEventListener;
 import com.netflix.spinnaker.front50.events.ApplicationPermissionEventListener;
 import com.netflix.spinnaker.front50.model.application.Application;
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
@@ -113,7 +109,7 @@ public class ChaosMonkeyEventListener
   public Application.Permission call(
       @Nullable Application.Permission originalPermission,
       @Nullable Application.Permission updatedPermission) {
-    if (updatedPermission == null) {
+    if (updatedPermission == null || !updatedPermission.getPermissions().isRestricted()) {
       return null;
     }
 
