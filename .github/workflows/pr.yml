@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v1
@@ -20,4 +20,27 @@ jobs:
     - name: Build
       env:
         GRADLE_OPTS: -Xmx6g -Xms6g -Dorg.gradle.daemon=false
-      run: ./gradlew build javadoc
+      run: ./gradlew build 
+  strategy:
+    matrix:
+      os: [self-hosted, ubuntu-latest]
+
+  # build_ubuntu:
+  #   if: contains(join(['ajordens']), github.actor) == false
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #   - uses: actions/checkout@v1
+  #   - uses: actions/setup-java@v1
+  #     with:
+  #       java-version: 8
+  #   # - uses: actions/cache@v1
+  #   #   with:
+  #   #     path: ~/.gradle
+  #   #     key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+  #   #     restore-keys: |
+  #   #       ${{ runner.os }}-gradle-
+  #   - name: Build
+  #     env:
+  #       GRADLE_OPTS: -Xmx6g -Xms6g -Dorg.gradle.daemon=false
+  #     run: ./gradlew build 
