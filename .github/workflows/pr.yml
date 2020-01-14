@@ -26,8 +26,9 @@ jobs:
         os: [self-hosted, ubuntu-latest]
   
   build:
+    runs-on: ubuntu-latest
     needs: build_matrix
-    
+
     steps:
     - name: PR Build
       run: echo This event is a pull request that has succeeded!
