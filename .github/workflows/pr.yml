@@ -3,7 +3,7 @@ name: PR
 on: [pull_request]
 
 jobs:
-  build:
+  build_matrix:
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -24,6 +24,15 @@ jobs:
     strategy:
       matrix:
         os: [self-hosted, ubuntu-latest]
+  
+  build:
+    needs: build_matrix
+    
+    steps:
+    - name: PR Build
+      run: echo This event is a pull request that has succeeded!
+
+
 
   # build_ubuntu:
   #   if: contains(join(['ajordens']), github.actor) == false
