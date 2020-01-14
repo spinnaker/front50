@@ -21,9 +21,9 @@ jobs:
       env:
         GRADLE_OPTS: -Xmx6g -Xms6g -Dorg.gradle.daemon=false
       run: ./gradlew build 
-  strategy:
-    matrix:
-      os: [self-hosted, ubuntu-latest]
+    strategy:
+      matrix:
+        os: [self-hosted, ubuntu-latest]
 
   # build_ubuntu:
   #   if: contains(join(['ajordens']), github.actor) == false
