@@ -87,6 +87,7 @@ allprojects { project ->
     resolutionStrategy {
       force group: 'com.thoughtworks.xstream', name: 'xstream', version: '1.4.+' // remove CVE-2019-10173, bump xstream dependency
       force group: 'org.jboss.resteasy', name: 'resteasy-jaxrs', version: '3.10.+' // remove CVE-2016-9606 and CVE-2016-6346, bump resteasy-jaxrs dependency
+      force group: 'com.hubspot.jinjava', name: 'jinjava', version: '2.5.+' // remove CVE-2018-18893, bump jinjava dependency
     }
   }
 }
