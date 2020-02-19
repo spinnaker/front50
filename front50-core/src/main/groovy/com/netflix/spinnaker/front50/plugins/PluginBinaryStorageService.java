@@ -26,17 +26,33 @@ public interface PluginBinaryStorageService {
    * Store a new version of a plugin binary.
    *
    * <p>If the key already exists, the storage service should not accept the request.
+   *
+   * @param key The plugin binary key
+   * @param item The plugin binary
    */
   void store(@Nonnull String key, @Nonnull byte[] item);
 
-  /** Deletes an existing plugin binary. */
+  /**
+   * Deletes an existing plugin binary.
+   *
+   * @param key The plugin binary key
+   */
   void delete(@Nonnull String key);
 
-  /** Get a list of all plugin binaries that are currently stored. */
+  /**
+   * Get a list of all plugin binaries that are currently stored.
+   *
+   * @return A list of all plugin binary keys
+   */
   @Nonnull
   List<String> listKeys();
 
-  /** Load a single plugin binary, returning its raw data. */
+  /**
+   * Load a single plugin binary, returning its raw data.
+   *
+   * @param key The plugin binary key
+   * @return The plugin binary, if it exists
+   */
   @Nullable
   byte[] load(@Nonnull String key);
 }

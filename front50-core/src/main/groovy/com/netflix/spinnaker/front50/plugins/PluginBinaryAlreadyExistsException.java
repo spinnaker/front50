@@ -20,8 +20,8 @@ import static java.lang.String.format;
 import com.netflix.spinnaker.kork.exceptions.UserException;
 
 /**
- * Thrown whenever an upload attempt is made on for a plugin ID & version that already has a plugin
- * binary in storage.
+ * Thrown whenever an upload attempt is made on for a plugin ID and version that already has a
+ * plugin binary in storage.
  */
 public class PluginBinaryAlreadyExistsException extends UserException {
 
