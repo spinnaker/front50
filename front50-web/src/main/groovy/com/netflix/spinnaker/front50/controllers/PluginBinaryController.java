@@ -20,6 +20,7 @@ import static java.lang.String.format;
 import com.google.common.hash.Hashing;
 import com.netflix.spinnaker.front50.plugins.PluginBinaryStorageService;
 import com.netflix.spinnaker.kork.exceptions.SystemException;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +29,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/pluginBinaries")
 public class PluginBinaryController {
 
-  private final PluginBinaryStorageService pluginBinaryStorageService;
+  private final Optional<PluginBinaryStorageService> pluginBinaryStorageService;
 
-  public PluginBinaryController(PluginBinaryStorageService pluginBinaryStorageService) {
+  public PluginBinaryController(Optional<PluginBinaryStorageService> pluginBinaryStorageService) {
     this.pluginBinaryStorageService = pluginBinaryStorageService;
   }
 
@@ -42,14 +43,14 @@ public class PluginBinaryController {
       @RequestParam("sha512sum") String sha512sum,
       @RequestBody byte[] body) {
     verifyChecksum(body, sha512sum);
-    pluginBinaryStorageService.store(getKey(id, version), body);
+    storageService().store(getKey(id, version), body);
   }
 
   @GetMapping("/{id}/{version}")
   ResponseEntity<byte[]> getBinary(@PathVariable String id, @PathVariable String version) {
     return ResponseEntity.ok()
         .header("Content-Type", "application/octet-stream")
-        .body(pluginBinaryStorageService.load(getKey(id, version)));
+        .body(storageService().load(getKey(id, version)));
   }
 
   private static String getKey(String id, String version) {
@@ -62,5 +63,12 @@ public class PluginBinaryController {
       throw new SystemException("Plugin binary checksum does not match expected checksum value")
           .setRetryable(true);
     }
+  }
+
+  private PluginBinaryStorageService storageService() {
+    return pluginBinaryStorageService.orElseThrow(
+        () ->
+            new IllegalArgumentException(
+                "Plugin binary storage service is yet not available for your persistence backend"));
   }
 }
