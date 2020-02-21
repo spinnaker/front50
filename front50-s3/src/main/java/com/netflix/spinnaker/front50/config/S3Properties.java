@@ -16,9 +16,11 @@
 
 package com.netflix.spinnaker.front50.config;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
-public abstract class S3Properties extends S3BucketProperties {
+@ConfigurationProperties("spinnaker.s3")
+public class S3Properties extends S3BucketProperties {
   String rootFolder;
 
   @NestedConfigurationProperty S3FailoverProperties failover = new S3FailoverProperties();

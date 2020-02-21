@@ -18,7 +18,6 @@ package com.netflix.spinnaker.front50.model
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.Registry
-import com.netflix.spinnaker.front50.config.S3MetadataStorageProperties
 import com.netflix.spinnaker.front50.config.S3Properties
 import com.netflix.spinnaker.front50.model.events.S3Event
 import spock.lang.Specification
@@ -31,7 +30,7 @@ import java.util.concurrent.ExecutorService
 class EventingS3ObjectKeyLoaderSpec extends Specification {
   def taskScheduler = Mock(ExecutorService)
   def objectMapper = new ObjectMapper()
-  def s3Properties = new S3MetadataStorageProperties(
+  def s3Properties = new S3Properties(
     rootFolder: "root"
   )
   def temporarySQSQueue = Mock(TemporarySQSQueue)
