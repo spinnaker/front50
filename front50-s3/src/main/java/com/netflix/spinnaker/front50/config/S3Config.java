@@ -1,13 +1,8 @@
 package com.netflix.spinnaker.front50.config;
 
 import com.amazonaws.ClientConfiguration;
-import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.sns.AmazonSNS;
 import com.amazonaws.services.sns.AmazonSNSClientBuilder;
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -15,72 +10,73 @@ import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.appinfo.ApplicationInfoManager;
 import com.netflix.spectator.api.Registry;
-import com.netflix.spinnaker.front50.model.EventingS3ObjectKeyLoader;
-import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
-import com.netflix.spinnaker.front50.model.S3StorageService;
-import com.netflix.spinnaker.front50.model.StorageService;
-import com.netflix.spinnaker.front50.model.TemporarySQSQueue;
+import com.netflix.spinnaker.front50.model.*;
+import com.netflix.spinnaker.front50.plugins.PluginBinaryStorageService;
+import com.netflix.spinnaker.front50.plugins.S3PluginBinaryStorageService;
 import com.netflix.spinnaker.kork.aws.bastion.BastionConfig;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.concurrent.Executors;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.client.RestTemplate;
 
 @Configuration
-@ConditionalOnExpression("${spinnaker.s3.enabled:false}")
+@ConditionalOnProperty("spinnaker.s3.enabled")
 @Import(BastionConfig.class)
-@EnableConfigurationProperties(S3Properties.class)
+@EnableConfigurationProperties({S3MetadataStorageProperties.class, S3PluginStorageProperties.class})
 public class S3Config extends CommonStorageServiceDAOConfig {
 
   @Bean
-  public AmazonS3 awsS3Client(
-      AWSCredentialsProvider awsCredentialsProvider, S3Properties s3Properties) {
-    ClientConfiguration clientConfiguration = new ClientConfiguration();
-    if (s3Properties.getProxyProtocol() != null) {
-      if (s3Properties.getProxyProtocol().equalsIgnoreCase("HTTPS")) {
-        clientConfiguration.setProtocol(Protocol.HTTPS);
-      } else {
-        clientConfiguration.setProtocol(Protocol.HTTP);
-      }
-      Optional.ofNullable(s3Properties.getProxyHost()).ifPresent(clientConfiguration::setProxyHost);
-      Optional.ofNullable(s3Properties.getProxyPort())
-          .map(Integer::parseInt)
-          .ifPresent(clientConfiguration::setProxyPort);
-    }
-
-    AmazonS3Client client = new AmazonS3Client(awsCredentialsProvider, clientConfiguration);
-
-    if (!StringUtils.isEmpty(s3Properties.getEndpoint())) {
-      client.setEndpoint(s3Properties.getEndpoint());
-
-      if (!StringUtils.isEmpty(s3Properties.getRegionOverride())) {
-        client.setSignerRegionOverride(s3Properties.getRegionOverride());
-      }
-
-      client.setS3ClientOptions(
-          S3ClientOptions.builder().setPathStyleAccess(s3Properties.getPathStyleAccess()).build());
-    } else {
-      Optional.ofNullable(s3Properties.getRegion())
-          .map(Regions::fromName)
-          .map(Region::getRegion)
-          .ifPresent(client::setRegion);
-    }
-
-    return client;
+  @ConditionalOnProperty(value = "spinnaker.s3.storage-service.enabled", matchIfMissing = true)
+  public AmazonS3 awsS3MetadataClient(
+      AWSCredentialsProvider awsCredentialsProvider, S3MetadataStorageProperties s3Properties) {
+    return S3ClientFactory.create(awsCredentialsProvider, s3Properties);
   }
 
   @Bean
-  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  @ConditionalOnProperty(value = "spinnaker.s3.storage-service.enabled", matchIfMissing = true)
+  public S3StorageService s3StorageService(
+      AmazonS3 awsS3MetadataClient, S3MetadataStorageProperties s3Properties) {
+    ObjectMapper awsObjectMapper = new ObjectMapper();
+
+    S3StorageService service =
+        new S3StorageService(
+            awsObjectMapper,
+            awsS3MetadataClient,
+            s3Properties.getBucket(),
+            s3Properties.getRootFolder(),
+            s3Properties.isFailoverEnabled(),
+            s3Properties.getRegion(),
+            s3Properties.getVersioning(),
+            s3Properties.getMaxKeys(),
+            s3Properties.getServerSideEncryption());
+    service.ensureBucketExists();
+
+    return service;
+  }
+
+  @Bean
+  @ConditionalOnProperty("spinnaker.s3.plugin-storage.enabled")
+  public AmazonS3 awsS3PluginClient(
+      AWSCredentialsProvider awsCredentialsProvider, S3PluginStorageProperties s3Properties) {
+    return S3ClientFactory.create(awsCredentialsProvider, s3Properties);
+  }
+
+  @Bean
+  @ConditionalOnProperty("spinnaker.s3.plugin-storage.enabled")
+  PluginBinaryStorageService pluginBinaryStorageService(
+      AmazonS3 awsS3PluginClient, S3PluginStorageProperties properties) {
+    return new S3PluginBinaryStorageService(awsS3PluginClient, properties);
+  }
+
+  @Bean
+  @ConditionalOnProperty("spinnaker.s3.eventing.enabled")
   public AmazonSQS awsSQSClient(
-      AWSCredentialsProvider awsCredentialsProvider, S3Properties s3Properties) {
+      AWSCredentialsProvider awsCredentialsProvider, S3MetadataStorageProperties s3Properties) {
     return AmazonSQSClientBuilder.standard()
         .withCredentials(awsCredentialsProvider)
         .withClientConfiguration(new ClientConfiguration())
@@ -89,9 +85,9 @@ public class S3Config extends CommonStorageServiceDAOConfig {
   }
 
   @Bean
-  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  @ConditionalOnProperty("spinnaker.s3.eventing.enabled")
   public AmazonSNS awsSNSClient(
-      AWSCredentialsProvider awsCredentialsProvider, S3Properties s3Properties) {
+      AWSCredentialsProvider awsCredentialsProvider, S3MetadataStorageProperties s3Properties) {
     return AmazonSNSClientBuilder.standard()
         .withCredentials(awsCredentialsProvider)
         .withClientConfiguration(new ClientConfiguration())
@@ -100,30 +96,24 @@ public class S3Config extends CommonStorageServiceDAOConfig {
   }
 
   @Bean
-  @ConditionalOnMissingBean(RestTemplate.class)
-  public RestTemplate restTemplate() {
-    return new RestTemplate();
-  }
-
-  @Bean
-  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  @ConditionalOnProperty("spinnaker.s3.eventing.enabled")
   public TemporarySQSQueue temporaryQueueSupport(
       Optional<ApplicationInfoManager> applicationInfoManager,
       AmazonSQS amazonSQS,
       AmazonSNS amazonSNS,
-      S3Properties s3Properties) {
+      S3MetadataStorageProperties s3Properties) {
     return new TemporarySQSQueue(
         amazonSQS,
         amazonSNS,
-        s3Properties.eventing.getSnsTopicName(),
+        s3Properties.getEventing().getSnsTopicName(),
         getInstanceId(applicationInfoManager));
   }
 
   @Bean
-  @ConditionalOnExpression("${spinnaker.s3.eventing.enabled:false}")
+  @ConditionalOnProperty("spinnaker.s3.eventing.enabled")
   public ObjectKeyLoader eventingS3ObjectKeyLoader(
       ObjectMapper objectMapper,
-      S3Properties s3Properties,
+      S3MetadataStorageProperties s3Properties,
       StorageService storageService,
       TemporarySQSQueue temporaryQueueSupport,
       Registry registry) {
@@ -135,26 +125,6 @@ public class S3Config extends CommonStorageServiceDAOConfig {
         storageService,
         registry,
         true);
-  }
-
-  @Bean
-  public S3StorageService s3StorageService(AmazonS3 amazonS3, S3Properties s3Properties) {
-    ObjectMapper awsObjectMapper = new ObjectMapper();
-
-    S3StorageService service =
-        new S3StorageService(
-            awsObjectMapper,
-            amazonS3,
-            s3Properties.getBucket(),
-            s3Properties.getRootFolder(),
-            s3Properties.isFailoverEnabled(),
-            s3Properties.getRegion(),
-            s3Properties.getVersioning(),
-            s3Properties.getMaxKeys(),
-            s3Properties.getServerSideEncryption());
-    service.ensureBucketExists();
-
-    return service;
   }
 
   /**
