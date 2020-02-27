@@ -21,9 +21,11 @@ import com.google.common.hash.Hashing;
 import com.netflix.spinnaker.front50.plugins.PluginBinaryStorageService;
 import com.netflix.spinnaker.kork.exceptions.SystemException;
 import java.util.Optional;
+import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/pluginBinaries")
@@ -35,15 +37,17 @@ public class PluginBinaryController {
     this.pluginBinaryStorageService = pluginBinaryStorageService;
   }
 
+  @SneakyThrows
   @PostMapping("/{id}/{version}")
   @ResponseStatus(HttpStatus.CREATED)
   void upload(
       @PathVariable String id,
       @PathVariable String version,
       @RequestParam("sha512sum") String sha512sum,
-      @RequestBody byte[] body) {
-    verifyChecksum(body, sha512sum);
-    storageService().store(getKey(id, version), body);
+      @RequestParam("plugin") MultipartFile body) {
+    byte[] bytes = body.getBytes();
+    verifyChecksum(bytes, sha512sum);
+    storageService().store(getKey(id, version), bytes);
   }
 
   @GetMapping("/{id}/{version}")
