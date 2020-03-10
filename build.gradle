@@ -81,6 +81,11 @@ allprojects { project ->
       testImplementation("org.hamcrest:hamcrest-core")
       testRuntimeOnly("cglib:cglib-nodep")
       testRuntimeOnly("org.objenesis:objenesis")
+      testRuntimeOnly "org.junit.vintage:junit-vintage-engine" // Required for Spock tests to execute along with Junit5 tests.
+    }
+
+    test {
+      useJUnitPlatform()
     }
   }
 }
