@@ -44,17 +44,12 @@ public class DefaultApplicationPermissionDAO extends StorageServiceSupport<Appli
 
   @Override
   public Application.Permission create(String id, Application.Permission permission) {
-    return upsert(id, permission);
+    update(id, permission);
+    return findById(id);
   }
 
   @Override
-  public void update(String id, Application.Permission permission) {
-    upsert(id, permission);
-  }
-
-  private Application.Permission upsert(String id, Application.Permission permission) {
+  public void preUpdate(String id, Application.Permission permission) {
     permission.setName(id);
-    super.update(id, permission);
-    return findById(id);
   }
 }

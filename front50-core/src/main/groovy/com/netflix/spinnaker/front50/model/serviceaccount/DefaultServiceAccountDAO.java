@@ -44,17 +44,12 @@ public class DefaultServiceAccountDAO extends StorageServiceSupport<ServiceAccou
 
   @Override
   public ServiceAccount create(String id, ServiceAccount permission) {
-    return upsert(id, permission);
+    update(id, permission);
+    return findById(id);
   }
 
   @Override
-  public void update(String id, ServiceAccount permission) {
-    upsert(id, permission);
-  }
-
-  private ServiceAccount upsert(String id, ServiceAccount permission) {
+  public void preUpdate(String id, ServiceAccount permission) {
     permission.setName(id);
-    super.update(id, permission);
-    return findById(id);
   }
 }

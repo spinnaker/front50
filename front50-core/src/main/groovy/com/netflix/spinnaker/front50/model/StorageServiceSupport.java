@@ -230,11 +230,30 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     }
   }
 
-  public void update(String id, T item) {
+  /**
+   * Updates the persistent store with the provided item.
+   *
+   * <p>The item may be mutated prior to being stored, but this method guarantees that the state of
+   * the input item upon returning from this method reflects exactly what was stored.
+   *
+   * @param id The id of the item to be stored
+   * @param item The item to be stored
+   */
+  public final void update(String id, T item) {
+    preUpdate(id, item);
     item.setLastModifiedBy(AuthenticatedRequest.getSpinnakerUser().orElse("anonymous"));
     item.setLastModified(System.currentTimeMillis());
     service.storeObject(objectType, buildObjectKey(id), item);
   }
+
+  /**
+   * Implementations may override this method to perform any implementation-specific mutations or
+   * validations on the input item before storing it in the persistent store.
+   *
+   * @param id The id of the item being updated
+   * @param item The item being updated
+   */
+  public void preUpdate(String id, T item) {}
 
   public void delete(String id) {
     service.deleteObject(objectType, buildObjectKey(id));

@@ -46,18 +46,13 @@ public class DefaultEntityTagsDAO extends StorageServiceSupport<EntityTags>
 
   @Override
   public EntityTags create(String id, EntityTags tag) {
-    return upsert(id, tag);
+    update(id, tag);
+    return findById(id);
   }
 
   @Override
-  public void update(String id, EntityTags tag) {
-    upsert(id, tag);
-  }
-
-  private EntityTags upsert(String id, EntityTags tag) {
+  public void preUpdate(String id, EntityTags tag) {
     Objects.requireNonNull(id);
-    super.update(id, tag);
-    return findById(id);
   }
 
   @Override

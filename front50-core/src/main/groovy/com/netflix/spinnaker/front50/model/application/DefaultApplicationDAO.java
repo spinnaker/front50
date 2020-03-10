@@ -61,9 +61,8 @@ public class DefaultApplicationDAO extends StorageServiceSupport<Application>
   }
 
   @Override
-  public void update(String id, Application application) {
+  public void preUpdate(String id, Application application) {
     application.setName(id);
-    super.update(id, application);
   }
 
   @Override
