@@ -57,7 +57,7 @@ public class DefaultApplicationDAO extends StorageServiceSupport<Application>
     }
 
     update(id, application);
-    return findById(id);
+    return application;
   }
 
   @Override

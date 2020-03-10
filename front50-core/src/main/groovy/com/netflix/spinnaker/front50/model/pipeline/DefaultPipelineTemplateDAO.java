@@ -49,6 +49,6 @@ public class DefaultPipelineTemplateDAO extends StorageServiceSupport<PipelineTe
     Assert.notEmpty(item.getScopes(), "scopes field must have at least ONE scope!");
 
     update(id, item);
-    return findById(id);
+    return item;
   }
 }

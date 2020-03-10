@@ -69,6 +69,6 @@ public class DefaultPluginInfoRepository extends StorageServiceSupport<PluginInf
     }
 
     update(id, item);
-    return findById(id);
+    return item;
   }
 }

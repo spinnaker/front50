@@ -16,10 +16,9 @@
 
 package com.netflix.spinnaker.front50.model.application;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.netflix.spectator.api.NoopRegistry;
-import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.EventuallyConsistentStorageService;
 import java.util.concurrent.Executors;
@@ -45,10 +44,11 @@ public class DefaultApplicationDAOTest {
     application.setName("my-app");
     application.setDescription("my-description");
 
-    // Documenting a bug that currently exists; in the event of an eventually consistent storage
-    // service, application creation will fail because we attempt to fetch the newly-created object
-    // as part of the creation call.
-    assertThatExceptionOfType(NotFoundException.class)
-        .isThrownBy(() -> applicationDAO.create(KEY, application));
+    applicationDAO.create(KEY, application);
+    storageService.flush();
+
+    Application result = applicationDAO.findById(KEY);
+    assertThat(result.getName()).isEqualTo(application.getName());
+    assertThat(result.getDescription()).isEqualTo(application.getDescription());
   }
 }

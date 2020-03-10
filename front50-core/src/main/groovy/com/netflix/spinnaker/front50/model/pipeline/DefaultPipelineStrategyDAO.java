@@ -77,6 +77,6 @@ public class DefaultPipelineStrategyDAO extends StorageServiceSupport<Pipeline>
     item.setId(id);
 
     update(id, item);
-    return findById(id);
+    return item;
   }
 }

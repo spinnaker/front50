@@ -71,6 +71,6 @@ public class DefaultDeliveryRepository extends StorageServiceSupport<Delivery>
     // todo eb: what other validation needs to happen here?
 
     update(id, deliveryConfig);
-    return findById(id);
+    return deliveryConfig;
   }
 }

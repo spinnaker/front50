@@ -47,7 +47,7 @@ public class DefaultEntityTagsDAO extends StorageServiceSupport<EntityTags>
   @Override
   public EntityTags create(String id, EntityTags tag) {
     update(id, tag);
-    return findById(id);
+    return tag;
   }
 
   @Override

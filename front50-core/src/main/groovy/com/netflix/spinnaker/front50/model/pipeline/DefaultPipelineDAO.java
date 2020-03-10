@@ -88,6 +88,6 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
     Assert.notNull(item.getName(), "name field must NOT be null!");
 
     update(id, item);
-    return findById(id);
+    return item;
   }
 }

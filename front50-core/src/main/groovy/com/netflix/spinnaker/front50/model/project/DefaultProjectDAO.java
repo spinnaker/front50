@@ -60,6 +60,6 @@ public class DefaultProjectDAO extends StorageServiceSupport<Project> implements
     item.setId(id);
 
     update(id, item);
-    return findById(id);
+    return item;
   }
 }

@@ -52,7 +52,7 @@ public class DefaultSnapshotDAO extends StorageServiceSupport<Snapshot> implemen
     item.setId(id);
     item.setTimestamp(System.currentTimeMillis());
 
-    super.update(id, item);
-    return findById(id);
+    update(id, item);
+    return item;
   }
 }

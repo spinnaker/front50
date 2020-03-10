@@ -45,7 +45,7 @@ public class DefaultApplicationPermissionDAO extends StorageServiceSupport<Appli
   @Override
   public Application.Permission create(String id, Application.Permission permission) {
     update(id, permission);
-    return findById(id);
+    return permission;
   }
 
   @Override

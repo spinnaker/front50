@@ -45,7 +45,7 @@ public class DefaultServiceAccountDAO extends StorageServiceSupport<ServiceAccou
   @Override
   public ServiceAccount create(String id, ServiceAccount permission) {
     update(id, permission);
-    return findById(id);
+    return permission;
   }
 
   @Override
