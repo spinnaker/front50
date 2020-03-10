@@ -49,6 +49,31 @@ public interface StorageService {
     }
   }
 
+  /**
+   * Stores the provided object into the persistent store, using the provided key.
+   *
+   * <p>Implementations may modify the object before storing it (such as to add timestamps) but must
+   * do so on the provided object so that the input object reflects exactly what was stored in the
+   * persistent store upon returning from this function.
+   *
+   * <p>In other words, given the sequence of calls
+   *
+   * <pre>{@code
+   * storeObject(objectType, objectKey, item)
+   * newItem = loadObject(objectType, objectKey)
+   * }</pre>
+   *
+   * the implementation must guarantee that {@code newItem.equals(item)}.
+   *
+   * <p>This, in particular, precludes implementations from copying/serializing the input item and
+   * mutating that copy/serialization before storing it. It also precludes implementations that have
+   * triggers at the storage layer that mutate items upon storing.
+   *
+   * @param objectType The type of object to store
+   * @param objectKey The key under which to store the object
+   * @param item The object to store
+   * @param <T> The type of object to store
+   */
   <T extends Timestamped> void storeObject(ObjectType objectType, String objectKey, T item);
 
   Map<String, Long> listObjectKeys(ObjectType objectType);
