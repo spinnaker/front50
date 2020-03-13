@@ -24,8 +24,8 @@ dependencies {
   implementation "com.netflix.spinnaker.kork:kork-aws"
   implementation "com.netflix.spinnaker.kork:kork-security"
   implementation "com.netflix.spinnaker.kork:kork-hystrix"
-  implementation "com.amazonaws:aws-java-sdk-s3"
-  implementation "com.amazonaws:aws-java-sdk-sts"
+  implementation "com.amazonaws:aws-java-sdk-s3:1.11.717"
+  implementation "com.amazonaws:aws-java-sdk-sts:1.11.717"
 
   testImplementation project(":front50-test")
 }
