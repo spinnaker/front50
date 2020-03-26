@@ -22,6 +22,7 @@ import com.netflix.spinnaker.kork.exceptions.UserException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -53,7 +54,11 @@ public class PluginInfoService {
     validate(pluginInfo);
 
     try {
-      repository.findById(pluginInfo.getId());
+      PluginInfo currentPluginInfo = repository.findById(pluginInfo.getId());
+      List<PluginInfo.Release> allReleases = new ArrayList<>();
+      Stream.of(currentPluginInfo.getReleases(), pluginInfo.getReleases())
+          .forEach(allReleases::addAll);
+      pluginInfo.setReleases(allReleases);
       repository.update(pluginInfo.getId(), pluginInfo);
       return pluginInfo;
     } catch (NotFoundException e) {
@@ -67,10 +72,10 @@ public class PluginInfoService {
 
   public PluginInfo createRelease(@Nonnull String id, @Nonnull PluginInfo.Release release) {
     PluginInfo pluginInfo = repository.findById(id);
-
     pluginInfo.getReleases().add(release);
-
-    return upsert(pluginInfo);
+    validate(pluginInfo);
+    repository.update(pluginInfo.getId(), pluginInfo);
+    return pluginInfo;
   }
 
   public PluginInfo deleteRelease(@Nonnull String id, @Nonnull String releaseVersion) {
@@ -83,8 +88,8 @@ public class PluginInfoService {
                 pluginInfo.getReleases().remove(release);
               }
             });
-
-    return upsert(pluginInfo);
+    repository.update(pluginInfo.getId(), pluginInfo);
+    return pluginInfo;
   }
 
   private void validate(PluginInfo pluginInfo) {

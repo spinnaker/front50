@@ -53,6 +53,28 @@ class PluginInfoServiceSpec extends Specification {
     0 * repository.create(_, _)
   }
 
+  def "upsert with a new release for an existing plugin"() {
+    given:
+    PluginInfo currentPluginInfo = new PluginInfo(id: "foo.bar")
+    currentPluginInfo.releases.add(new PluginInfo.Release(version: "1.0.0"))
+
+    and:
+    PluginInfo newPluginInfo = new PluginInfo(id: "foo.bar")
+    currentPluginInfo.releases.add(new PluginInfo.Release(version: "2.0.0"))
+
+    when:
+    PluginInfo persistedPluginInfo = subject.upsert(newPluginInfo)
+
+    then:
+    1 * validator.validate(newPluginInfo, _)
+    1 * repository.findById("foo.bar") >> currentPluginInfo
+    1 * repository.update("foo.bar", newPluginInfo)
+    0 * repository.create(_, _)
+    0 * _
+    persistedPluginInfo.releases.size() == 2
+    persistedPluginInfo.releases*.version == ['1.0.0', '2.0.0']
+  }
+
   def "creating a new release appends to plugin info releases"() {
     given:
     PluginInfo pluginInfo = new PluginInfo(id: "foo.bar")
@@ -64,7 +86,10 @@ class PluginInfoServiceSpec extends Specification {
     def result = subject.createRelease("foo.bar", newRelease)
 
     then:
-    2 * repository.findById("foo.bar") >> pluginInfo
+    1 * repository.findById("foo.bar") >> pluginInfo
+    1 * validator.validate(pluginInfo,_)
+    1 * repository.update("foo.bar", pluginInfo)
     result.releases*.version == ["1.0.0", "2.0.0"]
+    0 * _
   }
 }
