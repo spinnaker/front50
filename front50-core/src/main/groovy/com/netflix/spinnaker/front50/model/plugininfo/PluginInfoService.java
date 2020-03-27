@@ -66,7 +66,6 @@ public class PluginInfoService {
                   throw new InvalidRequestException(
                       "Cannot update an existing release: " + release.getVersion());
                 }
-                ;
               });
 
       List<PluginInfo.Release> allReleases = new ArrayList<>();
