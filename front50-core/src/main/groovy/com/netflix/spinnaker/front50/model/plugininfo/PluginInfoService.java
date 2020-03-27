@@ -57,8 +57,7 @@ public class PluginInfoService {
       PluginInfo currentPluginInfo = repository.findById(pluginInfo.getId());
       List<PluginInfo.Release> newReleases = new ArrayList<>(pluginInfo.getReleases());
       List<PluginInfo.Release> oldReleases = new ArrayList<>(currentPluginInfo.getReleases());
-      new ArrayList<>(
-              newReleases) // We will ever have one in the list buf if we have more than one.
+      new ArrayList<>(newReleases)
           .forEach(
               release -> { // remove it from the old release list if it is being updated.
                 oldReleases.removeIf(
