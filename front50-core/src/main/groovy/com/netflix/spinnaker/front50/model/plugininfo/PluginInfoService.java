@@ -55,17 +55,9 @@ public class PluginInfoService {
 
     try {
       PluginInfo currentPluginInfo = repository.findById(pluginInfo.getId());
-      List<PluginInfo.Release> newReleases = new ArrayList<>(pluginInfo.getReleases());
-      List<PluginInfo.Release> oldReleases = new ArrayList<>(currentPluginInfo.getReleases());
-      new ArrayList<>(newReleases)
-          .forEach(
-              release -> { // remove it from the old release list if it is being updated.
-                oldReleases.removeIf(
-                    oldRelease -> oldRelease.getVersion().equals(release.getVersion()));
-              });
-
       List<PluginInfo.Release> allReleases = new ArrayList<>();
-      Stream.of(oldReleases, newReleases).forEach(allReleases::addAll);
+      Stream.of(currentPluginInfo.getReleases(), pluginInfo.getReleases())
+          .forEach(allReleases::addAll);
       pluginInfo.setReleases(allReleases);
       repository.update(pluginInfo.getId(), pluginInfo);
       return pluginInfo;
