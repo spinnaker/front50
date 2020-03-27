@@ -19,6 +19,7 @@ import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.validator.GenericValidationErrors;
 import com.netflix.spinnaker.front50.validator.PluginInfoValidator;
 import com.netflix.spinnaker.kork.exceptions.UserException;
+import com.netflix.spinnaker.kork.web.exceptions.InvalidRequestException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -55,9 +56,21 @@ public class PluginInfoService {
 
     try {
       PluginInfo currentPluginInfo = repository.findById(pluginInfo.getId());
+      List<PluginInfo.Release> newReleases = new ArrayList<>(pluginInfo.getReleases());
+      List<PluginInfo.Release> oldReleases = new ArrayList<>(currentPluginInfo.getReleases());
+      new ArrayList<>(newReleases)
+          .forEach(
+              release -> { // Raise an exception if old releases are being updated.
+                if (oldReleases.stream()
+                    .anyMatch(oldRelease -> oldRelease.getVersion().equals(release.getVersion()))) {
+                  throw new InvalidRequestException(
+                      "Cannot update an existing release: " + release.getVersion());
+                }
+                ;
+              });
+
       List<PluginInfo.Release> allReleases = new ArrayList<>();
-      Stream.of(currentPluginInfo.getReleases(), pluginInfo.getReleases())
-          .forEach(allReleases::addAll);
+      Stream.of(oldReleases, newReleases).forEach(allReleases::addAll);
       pluginInfo.setReleases(allReleases);
       repository.update(pluginInfo.getId(), pluginInfo);
       return pluginInfo;
