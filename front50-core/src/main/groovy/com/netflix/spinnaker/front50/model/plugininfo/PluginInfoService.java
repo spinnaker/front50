@@ -58,15 +58,14 @@ public class PluginInfoService {
       PluginInfo currentPluginInfo = repository.findById(pluginInfo.getId());
       List<PluginInfo.Release> newReleases = new ArrayList<>(pluginInfo.getReleases());
       List<PluginInfo.Release> oldReleases = new ArrayList<>(currentPluginInfo.getReleases());
-      new ArrayList<>(newReleases)
-          .forEach(
-              release -> { // Raise an exception if old releases are being updated.
-                if (oldReleases.stream()
-                    .anyMatch(oldRelease -> oldRelease.getVersion().equals(release.getVersion()))) {
-                  throw new InvalidRequestException(
-                      "Cannot update an existing release: " + release.getVersion());
-                }
-              });
+      newReleases.forEach(
+          release -> { // Raise an exception if old releases are being updated.
+            if (oldReleases.stream()
+                .anyMatch(oldRelease -> oldRelease.getVersion().equals(release.getVersion()))) {
+              throw new InvalidRequestException(
+                  "Cannot update an existing release: " + release.getVersion());
+            }
+          });
 
       List<PluginInfo.Release> allReleases = new ArrayList<>();
       Stream.of(oldReleases, newReleases).forEach(allReleases::addAll);
