@@ -47,7 +47,6 @@ import com.netflix.spinnaker.clouddriver.googlecommon.deploy.GoogleApiException;
 import com.netflix.spinnaker.clouddriver.googlecommon.deploy.GoogleCommonSafeRetry;
 import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.retry.GcsProviderOperationException;
-import groovy.lang.Closure;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -342,18 +341,13 @@ public class GcsStorageService implements StorageService {
       throws NotFoundException {
     String path = keyToPath(objectKey, objectType.group);
     try {
-      StorageObject[] storageObjectHolder = new StorageObject[1];
-      Closure timeExecuteClosure =
-          new Closure<String>(this, this) {
-            public Object doCall() throws Exception {
-              storageObjectHolder[0] = timeExecute(loadTimer, obj_api.get(bucketName, path));
-              return Closure.DONE;
-            }
-          };
-      doRetry(timeExecuteClosure, "get", objectType.group + " " + objectKey);
-
-      T item = deserialize(storageObjectHolder[0], (Class<T>) objectType.clazz, true);
-      item.setLastModified(storageObjectHolder[0].getUpdated().getValue());
+      StorageObject storageObject =
+          doRetry(
+              () -> timeExecute(loadTimer, obj_api.get(bucketName, path)),
+              "get",
+              objectType.group + " " + objectKey);
+      T item = deserialize(storageObject, (Class<T>) objectType.clazz, true);
+      item.setLastModified(storageObject.getUpdated().getValue());
       log.debug("Loaded bucket={} path={}", value("bucket", bucketName), value("path", path));
       return item;
     } catch (GoogleApiException.NotFoundException e) {
@@ -372,16 +366,9 @@ public class GcsStorageService implements StorageService {
   @Override
   public void deleteObject(ObjectType objectType, String objectKey) {
     String path = keyToPath(objectKey, objectType.group);
-    Closure timeExecuteClosure =
-        new Closure(this, this) {
-          public Object doCall() throws Exception {
-            timeExecute(deleteTimer, obj_api.delete(bucketName, path));
-            return Closure.DONE;
-          }
-        };
     try {
       doRetry(
-          timeExecuteClosure,
+          () -> timeExecute(deleteTimer, obj_api.delete(bucketName, path)),
           "delete",
           objectType.group,
           ImmutableList.of(500),
@@ -406,16 +393,11 @@ public class GcsStorageService implements StorageService {
     }
     StorageObject object = new StorageObject().setBucket(bucketName).setName(path);
     ByteArrayContent content = new ByteArrayContent("application/json", bytes);
-
-    Closure timeExecuteClosure =
-        new Closure(this, this) {
-          public Object doCall() throws Exception {
-            timeExecute(insertTimer, obj_api.insert(bucketName, object, content));
-            return Closure.DONE;
-          }
-        };
     try {
-      doRetry(timeExecuteClosure, "store", objectType.group);
+      doRetry(
+          () -> timeExecute(insertTimer, obj_api.insert(bucketName, object, content)),
+          "store",
+          objectType.group);
     } catch (GoogleApiException e) {
       throw new GcsProviderOperationException(
           String.format("Failed to store %s %s.", objectType.group, objectKey), e);
@@ -435,18 +417,10 @@ public class GcsStorageService implements StorageService {
     try {
       Storage.Objects.List listObjects = obj_api.list(bucketName);
       listObjects.setPrefix(rootFolder);
-      Objects[] objectsHolder = new Objects[1];
+      Objects objects;
       do {
-        Closure timeExecuteClosure =
-            new Closure<String>(this, this) {
-              public Object doCall() throws Exception {
-                objectsHolder[0] = timeExecute(listTimer, listObjects);
-                return Closure.DONE;
-              }
-            };
-        doRetry(timeExecuteClosure, "list", objectType.group);
-
-        List<StorageObject> items = objectsHolder[0].getItems();
+        objects = doRetry(() -> timeExecute(listTimer, listObjects), "list", objectType.group);
+        List<StorageObject> items = objects.getItems();
         if (items != null) {
           for (StorageObject item : items) {
             String name = item.getName();
@@ -457,8 +431,8 @@ public class GcsStorageService implements StorageService {
             }
           }
         }
-        listObjects.setPageToken(objectsHolder[0].getNextPageToken());
-      } while (objectsHolder[0].getNextPageToken() != null);
+        listObjects.setPageToken(objects.getNextPageToken());
+      } while (objects.getNextPageToken() != null);
     } catch (GoogleApiException e) {
       throw new GcsProviderOperationException(
           String.format("Failed to list %s.", objectType.group), e);
@@ -480,18 +454,11 @@ public class GcsStorageService implements StorageService {
       // so to get maxResults, we need to download everything then
       // take the last maxResults, not .setMaxResults(new Long(maxResults)) here.
       Storage.Objects.List listObjects = obj_api.list(bucketName).setPrefix(path).setVersions(true);
-      Objects[] objectsHolder = new Objects[1];
+      Objects objects;
       do {
-        Closure timeExecuteClosure =
-            new Closure<String>(this, this) {
-              public Object doCall() throws Exception {
-                objectsHolder[0] = timeExecute(listTimer, listObjects);
-                return Closure.DONE;
-              }
-            };
-        doRetry(timeExecuteClosure, "list versions", objectType.group);
-
-        List<StorageObject> items = objectsHolder[0].getItems();
+        objects =
+            doRetry(() -> timeExecute(listTimer, listObjects), "list versions", objectType.group);
+        List<StorageObject> items = objects.getItems();
         if (items != null) {
           for (StorageObject item : items) {
             T have = deserialize(item, (Class<T>) objectType.clazz, false);
@@ -501,8 +468,8 @@ public class GcsStorageService implements StorageService {
             }
           }
         }
-        listObjects.setPageToken(objectsHolder[0].getNextPageToken());
-      } while (objectsHolder[0].getNextPageToken() != null);
+        listObjects.setPageToken(objects.getNextPageToken());
+      } while (objects.getNextPageToken() != null);
     } catch (GoogleApiException e) {
       throw new GcsProviderOperationException(
           String.format("Failed to list versions of %s %s.", objectType.group, objectKey), e);
@@ -532,38 +499,36 @@ public class GcsStorageService implements StorageService {
         getter.setGeneration(object.getGeneration());
       }
 
-      Closure timeExecuteClosure =
-          new Closure<String>(this, this) {
-            public Object doCall() throws Exception {
-              Clock clock = registry.clock();
-              long startTime = clock.monotonicTime();
-              int statusCode = -1;
+      Callable<Void> closure =
+          () -> {
+            Clock clock = registry.clock();
+            long startTime = clock.monotonicTime();
+            int statusCode = -1;
 
-              try {
-                getter.executeMediaAndDownloadTo(output);
-                statusCode = getter.getLastStatusCode();
-                if (statusCode < 0) {
-                  // getLastStatusCode is returning -1
-                  statusCode = 200;
-                }
-              } catch (HttpResponseException e) {
-                statusCode = e.getStatusCode();
-                throw e;
-              } catch (Exception e) {
-                log.error("mediaDownload exception from {}", object.getName(), e);
-                throw e;
-              } finally {
-                long nanos = clock.monotonicTime() - startTime;
-                String status = Integer.toString(statusCode).charAt(0) + "xx";
-                Id id =
-                    mediaDownloadTimer.withTags(
-                        "status", status, "statusCode", Integer.toString(statusCode));
-                registry.timer(id).record(nanos, TimeUnit.NANOSECONDS);
+            try {
+              getter.executeMediaAndDownloadTo(output);
+              statusCode = getter.getLastStatusCode();
+              if (statusCode < 0) {
+                // getLastStatusCode is returning -1
+                statusCode = 200;
               }
-              return Closure.DONE;
+            } catch (HttpResponseException e) {
+              statusCode = e.getStatusCode();
+              throw e;
+            } catch (Exception e) {
+              log.error("mediaDownload exception from {}", object.getName(), e);
+              throw e;
+            } finally {
+              long nanos = clock.monotonicTime() - startTime;
+              String status = Integer.toString(statusCode).charAt(0) + "xx";
+              Id id =
+                  mediaDownloadTimer.withTags(
+                      "status", status, "statusCode", Integer.toString(statusCode));
+              registry.timer(id).record(nanos, TimeUnit.NANOSECONDS);
             }
+            return null;
           };
-      doRetry(timeExecuteClosure, "deserialize", object.getName());
+      doRetry(closure, "deserialize", object.getName());
 
       String json = output.toString("UTF8");
       return objectMapper.readValue(json, clas);
@@ -749,18 +714,10 @@ public class GcsStorageService implements StorageService {
   private long getLastModifiedOfTypeName(String daoTypeName) {
     String path = daoRoot(daoTypeName) + '/' + LAST_MODIFIED_FILENAME;
     try {
-      long[] updatedTimestampHolder = new long[1];
-      Closure timeExecuteClosure =
-          new Closure<String>(this, this) {
-            public Object doCall() throws Exception {
-              updatedTimestampHolder[0] =
-                  obj_api.get(bucketName, path).execute().getUpdated().getValue();
-              return Closure.DONE;
-            }
-          };
-      doRetry(timeExecuteClosure, "get last modified", daoTypeName);
-
-      return updatedTimestampHolder[0];
+      return doRetry(
+          () -> obj_api.get(bucketName, path).execute().getUpdated().getValue(),
+          "get last modified",
+          daoTypeName);
     } catch (GoogleApiException.NotFoundException e) {
       log.info("No timestamp file at {}. Creating a new one.", value("path", path));
       writeLastModified(daoTypeName);
