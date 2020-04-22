@@ -351,12 +351,8 @@ public class GcsStorageService implements StorageService {
       log.debug("Loaded bucket={} path={}", value("bucket", bucketName), value("path", path));
       return item;
     } catch (GoogleApiException.NotFoundException e) {
-      log.error(
-          "Failed to load {} {}: {}",
-          value("group", objectType.group),
-          value("key", objectKey),
-          value("message", e.getMessage()));
-      throw new NotFoundException(String.format("No file at path=%s", path));
+      throw new NotFoundException(
+          String.format("Failed to get %s %s: Object not found", objectType.group, objectKey), e);
     } catch (GoogleApiException e) {
       throw new GcsProviderOperationException(
           String.format("Failed to get %s %s.", objectType.group, objectKey), e);
