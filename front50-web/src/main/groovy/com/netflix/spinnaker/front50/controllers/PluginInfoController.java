@@ -19,7 +19,10 @@ import com.netflix.spinnaker.front50.model.plugins.PluginInfo;
 import com.netflix.spinnaker.front50.model.plugins.PluginInfoService;
 import java.util.Collection;
 import java.util.Optional;
+import javax.validation.Valid;
+import javax.validation.constraints.Pattern;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** TODO(rz): What's the permissions model for something like plugin info? */
 @RestController
 @RequestMapping("/pluginInfo")
+@Validated
 public class PluginInfoController {
 
   private final PluginInfoService pluginInfoService;
@@ -52,7 +56,7 @@ public class PluginInfoController {
   }
 
   @RequestMapping(value = "", method = RequestMethod.POST)
-  PluginInfo upsert(@RequestBody PluginInfo pluginInfo) {
+  PluginInfo upsert(@Valid @RequestBody PluginInfo pluginInfo) {
     return pluginInfoService.upsert(pluginInfo);
   }
 
@@ -63,21 +67,24 @@ public class PluginInfoController {
   }
 
   @RequestMapping(value = "/{id}/releases", method = RequestMethod.POST)
-  PluginInfo createRelease(@PathVariable String id, @RequestBody PluginInfo.Release release) {
+  PluginInfo createRelease(
+      @PathVariable String id, @Valid @RequestBody PluginInfo.Release release) {
     return pluginInfoService.createRelease(id, release);
   }
 
   @RequestMapping(value = "/{id}/releases/{releaseVersion}", method = RequestMethod.PUT)
   PluginInfo.Release preferReleaseVersion(
       @PathVariable String id,
-      @PathVariable String releaseVersion,
+      @PathVariable @Pattern(regexp = PluginInfo.Release.VERSION_PATTERN) String releaseVersion,
       @RequestParam(value = "preferred") boolean preferred) {
     return pluginInfoService.preferReleaseVersion(id, releaseVersion, preferred);
   }
 
   @RequestMapping(value = "/{id}/releases/{releaseVersion}", method = RequestMethod.DELETE)
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  PluginInfo deleteRelease(@PathVariable String id, @PathVariable String releaseVersion) {
+  PluginInfo deleteRelease(
+      @PathVariable String id,
+      @PathVariable @Pattern(regexp = PluginInfo.Release.VERSION_PATTERN) String releaseVersion) {
     return pluginInfoService.deleteRelease(id, releaseVersion);
   }
 }
