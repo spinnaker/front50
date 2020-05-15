@@ -257,7 +257,6 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
                                       update(item.getId(), item);
                                       return Observable.just(item);
                                     },
-                                    true,
                                     authenticatedUser)
                                 .call();
                           } catch (Exception e) {
