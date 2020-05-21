@@ -2,11 +2,13 @@ package com.netflix.spinnaker.front50.model.notification;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 public interface NotificationDAO {
 
   Collection<String> NOTIFICATION_FORMATS =
-      Arrays.asList("bearychat", "email", "googlechat", "hipchat", "pubsub", "slack", "sms");
+      Collections.unmodifiableList(
+          Arrays.asList("bearychat", "email", "googlechat", "hipchat", "pubsub", "slack", "sms"));
 
   Collection<Notification> all();
 
