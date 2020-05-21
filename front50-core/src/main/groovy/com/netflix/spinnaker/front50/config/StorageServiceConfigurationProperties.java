@@ -1,10 +1,8 @@
 package com.netflix.spinnaker.front50.config;
 
 import java.util.concurrent.TimeUnit;
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Data
 @ConfigurationProperties("storage-service")
 public class StorageServiceConfigurationProperties {
 
@@ -21,7 +19,54 @@ public class StorageServiceConfigurationProperties {
   private PerObjectType pluginInfo = new PerObjectType(2, TimeUnit.MINUTES.toMillis(1));
   private PerObjectType entityTags = new PerObjectType(2, TimeUnit.MINUTES.toMillis(5), false);
 
-  @Data
+  public PerObjectType getApplication() {
+    return application;
+  }
+
+  public PerObjectType getApplicationPermission() {
+    return applicationPermission;
+  }
+
+  public PerObjectType getServiceAccount() {
+    return serviceAccount;
+  }
+
+  public PerObjectType getProject() {
+    return project;
+  }
+
+  public PerObjectType getNotification() {
+    return notification;
+  }
+
+  public PerObjectType getPipelineStrategy() {
+    return pipelineStrategy;
+  }
+
+  public PerObjectType getPipeline() {
+    return pipeline;
+  }
+
+  public PerObjectType getPipelineTemplate() {
+    return pipelineTemplate;
+  }
+
+  public PerObjectType getSnapshot() {
+    return snapshot;
+  }
+
+  public PerObjectType getDeliveryConfig() {
+    return deliveryConfig;
+  }
+
+  public PerObjectType getPluginInfo() {
+    return pluginInfo;
+  }
+
+  public PerObjectType getEntityTags() {
+    return entityTags;
+  }
+
   public static class PerObjectType {
 
     private int threadPool;
@@ -44,6 +89,30 @@ public class StorageServiceConfigurationProperties {
       }
 
       this.threadPool = threadPool;
+    }
+
+    public int getThreadPool() {
+      return threadPool;
+    }
+
+    public long getRefreshMs() {
+      return refreshMs;
+    }
+
+    public void setRefreshMs(long refreshMs) {
+      this.refreshMs = refreshMs;
+    }
+
+    public boolean isShouldWarmCache() {
+      return shouldWarmCache;
+    }
+
+    public boolean getShouldWarmCache() {
+      return shouldWarmCache;
+    }
+
+    public void setShouldWarmCache(boolean shouldWarmCache) {
+      this.shouldWarmCache = shouldWarmCache;
     }
   }
 }
