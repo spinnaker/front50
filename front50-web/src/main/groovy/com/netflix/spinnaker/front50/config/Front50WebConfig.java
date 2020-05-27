@@ -23,6 +23,7 @@ import com.netflix.spinnaker.fiat.shared.FiatAccessDeniedExceptionHandler;
 import com.netflix.spinnaker.fiat.shared.FiatClientConfigurationProperties;
 import com.netflix.spinnaker.fiat.shared.FiatStatus;
 import com.netflix.spinnaker.filters.AuthenticatedRequestFilter;
+import com.netflix.spinnaker.front50.ItemDAOHealthIndicator;
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO;
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO;
 import com.netflix.spinnaker.front50.model.delivery.DeliveryRepository;
@@ -35,6 +36,8 @@ import com.netflix.spinnaker.kork.dynamicconfig.DynamicConfigService;
 import com.netflix.spinnaker.kork.web.context.AuthenticatedRequestContextProvider;
 import com.netflix.spinnaker.kork.web.context.RequestContextProvider;
 import com.netflix.spinnaker.kork.web.interceptors.MetricsInterceptor;
+import java.io.Serializable;
+import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -54,9 +57,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
-import java.io.Serializable;
-import java.util.*;
-
 @Configuration
 @ComponentScan
 @EnableFiatAutoConfig
@@ -64,8 +64,7 @@ import java.util.*;
 @EnableConfigurationProperties(StorageServiceConfigurationProperties.class)
 public class Front50WebConfig extends WebMvcConfigurerAdapter {
 
-  @Autowired
-  private Registry registry;
+  @Autowired private Registry registry;
 
   @Bean
   public TaskScheduler taskScheduler() {
@@ -78,57 +77,71 @@ public class Front50WebConfig extends WebMvcConfigurerAdapter {
 
   @Override
   public void addInterceptors(InterceptorRegistry registry) {
-    registry.addInterceptor(new MetricsInterceptor(this.registry, "controller.invocations", new ArrayList<>(Arrays.asList("account", "application")), new ArrayList<>(Collections.singletonList("BasicErrorController"))));
+    registry.addInterceptor(
+        new MetricsInterceptor(
+            this.registry,
+            "controller.invocations",
+            new ArrayList<>(Arrays.asList("account", "application")),
+            new ArrayList<>(Collections.singletonList("BasicErrorController"))));
   }
 
   @Bean
   public FilterRegistrationBean<?> authenticatedRequestFilter() {
-    FilterRegistrationBean<?> frb = new FilterRegistrationBean<>(new AuthenticatedRequestFilter(true));
+    FilterRegistrationBean<?> frb =
+        new FilterRegistrationBean<>(new AuthenticatedRequestFilter(true));
     frb.setOrder(Ordered.HIGHEST_PRECEDENCE);
     return frb;
   }
 
   @Bean
-  public ItemDAOHealthIndicator applicationDAOHealthIndicator(ApplicationDAO applicationDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator applicationDAOHealthIndicator(
+      ApplicationDAO applicationDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(applicationDAO, taskScheduler);
   }
 
   @Bean
-  public ItemDAOHealthIndicator projectDAOHealthIndicator(ProjectDAO projectDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator projectDAOHealthIndicator(
+      ProjectDAO projectDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(projectDAO, taskScheduler);
   }
 
   @Bean
-  public ItemDAOHealthIndicator pipelineDAOHealthIndicator(PipelineDAO pipelineDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator pipelineDAOHealthIndicator(
+      PipelineDAO pipelineDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(pipelineDAO, taskScheduler);
   }
 
   @Bean
   @ConditionalOnBean(PipelineTemplateDAO.class)
-  public ItemDAOHealthIndicator pipelineTemplateDAOHealthIndicator(PipelineTemplateDAO pipelineTemplateDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator pipelineTemplateDAOHealthIndicator(
+      PipelineTemplateDAO pipelineTemplateDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(pipelineTemplateDAO, taskScheduler);
   }
 
   @Bean
-  public ItemDAOHealthIndicator pipelineStrategyDAOHealthIndicator(PipelineStrategyDAO pipelineStrategyDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator pipelineStrategyDAOHealthIndicator(
+      PipelineStrategyDAO pipelineStrategyDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(pipelineStrategyDAO, taskScheduler);
   }
 
   @Bean
   @ConditionalOnBean(ApplicationPermissionDAO.class)
-  public ItemDAOHealthIndicator applicationPermissionDAOHealthIndicator(ApplicationPermissionDAO applicationPermissionDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator applicationPermissionDAOHealthIndicator(
+      ApplicationPermissionDAO applicationPermissionDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(applicationPermissionDAO, taskScheduler);
   }
 
   @Bean
   @ConditionalOnBean(ServiceAccountDAO.class)
-  public ItemDAOHealthIndicator serviceAccountDAOHealthIndicator(ServiceAccountDAO serviceAccountDAO, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator serviceAccountDAOHealthIndicator(
+      ServiceAccountDAO serviceAccountDAO, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(serviceAccountDAO, taskScheduler);
   }
 
   @Bean
   @ConditionalOnBean(DeliveryRepository.class)
-  public ItemDAOHealthIndicator deliveryRepositoryHealthIndicator(DeliveryRepository deliveryRepository, TaskScheduler taskScheduler) {
+  public ItemDAOHealthIndicator deliveryRepositoryHealthIndicator(
+      DeliveryRepository deliveryRepository, TaskScheduler taskScheduler) {
     return new ItemDAOHealthIndicator(deliveryRepository, taskScheduler);
   }
 
@@ -148,7 +161,10 @@ public class Front50WebConfig extends WebMvcConfigurerAdapter {
   }
 
   @Bean
-  public FiatStatus fiatStatus(DynamicConfigService dynamicConfigService, Registry registry, FiatClientConfigurationProperties fiatClientConfigurationProperties) {
+  public FiatStatus fiatStatus(
+      DynamicConfigService dynamicConfigService,
+      Registry registry,
+      FiatClientConfigurationProperties fiatClientConfigurationProperties) {
     return new FiatStatus(registry, dynamicConfigService, fiatClientConfigurationProperties);
   }
 
@@ -168,6 +184,5 @@ public class Front50WebConfig extends WebMvcConfigurerAdapter {
       map.put("timestamp", System.currentTimeMillis());
       return map;
     }
-
   }
 }
