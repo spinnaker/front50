@@ -25,7 +25,13 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import lombok.SneakyThrows;
 
-/** Helper class for dealing with untyped data / Groovy migration. */
+/**
+ * Helper class for dealing with untyped data / Groovy migration.
+ *
+ * @deprecated This class is only meant to help with backwards compatibility of migrating from
+ *     Groovy to Java. It should not be used for any new contributions.
+ */
+@Deprecated
 @NonnullByDefault
 public class UntypedUtils {
 
