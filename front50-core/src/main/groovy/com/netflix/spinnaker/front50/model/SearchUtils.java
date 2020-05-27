@@ -31,13 +31,13 @@ public class SearchUtils {
     int indexOf = attribute.indexOf(attributeValue.toLowerCase());
 
     // what percentage of the value matched
-    Double coverage = ((double) attributeValue.length() / attribute.length()) * 100;
+    double coverage = ((double) attributeValue.length() / attribute.length()) * 100;
 
     // where did the match occur, bonus points for it occurring close to the start
-    Integer boost = attribute.length() - indexOf;
+    int boost = attribute.length() - indexOf;
 
     // scale boost based on coverage percentage
-    Double scaledBoost = (coverage / 100) * boost;
+    double scaledBoost = (coverage / 100) * boost;
 
     return (int) (indexOf < 0 ? 0 : coverage + scaledBoost);
   }

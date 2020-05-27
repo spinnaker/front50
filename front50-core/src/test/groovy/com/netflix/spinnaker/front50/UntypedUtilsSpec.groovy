@@ -49,6 +49,15 @@ class UntypedUtilsSpec extends Specification {
     ]
   }
 
+  def "has property"() {
+    given:
+    def obj = new SomeObject()
+
+    expect:
+    UntypedUtils.hasProperty(obj, "property")
+    !UntypedUtils.hasProperty(obj, "nope")
+  }
+
   class SomeObject {
     def property
     def property2

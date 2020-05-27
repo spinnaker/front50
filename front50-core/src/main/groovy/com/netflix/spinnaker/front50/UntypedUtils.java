@@ -44,6 +44,11 @@ public class UntypedUtils {
     f.set(obj, value);
   }
 
+  public static boolean hasProperty(Object obj, String propertyName) {
+    return Arrays.stream(obj.getClass().getDeclaredFields())
+        .anyMatch(it -> it.getName().equals(propertyName));
+  }
+
   @SneakyThrows
   public static Map<String, String> getProperties(Object obj) {
     Map<String, String> m = new HashMap<>();
