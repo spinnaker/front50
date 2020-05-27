@@ -37,7 +37,21 @@ class UntypedUtilsSpec extends Specification {
     value << [null, "hello"]
   }
 
+  def "get properties"() {
+    given:
+    def obj = new SomeObject(property: 1, property2: 2, property3: 3)
+
+    expect:
+    UntypedUtils.getProperties(obj) == [
+      property: "1",
+      property2: "2",
+      property3: "3"
+    ]
+  }
+
   class SomeObject {
     def property
+    def property2
+    def property3
   }
 }
