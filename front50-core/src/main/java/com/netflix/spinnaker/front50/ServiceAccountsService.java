@@ -23,20 +23,22 @@ import com.netflix.spinnaker.front50.config.FiatConfigurationProperties;
 import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import retrofit.RetrofitError;
 
 @Service
+@ConditionalOnBean(ServiceAccountDAO.class)
 public class ServiceAccountsService {
   private static final Logger log = LoggerFactory.getLogger(ServiceAccountsService.class);
   private static final String MANAGED_SERVICE_ACCOUNT_SUFFIX = "@managed-service-account";
@@ -66,28 +68,25 @@ public class ServiceAccountsService {
 
   public ServiceAccount createServiceAccount(ServiceAccount serviceAccount) {
     ServiceAccount acct = serviceAccountDAO.create(serviceAccount.getId(), serviceAccount);
-    syncUsers(Arrays.asList(acct));
+    syncUsers(Collections.singletonList(acct));
     return acct;
   }
 
   public void deleteServiceAccount(String serviceAccountId) {
     ServiceAccount acct = serviceAccountDAO.findById(serviceAccountId);
-    deleteServiceAccounts(Arrays.asList(acct));
+    deleteServiceAccounts(Collections.singletonList(acct));
   }
 
   public void deleteServiceAccounts(Collection<ServiceAccount> serviceAccountsToDelete) {
-    serviceAccountsToDelete.stream()
-        .forEach(
-            sa -> {
-              try {
-                serviceAccountDAO.delete(sa.getId());
-                if (fiatService.isPresent()) {
-                  fiatService.get().logoutUser(sa.getId());
-                }
-              } catch (Exception e) {
-                log.warn("Could not delete service account user {}", sa.getId(), e);
-              }
-            });
+    serviceAccountsToDelete.forEach(
+        sa -> {
+          try {
+            serviceAccountDAO.delete(sa.getId());
+            fiatService.ifPresent(service -> service.logoutUser(sa.getId()));
+          } catch (Exception e) {
+            log.warn("Could not delete service account user {}", sa.getId(), e);
+          }
+        });
 
     if (!serviceAccountsToDelete.isEmpty()) {
       syncUsers(serviceAccountsToDelete);
@@ -122,7 +121,7 @@ public class ServiceAccountsService {
     try {
       List<String> rolesToSync =
           serviceAccounts.stream()
-              .map(sa -> sa.getMemberOf())
+              .map(ServiceAccount::getMemberOf)
               .flatMap(Collection::stream)
               .distinct()
               .collect(Collectors.toList());
