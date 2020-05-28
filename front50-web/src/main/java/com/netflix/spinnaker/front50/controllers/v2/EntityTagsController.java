@@ -36,12 +36,14 @@ public class EntityTagsController {
       @RequestParam(value = "prefix", required = false) final String prefix,
       @RequestParam(value = "ids", required = false) Collection<String> ids,
       @RequestParam(value = "refresh", required = false) Boolean refresh) {
-    if (prefix == null && (ids != null && !ids.isEmpty())) {
+
+    Collection<String> tagIds = Optional.ofNullable(ids).orElseGet(ArrayList::new);
+    if (prefix == null && tagIds.isEmpty()) {
       throw new BadRequestException("Either 'prefix' or 'ids' parameter is required");
     }
 
-    if (ids != null && !ids.isEmpty()) {
-      return findAllByIds(ids);
+    if (!tagIds.isEmpty()) {
+      return findAllByIds(tagIds);
     }
 
     boolean refreshFlag = (refresh == null) ? true : refresh;
