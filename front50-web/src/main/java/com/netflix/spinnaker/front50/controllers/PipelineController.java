@@ -82,7 +82,7 @@ public class PipelineController {
       @PathVariable(value = "application") String application,
       @RequestParam(required = false, value = "refresh", defaultValue = "true") boolean refresh) {
     List<Pipeline> pipelines =
-        (List<Pipeline>) pipelineDAO.getPipelinesByApplication(application, refresh);
+        new ArrayList<>(pipelineDAO.getPipelinesByApplication(application, refresh));
 
     pipelines.sort(
         (p1, p2) -> {
