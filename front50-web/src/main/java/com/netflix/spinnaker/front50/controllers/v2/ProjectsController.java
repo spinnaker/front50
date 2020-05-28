@@ -69,15 +69,13 @@ public class ProjectsController {
       notes =
           "Fetch all projects.\n\n    Support filtering by one or more attributes:\n    - ?name=projectName\n    - ?email=my@email.com")
   @RequestMapping(method = RequestMethod.GET)
-  public Set<Project> projects(
+  public List<Project> projects(
       @RequestParam(value = "pageSize", required = false) Integer pageSize,
       @RequestParam Map<String, String> params) {
     params.remove("pageSize");
-    Set<Project> projects =
-        params.isEmpty() ? new HashSet<>(projectDAO.all()) : filter(projectDAO.all(), params);
-    return (pageSize == null)
-        ? projects
-        : new HashSet<>(new ArrayList<>(projects).subList(0, Math.min(pageSize, projects.size())));
+    List<Project> projects =
+        params.isEmpty() ? new ArrayList<>(projectDAO.all()) : filter(projectDAO.all(), params);
+    return (pageSize == null) ? projects : projects.subList(0, Math.min(pageSize, projects.size()));
   }
 
   @ApiOperation(value = "", notes = "Fetch a single project")
@@ -128,7 +126,7 @@ public class ProjectsController {
     return projectDAO.create(project.getId(), project);
   }
 
-  private Set<Project> filter(Collection<Project> projects, Map<String, String> attributes) {
+  private List<Project> filter(Collection<Project> projects, Map<String, String> attributes) {
     Map<String, String> normalizedAttributes = new HashMap<>();
     for (Map.Entry<String, String> attr : attributes.entrySet()) {
       if (!Strings.isNullOrEmpty(attr.getValue())) {
@@ -136,7 +134,7 @@ public class ProjectsController {
       }
     }
 
-    Set<Project> items = new HashSet<>();
+    List<Project> items = new ArrayList<>();
 
     if (normalizedAttributes.containsKey("applications")) {
       List<String> applications =
@@ -163,7 +161,7 @@ public class ProjectsController {
                                                   clusterHasMatchingApplication(
                                                       cluster, applications)))
                               .orElse(false))
-              .collect(Collectors.toSet());
+              .collect(Collectors.toList());
       normalizedAttributes.remove("applications");
     }
 
@@ -176,15 +174,15 @@ public class ProjectsController {
                             it ->
                                 FUZZY_SEARCH_PREDICATE.test(
                                     new FuzzySearch(project, it.getKey(), it.getValue()))))
-            .collect(Collectors.toSet()));
+            .collect(Collectors.toList()));
 
-    return new TreeSet<>(items)
-        .stream()
-            .sorted(
-                (a, b) ->
-                    SearchUtils.score(b, normalizedAttributes)
-                        - SearchUtils.score(a, normalizedAttributes))
-            .collect(Collectors.toCollection(LinkedHashSet::new));
+    return items.stream()
+        .distinct()
+        .sorted(
+            (a, b) ->
+                SearchUtils.score(b, normalizedAttributes)
+                    - SearchUtils.score(a, normalizedAttributes))
+        .collect(Collectors.toList());
   }
 
   private static boolean projectApplicationMatches(String app, List<String> applications) {
