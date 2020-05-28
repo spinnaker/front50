@@ -20,6 +20,15 @@ public class Application implements Timestamped {
 
   private static final Joiner COMMA_JOINER = Joiner.on(',');
 
+  private String name;
+  private String description;
+  private String email;
+  private String updateTs;
+  private String createTs;
+  private String lastModifiedBy;
+  private Object cloudProviders;
+  private Map<String, Object> details = new HashMap<>();
+
   public String getCloudProviders() {
     // Orca expects a String
     return cloudProviders instanceof List
@@ -29,7 +38,7 @@ public class Application implements Timestamped {
 
   public String getName() {
     // there is an expectation that application names are uppercased (historical)
-    return name.toUpperCase().trim();
+    return Optional.ofNullable(name).map(it -> it.toUpperCase().trim()).orElse(null);
   }
 
   public List<TrafficGuard> getTrafficGuards() {
@@ -154,15 +163,6 @@ public class Application implements Timestamped {
   public void setCloudProviders(Object cloudProviders) {
     this.cloudProviders = cloudProviders;
   }
-
-  private String name;
-  private String description;
-  private String email;
-  private String updateTs;
-  private String createTs;
-  private String lastModifiedBy;
-  private Object cloudProviders;
-  private Map<String, Object> details = new HashMap<String, Object>();
 
   public static class Permission implements Timestamped {
     private String name;
