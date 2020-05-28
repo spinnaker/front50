@@ -74,7 +74,7 @@ public class ProjectsController {
       @RequestParam Map<String, String> params) {
     params.remove("pageSize");
     Set<Project> projects =
-        (Set<Project>) (params.isEmpty() ? projectDAO.all() : filter(projectDAO.all(), params));
+        params.isEmpty() ? new HashSet<>(projectDAO.all()) : filter(projectDAO.all(), params);
     return (pageSize == null)
         ? projects
         : new HashSet<>(new ArrayList<>(projects).subList(0, Math.min(pageSize, projects.size())));
