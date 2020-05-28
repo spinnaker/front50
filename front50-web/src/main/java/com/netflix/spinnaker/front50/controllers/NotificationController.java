@@ -61,7 +61,9 @@ public class NotificationController {
               if (!UntypedUtils.hasProperty(notification, it)) {
                 UntypedUtils.setProperty(notification, it, new ArrayList<>());
               }
-              UntypedUtils.setProperty(notification, it, UntypedUtils.getProperty(global, it));
+
+              ((List) UntypedUtils.getProperty(notification, it))
+                  .addAll((List) UntypedUtils.getProperty(global, it));
             }
           });
     }
