@@ -152,12 +152,7 @@ public class ProjectsController {
                                   projectApps ->
                                       projectApps.stream()
                                           .anyMatch(
-                                              app ->
-                                                  applications.stream()
-                                                      .anyMatch(
-                                                          it ->
-                                                              app.toLowerCase()
-                                                                  .contains(it.toLowerCase()))))
+                                              app -> projectApplicationMatches(app, applications)))
                               .orElse(false)
                           || Optional.ofNullable(project.getConfig().getClusters())
                               .map(
@@ -165,20 +160,8 @@ public class ProjectsController {
                                       projectClusters.stream()
                                           .anyMatch(
                                               cluster ->
-                                                  Optional.ofNullable(cluster.getApplications())
-                                                      .map(
-                                                          clusterApplications ->
-                                                              clusterApplications.stream()
-                                                                  .anyMatch(
-                                                                      app ->
-                                                                          applications.stream()
-                                                                              .anyMatch(
-                                                                                  it ->
-                                                                                      app.toLowerCase()
-                                                                                          .contains(
-                                                                                              it
-                                                                                                  .toLowerCase()))))
-                                                      .orElse(false)))
+                                                  clusterHasMatchingApplication(
+                                                      cluster, applications)))
                               .orElse(false))
               .collect(Collectors.toSet());
       normalizedAttributes.remove("applications");
@@ -202,6 +185,23 @@ public class ProjectsController {
                     SearchUtils.score(b, normalizedAttributes)
                         - SearchUtils.score(a, normalizedAttributes))
             .collect(Collectors.toCollection(LinkedHashSet::new));
+  }
+
+  private static boolean projectApplicationMatches(String app, List<String> applications) {
+    return applications.stream().anyMatch(it -> app.toLowerCase().contains(it.toLowerCase()));
+  }
+
+  private static boolean clusterHasMatchingApplication(
+      Project.ClusterConfig cluster, List<String> applications) {
+    return Optional.ofNullable(cluster.getApplications())
+        .map(
+            clusterApplications ->
+                clusterApplications.stream()
+                    .anyMatch(
+                        app ->
+                            applications.stream()
+                                .anyMatch(it -> app.toLowerCase().contains(it.toLowerCase()))))
+        .orElse(false);
   }
 
   @ApiOperation(value = "", notes = "Delete a project")
@@ -232,7 +232,7 @@ public class ProjectsController {
                       SearchUtils.matchesIgnoreCase(
                           UntypedUtils.getProperties(it), fuzzySearch.key, fuzzySearch.value));
         }
-        return matches;
+        return true;
       };
 
   @Value
