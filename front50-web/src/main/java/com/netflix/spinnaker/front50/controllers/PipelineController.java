@@ -92,7 +92,9 @@ public class PipelineController {
           if (p1.getIndex() == null && p2.getIndex() != null) {
             return 1;
           }
-          if (!p1.getIndex().equals(p2.getIndex())) {
+          if (p1.getIndex() != null
+              && p2.getIndex() != null
+              && !p1.getIndex().equals(p2.getIndex())) {
             return p1.getIndex() - p2.getIndex();
           }
           return Optional.ofNullable(p1.getName())
