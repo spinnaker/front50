@@ -94,8 +94,8 @@ public class ApplicationsController {
     Set<Application> results =
         new HashSet<>(
             pageSize == null
-                ? applications.subList(0, Math.min(pageSize, applications.size()))
-                : applications);
+                ? applications
+                : applications.subList(0, Math.min(pageSize, applications.size())));
     results.forEach(
         it -> {
           if (permissions.containsKey(it.getName().toLowerCase())) {
