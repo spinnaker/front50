@@ -15,6 +15,7 @@
  */
 package com.netflix.spinnaker.front50.controllers;
 
+import com.netflix.spinnaker.front50.config.annotations.ConditionalOnAnyProviderExceptRedisIsEnabled;
 import com.netflix.spinnaker.front50.model.plugins.PluginInfo;
 import com.netflix.spinnaker.front50.model.plugins.PluginInfoService;
 import java.util.Collection;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** TODO(rz): What's the permissions model for something like plugin info? */
 @RestController
 @RequestMapping("/pluginInfo")
+@ConditionalOnAnyProviderExceptRedisIsEnabled
 public class PluginInfoController {
 
   private final PluginInfoService pluginInfoService;

@@ -16,11 +16,11 @@
 
 package com.netflix.spinnaker.front50.controllers
 
+import com.netflix.spinnaker.front50.config.annotations.ConditionalOnAnyProviderExceptRedisIsEnabled
 import com.netflix.spinnaker.front50.exceptions.InvalidEntityException
 import com.netflix.spinnaker.front50.model.snapshot.Snapshot
 import com.netflix.spinnaker.front50.model.snapshot.SnapshotDAO
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression
 import org.springframework.security.access.prepost.PostAuthorize
 import org.springframework.security.access.prepost.PostFilter
 import org.springframework.security.access.prepost.PreAuthorize
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/snapshots")
-@ConditionalOnExpression('${spinnaker.gcs.enabled:false} || ${spinnaker.s3.enabled:false} || ${spinnaker.azs.enabled:false} || ${spinnaker.oracle.enabled:false}')
+@ConditionalOnAnyProviderExceptRedisIsEnabled
 class SnapshotsController {
 
     @Autowired
