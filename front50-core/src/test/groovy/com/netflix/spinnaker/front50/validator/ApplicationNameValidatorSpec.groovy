@@ -27,7 +27,7 @@ class ApplicationNameValidatorSpec extends Specification {
   def "validates #appName isValid: #isValid"() {
     setup:
     ApplicationNameValidatorConfigurationProperties properties = new ApplicationNameValidatorConfigurationProperties()
-    properties.setNameRegEx('^[a-zA-Z0-9.\\-_]*$')
+    properties.setValidationRegex('^[a-zA-Z0-9.\\-_]*$')
     ApplicationNameValidator validator = new ApplicationNameValidator(properties)
     def application = new Application()
     def errors = new ApplicationValidationErrors(application)
