@@ -16,18 +16,22 @@
 
 package com.netflix.spinnaker.front50.controllers
 
-
 import com.netflix.spinnaker.front50.ServiceAccountsService
-import com.netflix.spinnaker.front50.config.CommonServiceConfig
+import com.netflix.spinnaker.front50.config.annotations.ConditionalOnAnyProviderExceptRedisIsEnabled
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount
+import com.netflix.spinnaker.kork.exceptions.SystemException
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.*
-import com.netflix.spinnaker.kork.exceptions.SystemException
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestMethod
+import org.springframework.web.bind.annotation.RestController
 
 @Slf4j
 @RestController
 @RequestMapping("/serviceAccounts")
+@ConditionalOnAnyProviderExceptRedisIsEnabled
 public class ServiceAccountsController {
 
   @Autowired
