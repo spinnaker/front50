@@ -215,7 +215,7 @@ public class OracleStorageService implements StorageService {
         client.resource(
             UriBuilder.fromPath(endpoint + "/n/{arg1}/b/{arg2}/o")
                 .queryParam("prefix", objectType.group)
-                .queryParam("fields", "name,timeCreated")
+                .queryParam("fields", "name,timeModified")
                 .build(region, namespace, bucketName));
     wr.accept(MediaType.APPLICATION_JSON_TYPE);
     ListObjects listObjects = wr.get(ListObjects.class);
@@ -223,7 +223,7 @@ public class OracleStorageService implements StorageService {
     for (ObjectSummary summary : listObjects.getObjects()) {
       if (summary.getName().endsWith(objectType.defaultMetadataFilename)) {
         results.put(
-            buildObjectKey(objectType, summary.getName()), summary.getTimeCreated().getTime());
+            buildObjectKey(objectType, summary.getName()), summary.getTimeModified().getTime());
       }
     }
     return results;
@@ -258,6 +258,9 @@ public class OracleStorageService implements StorageService {
     wr.accept(MediaType.APPLICATION_JSON_TYPE);
     try {
       byte[] bytes = objectMapper.writeValueAsBytes(new LastModified());
+      // convert byte array to string
+      // print out the output
+
       wr.put(new String(bytes, StandardCharsets.UTF_8));
     } catch (IOException e) {
       throw new RuntimeException(e);
