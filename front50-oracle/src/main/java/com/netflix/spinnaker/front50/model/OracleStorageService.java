@@ -6,6 +6,8 @@
  * If a copy of the Apache License Version 2.0 was not distributed with this file,
  * You can obtain one at https://www.apache.org/licenses/LICENSE-2.0.html
  */
+// changed timeCreated() to timeModified() in code below to fix pipeline issue
+
 package com.netflix.spinnaker.front50.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -258,9 +260,6 @@ public class OracleStorageService implements StorageService {
     wr.accept(MediaType.APPLICATION_JSON_TYPE);
     try {
       byte[] bytes = objectMapper.writeValueAsBytes(new LastModified());
-      // convert byte array to string
-      // print out the output
-
       wr.put(new String(bytes, StandardCharsets.UTF_8));
     } catch (IOException e) {
       throw new RuntimeException(e);
