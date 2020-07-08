@@ -6,8 +6,6 @@
  * If a copy of the Apache License Version 2.0 was not distributed with this file,
  * You can obtain one at https://www.apache.org/licenses/LICENSE-2.0.html
  */
-// changed timeCreated() to timeModified() in code below to fix pipeline issue
-
 package com.netflix.spinnaker.front50.model;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
