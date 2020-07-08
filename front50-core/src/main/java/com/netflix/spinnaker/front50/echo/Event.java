@@ -17,4 +17,5 @@
 
 package com.netflix.spinnaker.front50.echo;
 
-public abstract class Event {}
+/** A marker interface for outgoing Events to Echo */
+public interface Event {}
