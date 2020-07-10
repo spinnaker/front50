@@ -1,5 +1,18 @@
 /*
- * Copyright (c) 2019 Schibsted Media Group. All rights reserved
+ * Copyright 2019 Schibsted ASA.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.netflix.spinnaker.front50.migrations;
@@ -11,9 +24,6 @@ import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO;
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -32,16 +42,12 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty("migrations.migrate-to-managed-service-accounts")
 public class RunAsUserToPermissionsMigration implements Migration {
 
-  // Only valid until April 1, 2020
-  private static final LocalDate VALID_UNTIL = LocalDate.of(2020, Month.APRIL, 1);
-
   private static final String SERVICE_ACCOUNT_SUFFIX = "@managed-service-account";
   private static final String RUN_AS_USER = "runAsUser";
   private static final String ROLES = "roles";
 
   private final PipelineDAO pipelineDAO;
   private final ServiceAccountDAO serviceAccountDAO;
-  private Clock clock = Clock.systemDefaultZone();
 
   @Autowired
   public RunAsUserToPermissionsMigration(
@@ -52,7 +58,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
 
   @Override
   public boolean isValid() {
-    return LocalDate.now(clock).isBefore(VALID_UNTIL);
+    return true;
   }
 
   @Override
@@ -137,9 +143,5 @@ public class RunAsUserToPermissionsMigration implements Migration {
     }
     String pipelineName = pipeline.getId();
     return pipelineName.toLowerCase() + SERVICE_ACCOUNT_SUFFIX;
-  }
-
-  void setClock(Clock clock) {
-    this.clock = clock;
   }
 }
