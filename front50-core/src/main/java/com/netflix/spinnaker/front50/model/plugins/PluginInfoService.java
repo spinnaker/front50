@@ -80,6 +80,12 @@ public class PluginInfoService {
       oldPluginInfo = null;
     }
 
+    if (oldPluginInfo == null) {
+      repository.create(pluginInfo.getId(), pluginInfo);
+    } else {
+      repository.update(pluginInfo.getId(), pluginInfo);
+    }
+
     PluginInfoDelta delta = new PluginInfoDelta(pluginInfo, oldPluginInfo);
 
     delta.addedReleases.forEach(
@@ -98,12 +104,6 @@ public class PluginInfoService {
     if ((newVersion == null && oldVersion != null
         || (newVersion != null && !newVersion.equals(oldVersion)))) {
       postEvent(PluginEventType.PREFERRED_VERSION_UPDATED, pluginInfo, delta.newPreferredRelease);
-    }
-
-    if (oldPluginInfo == null) {
-      repository.create(pluginInfo.getId(), pluginInfo);
-    } else {
-      repository.update(pluginInfo.getId(), pluginInfo);
     }
 
     return pluginInfo;
