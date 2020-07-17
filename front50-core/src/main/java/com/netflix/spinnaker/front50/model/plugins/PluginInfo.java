@@ -151,6 +151,9 @@ public class PluginInfo implements Timestamped {
     /** The absolute path of the plugin artifact binary. */
     private String url;
 
+    /** The URL to the release change set; typically compared to the previous release. */
+    private String changeSetUrl;
+
     /** The SHA512 checksum of the plugin binary. */
     private String sha512sum;
 

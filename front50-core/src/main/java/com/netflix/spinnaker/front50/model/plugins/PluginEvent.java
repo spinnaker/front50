@@ -56,6 +56,7 @@ public class PluginEvent implements Event {
     private String requires;
     private List<PluginInfo.ServiceRequirement> parsedRequires;
     private String binaryUrl;
+    private String changeSetUrl;
     private String sha512sum;
     private boolean preferred;
     private String lastModified;
@@ -69,6 +70,7 @@ public class PluginEvent implements Event {
       this.requires = pluginRelease.getRequires();
       this.parsedRequires = pluginRelease.getParsedRequires();
       this.binaryUrl = pluginRelease.getUrl();
+      this.changeSetUrl = pluginRelease.getChangeSetUrl();
       this.sha512sum = pluginRelease.getSha512sum();
       this.preferred = pluginRelease.isPreferred();
       Instant lastModified = pluginRelease.getLastModified();
