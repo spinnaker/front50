@@ -225,8 +225,6 @@ public class PluginInfoService {
             it.setPreferred(isPreferredRelease);
             it.setLastModified(now);
             it.setLastModifiedBy(user);
-            pluginInfo.getReleases().remove(it);
-            pluginInfo.getReleases().add(it);
           }
         });
   }
