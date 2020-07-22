@@ -65,7 +65,7 @@ public class AzureStorageService implements StorageService {
         // log exception
         blobContainer = null;
         log.error(
-          "Error encountered while creation blob container for storage in azure",
+          "Error encountered attempting to create {} blob storage: {}",
           value("exception", e.getMessage()));
       }
     }
