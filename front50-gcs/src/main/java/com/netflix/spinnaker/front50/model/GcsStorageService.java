@@ -54,7 +54,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -81,7 +80,6 @@ public class GcsStorageService implements StorageService {
   private final Storage.Objects obj_api;
   private final String dataFilename;
   private final Id deleteTimer;
-  private final Id purgeTimer; // for deleting timestamp generations
   private final Id loadTimer;
   private final Id mediaDownloadTimer;
   private final Id listTimer;
@@ -92,8 +90,6 @@ public class GcsStorageService implements StorageService {
   private ConcurrentHashMap<String, AtomicBoolean> updateLockMap = new ConcurrentHashMap<>();
   private ConcurrentHashMap<String, AtomicBoolean> scheduledUpdateLockMap =
       new ConcurrentHashMap<>();
-
-  @VisibleForTesting final HashSet<String> purgeOldVersionPaths = new HashSet<String>();
 
   /**
    * Bucket location for when a missing bucket is created. Has no effect if the bucket already
@@ -133,7 +129,6 @@ public class GcsStorageService implements StorageService {
 
     Id id = registry.createId("google.storage.invocation");
     deleteTimer = id.withTag("method", "delete");
-    purgeTimer = id.withTag("method", "purgeTimestamp");
     loadTimer = id.withTag("method", "load");
     listTimer = id.withTag("method", "list");
     mediaDownloadTimer = id.withTag("method", "mediaDownload");
@@ -199,7 +194,6 @@ public class GcsStorageService implements StorageService {
 
     Id id = registry.createId("google.storage.invocation");
     deleteTimer = id.withTag("method", "delete");
-    purgeTimer = id.withTag("method", "purgeTimestamp");
     loadTimer = id.withTag("method", "load");
     listTimer = id.withTag("method", "list");
     mediaDownloadTimer = id.withTag("method", "mediaDownload");
@@ -582,67 +576,6 @@ public class GcsStorageService implements StorageService {
         log.error("writeLastModified failed:", e.getMessage());
         throw new IllegalStateException(e);
       }
-
-      synchronized (purgeOldVersionPaths) {
-        // If the bucket is versioned, purge the old timestamp versions
-        // because they serve no value and just consume storage and extra time
-        // if we eventually destroy this bucket.
-        // These are queued to reduce rate limiting contention on the file since
-        // it is a long term concern rather than a short term one.
-        purgeOldVersionPaths.add(timestamp_path);
-      }
-    }
-  }
-
-  public void purgeBatchedVersionPaths() {
-    String[] paths;
-    synchronized (purgeOldVersionPaths) {
-      if (purgeOldVersionPaths.isEmpty()) {
-        return;
-      }
-      paths = purgeOldVersionPaths.toArray(new String[purgeOldVersionPaths.size()]);
-      purgeOldVersionPaths.clear();
-    }
-    for (String path : paths) {
-      try {
-        purgeOldVersions(path);
-      } catch (Exception e) {
-        synchronized (purgeOldVersionPaths) {
-          purgeOldVersionPaths.add(path); // try again next time.
-        }
-        log.warn("Failed to purge old versions of {}. Ignoring error.", value("path", path));
-      }
-    }
-  }
-
-  // Remove the old versions of a path.
-  // Versioning is per-bucket but it doesnt make sense to version the
-  // timestamp objects so we'll aggressively delete those.
-  private void purgeOldVersions(String path) throws Exception {
-    Storage.Objects.List listObjects = obj_api.list(bucketName).setPrefix(path).setVersions(true);
-
-    com.google.api.services.storage.model.Objects objects;
-
-    // Keep the 0th object on the first page (which is current).
-    List<Long> generations = new ArrayList(32);
-    do {
-      objects = timeExecute(listTimer, listObjects);
-      List<StorageObject> items = objects.getItems();
-      if (items != null) {
-        int n = items.size();
-        while (--n >= 0) {
-          generations.add(items.get(n).getGeneration());
-        }
-      }
-      listObjects.setPageToken(objects.getNextPageToken());
-    } while (objects.getNextPageToken() != null);
-
-    for (long generation : generations) {
-      if (generation == generations.get(0)) {
-        continue;
-      }
-      log.debug("Remove {} generation {}", value("path", path), value("generation", generation));
-      timeExecute(purgeTimer, obj_api.delete(bucketName, path).setGeneration(generation));
     }
   }
 

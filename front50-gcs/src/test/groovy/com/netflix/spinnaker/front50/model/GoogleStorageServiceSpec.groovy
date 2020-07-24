@@ -230,7 +230,6 @@ class GoogleStorageServiceSpec extends Specification {
      ) >> mockUpdateObject
 
      1 * mockUpdateObject.execute()
-     gcs.purgeOldVersionPaths.toArray() == [timestampObject.getName()]
   }
 
   def "deleteObjectNotFound"() {
@@ -274,7 +273,6 @@ class GoogleStorageServiceSpec extends Specification {
      ) >> mockUpdateObject
 
      1 * mockUpdateObject.execute()
-     gcs.purgeOldVersionPaths.toArray() == [timestampObject.getName()]
   }
 
   def "deleteObjectWithRetry"() {
@@ -319,7 +317,6 @@ class GoogleStorageServiceSpec extends Specification {
      ) >> mockUpdateObject
 
      1 * mockUpdateObject.execute()
-     gcs.purgeOldVersionPaths.toArray() == [timestampObject.getName()]
   }
 
   def "storeObject"() {
@@ -373,31 +370,6 @@ class GoogleStorageServiceSpec extends Specification {
      ) >> mockUpdateObject
 
      1 * mockUpdateObject.execute()
-     gcs.purgeOldVersionPaths.toArray() == [timestampObject.getName()]
-  }
-
-  def "purgeOldVersions" () {
-    given:
-     Storage.Objects.List mockListObjects = Mock(Storage.Objects.List)
-     String timestamp_path = BASE_PATH + '/applications/last-modified'
-     com.google.api.services.storage.model.Objects objects = new com.google.api.services.storage.model.Objects()
-
-    when:
-     gcs = makeGcs()
-     gcs.purgeOldVersionPaths.add(timestamp_path)
-
-    then:
-     1 * mockStorage.objects() >> mockObjectApi
-
-    when:
-     gcs.purgeBatchedVersionPaths()
-
-    then:
-     1 * mockObjectApi.list(BUCKET_NAME) >> mockListObjects
-     1 * mockListObjects.setPrefix(timestamp_path) >> mockListObjects
-     1 * mockListObjects.setVersions(true) >> mockListObjects
-     1 * mockListObjects.execute() >> objects
-     1 * mockListObjects.setPageToken(_)
   }
 
   def "rateLimitExceeded"() {
