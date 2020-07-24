@@ -52,6 +52,11 @@ import rx.schedulers.Schedulers;
 @EnableConfigurationProperties(GcsProperties.class)
 public class GcsConfig {
 
+  private static final Logger log = LoggerFactory.getLogger(GcsConfig.class);
+
+  private static final String DATA_FILENAME = "specification.json";
+  private static final String APPLICATION_PERMISSION_DATA_FILENAME = "permission.json";
+
   @Value("${spinnaker.gcs.safe-retry.max-wait-interval-ms:60000}")
   int maxWaitInterval;
 
@@ -76,55 +81,33 @@ public class GcsConfig {
 
   @Autowired TaskScheduler taskScheduler;
 
-  private final Logger log = LoggerFactory.getLogger(getClass());
-
   @Bean
   public GcsStorageService defaultGoogleCloudStorageService(
       GcsProperties gcsProperties, @Qualifier("gcsCredentials") Credentials credentials) {
-    return googleCloudStorageService(null /*dataFilename*/, gcsProperties, credentials);
+    return googleCloudStorageService(DATA_FILENAME, gcsProperties, credentials);
   }
 
   private GcsStorageService googleCloudStorageService(
       String dataFilename, GcsProperties gcsProperties, Credentials credentials) {
     String applicationVersion =
         Optional.ofNullable(getClass().getPackage().getImplementationVersion()).orElse("Unknown");
-    GcsStorageService service;
-    if (dataFilename == null || dataFilename.isEmpty()) {
-      service =
-          new GcsStorageService(
-              gcsProperties.getBucket(),
-              gcsProperties.getBucketLocation(),
-              gcsProperties.getRootFolder(),
-              gcsProperties.getProject(),
-              credentials,
-              applicationVersion,
-              connectTimeoutSec,
-              readTimeoutSec,
-              maxWaitInterval,
-              retryIntervalBase,
-              jitterMultiplier,
-              maxRetries,
-              taskScheduler,
-              registry);
-    } else {
-      service =
-          new GcsStorageService(
-              gcsProperties.getBucket(),
-              gcsProperties.getBucketLocation(),
-              gcsProperties.getRootFolder(),
-              gcsProperties.getProject(),
-              credentials,
-              applicationVersion,
-              dataFilename,
-              connectTimeoutSec,
-              readTimeoutSec,
-              maxWaitInterval,
-              retryIntervalBase,
-              jitterMultiplier,
-              maxRetries,
-              taskScheduler,
-              registry);
-    }
+    GcsStorageService service =
+        new GcsStorageService(
+            gcsProperties.getBucket(),
+            gcsProperties.getBucketLocation(),
+            gcsProperties.getRootFolder(),
+            gcsProperties.getProject(),
+            credentials,
+            applicationVersion,
+            dataFilename,
+            connectTimeoutSec,
+            readTimeoutSec,
+            maxWaitInterval,
+            retryIntervalBase,
+            jitterMultiplier,
+            maxRetries,
+            taskScheduler,
+            registry);
     service.ensureBucketExists();
     log.info(
         "Using Google Cloud Storage bucket={} in project={}",
@@ -184,8 +167,7 @@ public class GcsConfig {
       CircuitBreakerRegistry circuitBreakerRegistry,
       @Qualifier("gcsCredentials") Credentials credentials) {
     GcsStorageService service =
-        googleCloudStorageService(
-            ApplicationPermissionDAO.DEFAULT_DATA_FILENAME, gcsProperties, credentials);
+        googleCloudStorageService(APPLICATION_PERMISSION_DATA_FILENAME, gcsProperties, credentials);
     ObjectKeyLoader keyLoader = new DefaultObjectKeyLoader(service);
     return new DefaultApplicationPermissionDAO(
         service,

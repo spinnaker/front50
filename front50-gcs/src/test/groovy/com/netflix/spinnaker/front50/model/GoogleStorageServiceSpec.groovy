@@ -51,6 +51,9 @@ class GoogleStorageServiceSpec extends Specification {
   @Shared
   String PROJECT_NAME = "TestProject"
 
+  @Shared
+  String DATA_FILENAME = "specification.json"
+
   Storage mockStorage = Mock(Storage)
   Storage.Objects mockObjectApi = Mock(Storage.Objects)
   GcsStorageService gcs
@@ -62,7 +65,7 @@ class GoogleStorageServiceSpec extends Specification {
 
   GcsStorageService makeGcs(int maxRetries) {
     return new GcsStorageService(BUCKET_NAME, BUCKET_LOCATION, BASE_PATH, PROJECT_NAME,
-                                 mockStorage, maxRetries, mockScheduler, registry)
+                                 mockStorage, maxRetries, mockScheduler, registry, DATA_FILENAME)
   }
 
   def "ensureBucketExists make bucket"() {

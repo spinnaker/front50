@@ -68,7 +68,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
 
 public class GcsStorageService implements StorageService {
-  private static final String DEFAULT_DATA_FILENAME = "specification.json";
   private static final String LAST_MODIFIED_FILENAME = "last-modified";
   private final Logger log = LoggerFactory.getLogger(getClass());
   private final GoogleCommonSafeRetry safeRetry;
@@ -119,7 +118,8 @@ public class GcsStorageService implements StorageService {
       Storage storage,
       int maxRetries,
       TaskScheduler taskScheduler,
-      Registry registry) {
+      Registry registry,
+      String dataFilename) {
     this.bucketName = bucketName;
     this.bucketLocation = bucketLocation;
     this.basePath = basePath;
@@ -127,7 +127,7 @@ public class GcsStorageService implements StorageService {
     this.storage = storage;
     this.registry = registry;
     this.obj_api = storage.objects();
-    this.dataFilename = DEFAULT_DATA_FILENAME;
+    this.dataFilename = dataFilename;
     this.taskScheduler = taskScheduler;
     this.safeRetry = GoogleCommonSafeRetry.builder().maxRetries(maxRetries).build();
 
@@ -139,39 +139,6 @@ public class GcsStorageService implements StorageService {
     mediaDownloadTimer = id.withTag("method", "mediaDownload");
     insertTimer = id.withTag("method", "insert");
     patchTimer = id.withTag("method", "patch");
-  }
-
-  public GcsStorageService(
-      String bucketName,
-      String bucketLocation,
-      String basePath,
-      String projectName,
-      Credentials credentials,
-      String applicationVersion,
-      Integer connectTimeoutSec,
-      Integer readTimeoutSec,
-      int maxWaitInterval,
-      int retryIntervalBase,
-      int jitterMultiplier,
-      int maxRetries,
-      TaskScheduler taskScheduler,
-      Registry registry) {
-    this(
-        bucketName,
-        bucketLocation,
-        basePath,
-        projectName,
-        credentials,
-        applicationVersion,
-        DEFAULT_DATA_FILENAME,
-        connectTimeoutSec,
-        readTimeoutSec,
-        maxWaitInterval,
-        retryIntervalBase,
-        jitterMultiplier,
-        maxRetries,
-        taskScheduler,
-        registry);
   }
 
   public GcsStorageService(
