@@ -31,12 +31,11 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.DateTime;
 import com.google.api.services.storage.Storage;
-import com.google.api.services.storage.StorageScopes;
 import com.google.api.services.storage.model.Bucket;
 import com.google.api.services.storage.model.Objects;
 import com.google.api.services.storage.model.StorageObject;
+import com.google.auth.Credentials;
 import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -48,7 +47,6 @@ import com.netflix.spinnaker.clouddriver.googlecommon.deploy.GoogleCommonSafeRet
 import com.netflix.spinnaker.front50.exception.NotFoundException;
 import com.netflix.spinnaker.front50.retry.GcsProviderOperationException;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -112,25 +110,6 @@ public class GcsStorageService implements StorageService {
     return this.objectMapper;
   }
 
-  private GoogleCredentials loadCredential(String jsonPath) throws IOException {
-    GoogleCredentials credentials = null;
-
-    if (!jsonPath.isEmpty()) {
-      FileInputStream stream = new FileInputStream(jsonPath);
-      credentials = GoogleCredentials.fromStream(stream);
-      log.info("Loaded credentials from {}", value("jsonPath", jsonPath));
-    } else {
-      log.info(
-          "spinnaker.gcs.enabled without spinnaker.gcs.jsonPath. "
-              + "Using default application credentials. Using default credentials.");
-      credentials = GoogleCredentials.getApplicationDefault();
-    }
-
-    return credentials.createScopedRequired()
-        ? credentials.createScoped(Collections.singleton(StorageScopes.DEVSTORAGE_FULL_CONTROL))
-        : credentials;
-  }
-
   @VisibleForTesting
   GcsStorageService(
       String bucketName,
@@ -167,7 +146,7 @@ public class GcsStorageService implements StorageService {
       String bucketLocation,
       String basePath,
       String projectName,
-      String credentialsPath,
+      Credentials credentials,
       String applicationVersion,
       Integer connectTimeoutSec,
       Integer readTimeoutSec,
@@ -182,7 +161,7 @@ public class GcsStorageService implements StorageService {
         bucketLocation,
         basePath,
         projectName,
-        credentialsPath,
+        credentials,
         applicationVersion,
         DEFAULT_DATA_FILENAME,
         connectTimeoutSec,
@@ -200,7 +179,7 @@ public class GcsStorageService implements StorageService {
       String bucketLocation,
       String basePath,
       String projectName,
-      String credentialsPath,
+      Credentials credentials,
       String applicationVersion,
       String dataFilename,
       Integer connectTimeoutSec,
@@ -216,7 +195,6 @@ public class GcsStorageService implements StorageService {
     try {
       HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
       JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-      GoogleCredentials credentials = loadCredential(credentialsPath);
       HttpRequestInitializer requestInitializer =
           new HttpCredentialsAdapter(credentials) {
             public void initialize(HttpRequest request) throws IOException {

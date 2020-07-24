@@ -18,6 +18,9 @@ package com.netflix.spinnaker.front50.config;
 
 import static net.logstash.logback.argument.StructuredArguments.value;
 
+import com.google.api.services.storage.StorageScopes;
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.GcsStorageService;
@@ -25,11 +28,15 @@ import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO;
 import com.netflix.spinnaker.front50.model.application.DefaultApplicationPermissionDAO;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -72,12 +79,13 @@ public class GcsConfig {
   private final Logger log = LoggerFactory.getLogger(getClass());
 
   @Bean
-  public GcsStorageService defaultGoogleCloudStorageService(GcsProperties gcsProperties) {
-    return googleCloudStorageService(null /*dataFilename*/, gcsProperties);
+  public GcsStorageService defaultGoogleCloudStorageService(
+      GcsProperties gcsProperties, @Qualifier("gcsCredentials") Credentials credentials) {
+    return googleCloudStorageService(null /*dataFilename*/, gcsProperties, credentials);
   }
 
   private GcsStorageService googleCloudStorageService(
-      String dataFilename, GcsProperties gcsProperties) {
+      String dataFilename, GcsProperties gcsProperties, Credentials credentials) {
     String applicationVersion =
         Optional.ofNullable(getClass().getPackage().getImplementationVersion()).orElse("Unknown");
     GcsStorageService service;
@@ -88,7 +96,7 @@ public class GcsConfig {
               gcsProperties.getBucketLocation(),
               gcsProperties.getRootFolder(),
               gcsProperties.getProject(),
-              gcsProperties.getJsonPath(),
+              credentials,
               applicationVersion,
               connectTimeoutSec,
               readTimeoutSec,
@@ -105,7 +113,7 @@ public class GcsConfig {
               gcsProperties.getBucketLocation(),
               gcsProperties.getRootFolder(),
               gcsProperties.getProject(),
-              gcsProperties.getJsonPath(),
+              credentials,
               applicationVersion,
               dataFilename,
               connectTimeoutSec,
@@ -146,12 +154,38 @@ public class GcsConfig {
   }
 
   @Bean
+  @Qualifier("gcsCredentials")
+  public Credentials gcsCredentials(GcsProperties gcsProperties) throws IOException {
+
+    String jsonPath = gcsProperties.getJsonPath();
+
+    GoogleCredentials credentials;
+    if (!jsonPath.isEmpty()) {
+      try (FileInputStream fis = new FileInputStream(jsonPath)) {
+        credentials = GoogleCredentials.fromStream(fis);
+      }
+      log.info("Loaded GCS credentials from {}", value("jsonPath", jsonPath));
+    } else {
+      log.info(
+          "spinnaker.gcs.enabled without spinnaker.gcs.jsonPath. "
+              + "Using default application credentials. Using default credentials.");
+      credentials = GoogleCredentials.getApplicationDefault();
+    }
+
+    return credentials.createScopedRequired()
+        ? credentials.createScoped(Collections.singleton(StorageScopes.DEVSTORAGE_FULL_CONTROL))
+        : credentials;
+  }
+
+  @Bean
   public ApplicationPermissionDAO applicationPermissionDAO(
       StorageServiceConfigurationProperties storageServiceConfigurationProperties,
       Registry registry,
-      CircuitBreakerRegistry circuitBreakerRegistry) {
+      CircuitBreakerRegistry circuitBreakerRegistry,
+      @Qualifier("gcsCredentials") Credentials credentials) {
     GcsStorageService service =
-        googleCloudStorageService(ApplicationPermissionDAO.DEFAULT_DATA_FILENAME, gcsProperties);
+        googleCloudStorageService(
+            ApplicationPermissionDAO.DEFAULT_DATA_FILENAME, gcsProperties, credentials);
     ObjectKeyLoader keyLoader = new DefaultObjectKeyLoader(service);
     return new DefaultApplicationPermissionDAO(
         service,
