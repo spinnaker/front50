@@ -34,6 +34,8 @@ import java.io.IOException
 import java.util.Comparator
 import java.util.concurrent.Executor
 import java.util.stream.Collectors
+import javax.annotation.PostConstruct
+import net.logstash.logback.argument.StructuredArguments
 import org.slf4j.LoggerFactory
 
 class GcsStorageService(
@@ -53,21 +55,32 @@ class GcsStorageService(
 
   private val modTimeState = ObjectType.values().map { it to ModificationTimeState(it) }.toMap()
 
+  @PostConstruct
   fun ensureBucketExists() {
-    val bucket = storage.get(bucketName)
+    var bucket: BucketInfo? = storage.get(bucketName)
     if (bucket == null) {
       val bucketInfo = BucketInfo.newBuilder(bucketName)
         .setVersioningEnabled(true)
       if (bucketLocation.isNotBlank()) {
         bucketInfo.setLocation(bucketLocation)
       }
+      bucket = bucketInfo.build()
       storage.create(bucketInfo.build())
     }
+
+    log.info(
+      "Bucket versioning is {}.",
+      StructuredArguments.value("versioning", if (supportsVersioning(bucket)) "enabled" else "DISABLED")
+    )
   }
 
   override fun supportsVersioning(): Boolean {
     val bucket = storage.get(bucketName, BucketGetOption.fields(BucketField.VERSIONING))
-    return bucket.versioningEnabled() == true
+    return supportsVersioning(bucket)
+  }
+
+  fun supportsVersioning(bucket: BucketInfo?): Boolean {
+    return bucket?.versioningEnabled() == true
   }
 
   override fun <T : Timestamped> loadObject(objectType: ObjectType, objectKey: String): T {

@@ -81,7 +81,6 @@ public class GcsConfig {
             dataFilename,
             new ObjectMapper(),
             executor);
-    service.ensureBucketExists();
     log.info(
         "Using Google Cloud Storage bucket={} in project={}",
         value("bucket", gcsProperties.getBucket()),

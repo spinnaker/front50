@@ -112,7 +112,9 @@ class GcsStorageServiceTest {
   @Test
   fun `ensureBucketExists with existing bucket`() {
 
-    every { gcs.get(any<String>(), *anyVararg()) } returns mockk()
+    val mockBucket = mockk<Bucket>()
+    every { mockBucket.versioningEnabled() } returns true
+    every { gcs.get(any<String>(), *anyVararg()) } returns mockBucket
 
     storageService.ensureBucketExists()
 
