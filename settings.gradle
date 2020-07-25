@@ -21,6 +21,7 @@
     includeBuild projectPath
   }
 }
+includeBuild '../spinnaker-gradle-project'
 
 enableFeaturePreview("VERSION_ORDERING_V2")
 

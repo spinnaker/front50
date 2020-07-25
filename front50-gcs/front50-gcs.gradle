@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+apply from: "$rootDir/gradle/kotlin.gradle"
+
 dependencies {
   implementation project(":front50-core")
 
@@ -31,6 +33,16 @@ dependencies {
   implementation "io.reactivex:rxjava"
   implementation "io.github.resilience4j:resilience4j-circuitbreaker"
   implementation "com.netflix.spectator:spectator-api"
+  implementation "com.google.cloud:google-cloud-storage:1.108.0"
+  testImplementation "io.strikt:strikt-core"
+  testImplementation "com.google.guava:guava"
+  testImplementation "io.mockk:mockk"
 
   testImplementation project(":front50-test")
+}
+
+test {
+  useJUnitPlatform {
+    includeEngines "junit-jupiter"
+  }
 }

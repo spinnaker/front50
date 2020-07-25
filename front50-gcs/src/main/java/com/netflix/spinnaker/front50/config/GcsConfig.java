@@ -18,9 +18,13 @@ package com.netflix.spinnaker.front50.config;
 
 import static net.logstash.logback.argument.StructuredArguments.value;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.services.storage.StorageScopes;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.GcsStorageService;
@@ -31,19 +35,16 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.TaskScheduler;
 import org.springframework.web.client.RestTemplate;
 import rx.schedulers.Schedulers;
 
@@ -57,57 +58,29 @@ public class GcsConfig {
   private static final String DATA_FILENAME = "specification.json";
   private static final String APPLICATION_PERMISSION_DATA_FILENAME = "permission.json";
 
-  @Value("${spinnaker.gcs.safe-retry.max-wait-interval-ms:60000}")
-  int maxWaitInterval;
-
-  @Value("${spinnaker.gcs.safe-retry.retry-interval-base-sec:2}")
-  int retryIntervalBase;
-
-  @Value("${spinnaker.gcs.safe-retry.jitter-multiplier:1000}")
-  int jitterMultiplier;
-
-  @Value("${spinnaker.gcs.safe-retry.max-retries:10}")
-  int maxRetries;
-
-  @Value("${spinnaker.gcs.connect-timeout-sec:45}")
-  Integer connectTimeoutSec;
-
-  @Value("${spinnaker.gcs.read-timeout-sec:45}")
-  Integer readTimeoutSec;
-
-  @Autowired Registry registry;
-
-  @Autowired GcsProperties gcsProperties;
-
-  @Autowired TaskScheduler taskScheduler;
-
   @Bean
   public GcsStorageService defaultGoogleCloudStorageService(
-      GcsProperties gcsProperties, @Qualifier("gcsCredentials") Credentials credentials) {
-    return googleCloudStorageService(DATA_FILENAME, gcsProperties, credentials);
+      Storage storage, GcsProperties gcsProperties) {
+    return googleCloudStorageService(storage, DATA_FILENAME, gcsProperties);
   }
 
   private GcsStorageService googleCloudStorageService(
-      String dataFilename, GcsProperties gcsProperties, Credentials credentials) {
-    String applicationVersion =
-        Optional.ofNullable(getClass().getPackage().getImplementationVersion()).orElse("Unknown");
-    GcsStorageService service =
+      Storage storage, String dataFilename, GcsProperties gcsProperties) {
+    GcsStorageService service;
+    ExecutorService executor =
+        Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder()
+                .setNameFormat(GcsStorageService.class.getName() + "-%s")
+                .build());
+    service =
         new GcsStorageService(
+            storage,
             gcsProperties.getBucket(),
             gcsProperties.getBucketLocation(),
             gcsProperties.getRootFolder(),
-            gcsProperties.getProject(),
-            credentials,
-            applicationVersion,
             dataFilename,
-            connectTimeoutSec,
-            readTimeoutSec,
-            maxWaitInterval,
-            retryIntervalBase,
-            jitterMultiplier,
-            maxRetries,
-            taskScheduler,
-            registry);
+            new ObjectMapper(),
+            executor);
     service.ensureBucketExists();
     log.info(
         "Using Google Cloud Storage bucket={} in project={}",
@@ -151,13 +124,25 @@ public class GcsConfig {
   }
 
   @Bean
+  public Storage googleCloudStorage(
+      @Qualifier("gcsCredentials") Credentials credentials, GcsProperties properties) {
+    return StorageOptions.newBuilder()
+        .setCredentials(credentials)
+        .setProjectId(properties.getProject())
+        .build()
+        .getService();
+  }
+
+  @Bean
   public ApplicationPermissionDAO applicationPermissionDAO(
+      Storage storage,
       StorageServiceConfigurationProperties storageServiceConfigurationProperties,
       Registry registry,
       CircuitBreakerRegistry circuitBreakerRegistry,
-      @Qualifier("gcsCredentials") Credentials credentials) {
+      GcsProperties gcsProperties) {
+
     GcsStorageService service =
-        googleCloudStorageService(APPLICATION_PERMISSION_DATA_FILENAME, gcsProperties, credentials);
+        googleCloudStorageService(storage, APPLICATION_PERMISSION_DATA_FILENAME, gcsProperties);
     ObjectKeyLoader keyLoader = new DefaultObjectKeyLoader(service);
     return new DefaultApplicationPermissionDAO(
         service,
