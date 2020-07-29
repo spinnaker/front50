@@ -27,13 +27,10 @@ import com.google.cloud.storage.Storage.BlobListOption
 import com.google.cloud.storage.Storage.BucketField
 import com.google.cloud.storage.Storage.BucketGetOption
 import com.google.cloud.storage.StorageException
-import com.google.common.collect.ImmutableList
 import com.google.common.collect.ImmutableMap
 import com.netflix.spinnaker.front50.exception.NotFoundException
 import java.io.IOException
-import java.util.Comparator
 import java.util.concurrent.Executor
-import java.util.stream.Collectors
 import javax.annotation.PostConstruct
 import net.logstash.logback.argument.StructuredArguments
 import org.slf4j.LoggerFactory
@@ -92,8 +89,8 @@ class GcsStorageService(
       val obj: T = parseObject(bytes, objectType, objectKey)
       obj.lastModified = blob.updateTime
       return obj
-    } catch (e: StorageException) {
-      throw GcsStorageServiceException("error loading $objectType $objectKey", e)
+    } catch (e: Exception) {
+      throw wrapException("error loading $objectType $objectKey", e)
     }
   }
 
@@ -103,7 +100,7 @@ class GcsStorageService(
         writeLastModified(objectType)
       }
     } catch (e: Exception) {
-      throw GcsStorageServiceException("error deleting $objectType $objectKey", e)
+      throw wrapException("error deleting $objectType $objectKey", e)
     }
   }
 
@@ -114,11 +111,11 @@ class GcsStorageService(
       storage.create(BlobInfo.newBuilder(blobId).setContentType("application/json").build(), bytes)
       writeLastModified(objectType)
     } catch (e: Exception) {
-      throw GcsStorageServiceException("Error writing $objectType $objectKey", e)
+      throw wrapException("Error writing $objectType $objectKey", e)
     }
   }
 
-  override fun listObjectKeys(objectType: ObjectType): MutableMap<String, Long> {
+  override fun listObjectKeys(objectType: ObjectType): Map<String, Long> {
     val results = ImmutableMap.builder<String, Long>()
 
     try {
@@ -132,7 +129,7 @@ class GcsStorageService(
           }
         }
     } catch (e: Exception) {
-      throw GcsStorageServiceException("error listing $objectType objects", e)
+      throw wrapException("error listing $objectType objects", e)
     }
 
     return results.build()
@@ -149,23 +146,22 @@ class GcsStorageService(
     objectType: ObjectType,
     objectKey: String,
     maxResults: Int
-  ): MutableCollection<T> {
+  ): Collection<T> {
 
     try {
       val path = pathForKey(objectType, objectKey)
       val listResults = storage.list(bucketName, BlobListOption.prefix(path), BlobListOption.versions(true))
-      val blobs: List<Blob> = ImmutableList.copyOf(listResults.iterateAll())
-      return blobs.stream()
+      return listResults.iterateAll()
         .filter { blob: Blob -> blob.name == path }
-        .sorted(Comparator.comparing { blob: Blob -> blob.updateTime }.reversed())
-        .limit(maxResults.toLong())
+        .sortedBy { it.updateTime }
+        .reversed()
+        .take(maxResults)
         .map { blob: Blob ->
           parseObject<T>(blob.getContent(), objectType, objectKey)
             .apply { lastModified = blob.updateTime }
         }
-        .collect(Collectors.toList())
     } catch (e: Exception) {
-      throw GcsStorageServiceException("error loading $objectType $objectKey", e)
+      throw wrapException("error loading $objectType $objectKey", e)
     }
   }
 
@@ -179,7 +175,7 @@ class GcsStorageService(
         return blob.updateTime
       }
     } catch (e: Exception) {
-      throw GcsStorageServiceException("error loading timestamp for $objectType objects", e)
+      throw wrapException("error loading timestamp for $objectType objects", e)
     }
   }
 
@@ -276,6 +272,17 @@ class GcsStorageService(
 
   private fun daoRoot(objectType: ObjectType): String {
     return "$basePath/${objectType.group}"
+  }
+
+  private fun wrapException(message: String, e: Exception): Exception {
+    if (e is InterruptedException) {
+      Thread.currentThread().interrupt()
+      return e
+    } else if (e is NotFoundException) {
+      return e
+    } else {
+      return GcsStorageServiceException(message, e)
+    }
   }
 }
 

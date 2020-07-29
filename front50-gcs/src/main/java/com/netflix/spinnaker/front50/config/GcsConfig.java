@@ -66,13 +66,12 @@ public class GcsConfig {
 
   private GcsStorageService googleCloudStorageService(
       Storage storage, String dataFilename, GcsProperties gcsProperties) {
-    GcsStorageService service;
     ExecutorService executor =
         Executors.newCachedThreadPool(
             new ThreadFactoryBuilder()
                 .setNameFormat(GcsStorageService.class.getName() + "-%s")
                 .build());
-    service =
+    GcsStorageService service =
         new GcsStorageService(
             storage,
             gcsProperties.getBucket(),
@@ -85,9 +84,6 @@ public class GcsConfig {
         "Using Google Cloud Storage bucket={} in project={}",
         value("bucket", gcsProperties.getBucket()),
         value("project", gcsProperties.getProject()));
-    log.info(
-        "Bucket versioning is {}.",
-        value("versioning", service.supportsVersioning() ? "enabled" : "DISABLED"));
 
     return service;
   }
