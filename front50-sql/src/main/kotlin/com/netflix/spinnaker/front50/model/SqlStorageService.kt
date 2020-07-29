@@ -136,7 +136,8 @@ class SqlStorageService(
       )
     }
 
-    log.debug("Took {}ms to fetch {} objects for {}",
+    log.debug(
+      "Took {}ms to fetch {} objects for {}",
       timeToLoadObjects,
       objects.size,
       objectType
@@ -184,7 +185,8 @@ class SqlStorageService(
                     *insertPairs.keys.map { DSL.field(it) }.toTypedArray()
                   )
                     .values(insertPairs.values)
-                    .onDuplicateKeyUpdate()
+                    .onConflict(DSL.field("id", String::class.java))
+                    .doUpdate()
                     .set(updatePairs.mapKeys { DSL.field(it.key) })
                 }
               ).execute()
@@ -296,7 +298,8 @@ class SqlStorageService(
       objectKeys.put(resultSet.getString(1), resultSet.getLong(2))
     }
 
-    log.debug("Took {}ms to fetch {} object keys for {}",
+    log.debug(
+      "Took {}ms to fetch {} object keys for {}",
       System.currentTimeMillis() - startTime,
       objectKeys.size,
       objectType
