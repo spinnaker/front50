@@ -44,8 +44,7 @@ public class AdminController {
   void recover(@RequestBody AdminOperations.Recover operation) {
     adminOperations.forEach(o -> o.recover(operation));
     // If we are recovering application , recover application permission also. Without that
-    // subsequent CRUD
-    // operations on application will fail.
+    // subsequent CRUD operations on application will fail.
     if (operation.getObjectType().equalsIgnoreCase(ObjectType.APPLICATION.clazz.getSimpleName())) {
       adminOperations.forEach(
           o ->
