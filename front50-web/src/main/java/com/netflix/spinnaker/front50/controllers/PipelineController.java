@@ -266,7 +266,9 @@ public class PipelineController {
     final GenericValidationErrors errors = new GenericValidationErrors(pipeline);
     pipelineValidators.forEach(it -> it.validate(pipeline, errors));
 
-    if (staleCheck) {
+    if (staleCheck
+        && !Strings.isNullOrEmpty(pipeline.getId())
+        && pipeline.getLastModified() != null) {
       checkForStalePipeline(pipeline, errors);
     }
 
@@ -290,7 +292,7 @@ public class PipelineController {
     Pipeline existingPipeline = pipelineDAO.findById(pipeline.getId());
     Long storedUpdateTs = existingPipeline.getLastModified();
     Long submittedUpdateTs = pipeline.getLastModified();
-    if (!storedUpdateTs.equals(submittedUpdateTs)) {
+    if (!submittedUpdateTs.equals(storedUpdateTs)) {
       errors.reject(
           "stale",
           "The submitted pipeline is stale.  submitted updateTs "
