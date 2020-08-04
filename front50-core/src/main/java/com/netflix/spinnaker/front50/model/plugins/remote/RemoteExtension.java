@@ -10,12 +10,17 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.URL;
 
 /**
  * A Spinnaker plugin's remote extension configuration.
  *
  * <p>This model is used by Spinnaker to determine which extension points and services require
  * remote extension point configuration.
+ *
+ * <p>The plugin release {@link PluginInfo.Release#requires} field is used to inform Spinnaker which
+ * service to use in configuring the extension point {@link #type} and additionally if the remote
+ * extension is compatible with the running version of the Spinnaker service.
  */
 @Data
 @NoArgsConstructor
@@ -23,13 +28,11 @@ public class RemoteExtension {
 
   /**
    * The remote extension type. The remote extension is configured in the service that implements
-   * this extension type. The plugin release {@link PluginInfo.Release#requires} field is used to
-   * inform Spinnaker which service to use in configuring the remote extension type and if the
-   * remote extension is compatible with the running version of the Spinnaker service.
+   * this extension type.
    */
   @Nonnull private String type;
 
-  /** Identifier of the remote extension. Used for observability. */
+  /** Identifier of the remote extension. Used for tracing. */
   @Nonnull private String id;
 
   /**
@@ -61,7 +64,7 @@ public class RemoteExtension {
     public static class Http {
 
       /** URL for remote extension invocation. */
-      @Nonnull private String url;
+      @URL @Nonnull private String url;
 
       /** A placeholder for misc. configuration for the underlying HTTP client. */
       @Nonnull private Map<String, Object> config = new HashMap<>();
