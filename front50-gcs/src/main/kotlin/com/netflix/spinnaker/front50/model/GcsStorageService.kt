@@ -28,9 +28,14 @@ import com.google.cloud.storage.Storage.BucketField
 import com.google.cloud.storage.Storage.BucketGetOption
 import com.google.cloud.storage.StorageException
 import com.google.common.collect.ImmutableMap
+import com.google.common.util.concurrent.Futures
 import com.netflix.spinnaker.front50.exception.NotFoundException
 import java.io.IOException
-import java.util.concurrent.Executor
+import java.time.Duration
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import javax.annotation.PostConstruct
 import net.logstash.logback.argument.StructuredArguments
 import org.slf4j.LoggerFactory
@@ -42,12 +47,13 @@ class GcsStorageService(
   private val basePath: String,
   private val dataFilename: String,
   private val objectMapper: ObjectMapper,
-  private val executor: Executor
+  private val executor: ExecutorService
 ) : StorageService {
 
   companion object {
     private val log = LoggerFactory.getLogger(GcsStorageService::class.java)
     private const val LAST_MODIFIED_FILENAME = "last-modified"
+    private val WAIT_FOR_TIMESTAMP_UPDATE = Duration.ofMillis(500)
   }
 
   private val modTimeState = ObjectType.values().map { it to ModificationTimeState(it) }.toMap()
@@ -181,7 +187,13 @@ class GcsStorageService(
 
   private fun writeLastModified(objectType: ObjectType) {
     val updaterState = modTimeState.getValue(objectType)
-    updaterState.updateNeeded()
+    val future = updaterState.updateNeeded()
+    try {
+      future.get(WAIT_FOR_TIMESTAMP_UPDATE.toMillis(), TimeUnit.MILLISECONDS)
+    } catch (e: TimeoutException) {
+      // since we didn't update the modified time for objectType, a call to the cache may not notice
+      // the modification we just made. It'll fix itself whenever the update thread finishes.
+    }
   }
 
   private fun updateLastModified(objectType: ObjectType, state: ModificationTimeState) {
@@ -196,6 +208,8 @@ class GcsStorageService(
         e is StorageException && e.code == 404 ->
           try {
             storage.create(blobInfo)
+          } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
           } catch (e: Exception) {
             log.warn("Error updating last modified time for $objectType", e)
           }
@@ -206,8 +220,8 @@ class GcsStorageService(
     }
   }
 
-  private fun scheduleUpdateLastModified(objectType: ObjectType, updaterState: ModificationTimeState) {
-    executor.execute { updateLastModified(objectType, updaterState) }
+  private fun scheduleUpdateLastModified(objectType: ObjectType, updaterState: ModificationTimeState): Future<*> {
+    return executor.submit { updateLastModified(objectType, updaterState) }
   }
 
   private inner class ModificationTimeState(private var objectType: ObjectType) {
@@ -220,13 +234,15 @@ class GcsStorageService(
      * to be updated.
      */
     @Synchronized
-    fun updateNeeded() {
+    fun updateNeeded(): Future<*> {
       val neededUpdate = needsUpdate
       needsUpdate = true
       // We need to check `neededUpdate` or else several near-simultaneous calls would schedule
       // multiple executions of the task before any of them have a chance to get up and running
       if (!neededUpdate && !updateRunning) {
-        scheduleUpdateLastModified(objectType, this)
+        return scheduleUpdateLastModified(objectType, this)
+      } else {
+        return Futures.immediateFuture(null)
       }
     }
 

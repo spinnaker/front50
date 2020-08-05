@@ -24,6 +24,7 @@ import com.google.cloud.storage.Bucket
 import com.google.cloud.storage.BucketInfo
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.StorageOptions
+import com.google.common.util.concurrent.MoreExecutors
 import com.netflix.spinnaker.front50.exception.NotFoundException
 import com.netflix.spinnaker.front50.model.GcsStorageService
 import com.netflix.spinnaker.front50.model.ObjectType
@@ -34,17 +35,22 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import java.lang.UnsupportedOperationException
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.util.concurrent.Executor
+import java.util.concurrent.AbstractExecutorService
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.Timeout
 import strikt.api.expectCatching
 import strikt.api.expectThat
 import strikt.assertions.all
@@ -71,7 +77,7 @@ class GcsStorageServiceTest {
   }
 
   private lateinit var gcs: Storage
-  private lateinit var executor: ControlledExecutor
+  private lateinit var executor: ExecutorService
   private lateinit var clock: SettableClock
   private lateinit var storageService: GcsStorageService
 
@@ -83,8 +89,9 @@ class GcsStorageServiceTest {
       else -> StorageOptions.newBuilder().setServiceRpcFactory(FakeStorageRpcFactory(clock)).build().service
     }
     executor = when {
-      testInfo.tags.contains("testExecutor") -> ControlledExecutor(executeImmediately = false)
-      else -> ControlledExecutor(executeImmediately = true)
+      testInfo.tags.contains("testExecutor") -> ControlledExecutor()
+      testInfo.tags.contains("realExecutor") -> Executors.newCachedThreadPool()
+      else -> MoreExecutors.newDirectExecutorService()
     }
     storageService = createStorageService(gcs, executor)
   }
@@ -105,7 +112,7 @@ class GcsStorageServiceTest {
     expectThat(bucketInfo.captured.versioningEnabled()).isTrue()
   }
 
-  private fun createStorageService(gcs: Storage, executor: Executor) =
+  private fun createStorageService(gcs: Storage, executor: ExecutorService) =
     GcsStorageService(gcs, BUCKET_NAME, BUCKET_LOCATION, BASE_PATH, DATA_FILENAME, ObjectMapper(), executor)
 
   @MockGcs("FakeStorageRpc doesn't support bucket operations")
@@ -372,6 +379,7 @@ class GcsStorageServiceTest {
     storageService.storeObject(ObjectType.APPLICATION, "app4", Application())
     storageService.storeObject(ObjectType.APPLICATION, "app5", Application())
 
+    val executor = executor as ControlledExecutor
     expectThat(executor.runnables).hasSize(1)
     expectThat(storageService.getLastModified(ObjectType.APPLICATION)).isEqualTo(0)
     executor.runNext()
@@ -389,6 +397,7 @@ class GcsStorageServiceTest {
     storageService.storeObject(ObjectType.APPLICATION, "app3", Application())
     storageService.storeObject(ObjectType.PIPELINE, "pipeline3", Pipeline())
 
+    val executor = executor as ControlledExecutor
     expectThat(executor.runnables).hasSize(2)
     expectThat(storageService.getLastModified(ObjectType.APPLICATION)).isEqualTo(0)
     expectThat(storageService.getLastModified(ObjectType.PIPELINE)).isEqualTo(0)
@@ -409,6 +418,7 @@ class GcsStorageServiceTest {
     clock.setEpochMilli(123L)
     val lastModified = storageService.getLastModified(ObjectType.APPLICATION)
 
+    val executor = executor as ControlledExecutor
     expectThat(executor.runnables).hasSize(1)
     expectThat(lastModified).isEqualTo(0)
     executor.runNext()
@@ -418,6 +428,8 @@ class GcsStorageServiceTest {
   @Test
   @TestExecutor
   fun `getLastModified doesn't schedule an update if last-modified exists`() {
+
+    val executor = executor as ControlledExecutor
 
     clock.setEpochMilli(123L)
     storageService.storeObject(ObjectType.APPLICATION, "app", Application())
@@ -431,6 +443,8 @@ class GcsStorageServiceTest {
   @TestExecutor
   @MockGcs("need to have the update call take a long time")
   fun `waits for running task to finish before scheduling another`() {
+
+    val executor = executor as ControlledExecutor
 
     // Let any storeObject() call finish, we don't care about the result
     every { gcs.create(any(), any<ByteArray>(), *anyVararg()) } returns mockk()
@@ -456,7 +470,7 @@ class GcsStorageServiceTest {
     // Now start that modification time update task in a separate thread. Since it calls our mock,
     // it won't finish until we call `finishUpdate.signal()`. Then, once the task has completed, it
     // will call `updateTaskCompleted.signal()`
-    thread() {
+    thread {
       lock.lock()
       try {
         executor.runNext()
@@ -487,6 +501,23 @@ class GcsStorageServiceTest {
     expectThat(executor.runnables).hasSize(1)
   }
 
+  @Test
+  @RealExecutor
+  @MockGcs("need to have the update call wait a long time")
+  @Timeout(value = 10, unit = TimeUnit.SECONDS)
+  fun `doesn't wait for last-modified update to finish`() {
+
+    // Let any storeObject() call finish, we don't care about the result
+    every { gcs.create(any(), any<ByteArray>(), *anyVararg()) } returns mockk()
+
+    // When the service tries to update last-modified, hold until we call `finishUpdate.signal()`
+    every { gcs.update(any<BlobInfo>()) } answers { Thread.sleep(Long.MAX_VALUE); mockk() }
+
+    expectCatching {
+      storageService.storeObject(ObjectType.APPLICATION, "app", Application())
+    }.isSuccess()
+  }
+
   private fun writeEmptyFile(path: String) {
     writeFile(path, byteArrayOf())
   }
@@ -511,6 +542,11 @@ annotation class MockGcs(val reason: String)
 @Tag("testExecutor")
 annotation class TestExecutor
 
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+@Tag("realExecutor")
+annotation class RealExecutor
+
 private class SettableClock(
   private var currentTime: Instant = Instant.ofEpochMilli(0L),
   private val zone: ZoneId = ZoneOffset.UTC
@@ -527,18 +563,34 @@ private class SettableClock(
   }
 }
 
-private class ControlledExecutor(private val executeImmediately: Boolean) : Executor {
+private class ControlledExecutor() : AbstractExecutorService() {
   val runnables = java.util.ArrayDeque<Runnable>()
 
   override fun execute(command: Runnable) {
-    if (executeImmediately) {
-      command.run()
-    } else {
-      runnables.add(command)
-    }
+    runnables.add(command)
   }
 
   fun runNext() {
     runnables.pop().run()
+  }
+
+  override fun isTerminated(): Boolean {
+    throw UnsupportedOperationException()
+  }
+
+  override fun shutdown() {
+    throw UnsupportedOperationException()
+  }
+
+  override fun shutdownNow(): List<Runnable> {
+    throw UnsupportedOperationException()
+  }
+
+  override fun isShutdown(): Boolean {
+    throw UnsupportedOperationException()
+  }
+
+  override fun awaitTermination(timeout: Long, unit: TimeUnit): Boolean {
+    throw UnsupportedOperationException()
   }
 }
