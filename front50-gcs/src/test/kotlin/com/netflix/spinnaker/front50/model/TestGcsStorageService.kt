@@ -35,7 +35,6 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
-import java.lang.UnsupportedOperationException
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -57,7 +56,6 @@ import strikt.assertions.all
 import strikt.assertions.containsKeys
 import strikt.assertions.hasSize
 import strikt.assertions.isA
-import strikt.assertions.isEmpty
 import strikt.assertions.isEqualTo
 import strikt.assertions.isEqualToIgnoringCase
 import strikt.assertions.isFailure
@@ -380,7 +378,7 @@ class GcsStorageServiceTest {
     storageService.storeObject(ObjectType.APPLICATION, "app5", Application())
 
     val executor = executor as ControlledExecutor
-    expectThat(executor.runnables).hasSize(1)
+    expectThat(executor.taskCount()).isEqualTo(1)
     expectThat(storageService.getLastModified(ObjectType.APPLICATION)).isEqualTo(0)
     executor.runNext()
     expectThat(storageService.getLastModified(ObjectType.APPLICATION)).isEqualTo(123)
@@ -398,7 +396,7 @@ class GcsStorageServiceTest {
     storageService.storeObject(ObjectType.PIPELINE, "pipeline3", Pipeline())
 
     val executor = executor as ControlledExecutor
-    expectThat(executor.runnables).hasSize(2)
+    expectThat(executor.taskCount()).isEqualTo(2)
     expectThat(storageService.getLastModified(ObjectType.APPLICATION)).isEqualTo(0)
     expectThat(storageService.getLastModified(ObjectType.PIPELINE)).isEqualTo(0)
     clock.setEpochMilli(123)
@@ -419,7 +417,7 @@ class GcsStorageServiceTest {
     val lastModified = storageService.getLastModified(ObjectType.APPLICATION)
 
     val executor = executor as ControlledExecutor
-    expectThat(executor.runnables).hasSize(1)
+    expectThat(executor.taskCount()).isEqualTo(1)
     expectThat(lastModified).isEqualTo(0)
     executor.runNext()
     expectThat(storageService.getLastModified(ObjectType.APPLICATION)).isEqualTo(123)
@@ -436,7 +434,7 @@ class GcsStorageServiceTest {
     executor.runNext() // create the application/last-modified file
 
     storageService.getLastModified(ObjectType.APPLICATION)
-    expectThat(executor.runnables).isEmpty()
+    expectThat(executor.taskCount()).isEqualTo(0)
   }
 
   @Test
@@ -450,6 +448,7 @@ class GcsStorageServiceTest {
     every { gcs.create(any(), any<ByteArray>(), *anyVararg()) } returns mockk()
 
     val lock = ReentrantLock()
+    val updateStarted = lock.newCondition()
     val finishUpdate = lock.newCondition()
     val updateTaskCompleted = lock.newCondition()
 
@@ -457,6 +456,7 @@ class GcsStorageServiceTest {
     every { gcs.update(any<BlobInfo>()) } answers {
       lock.lock()
       try {
+        updateStarted.signal()
         finishUpdate.await()
         mockk()
       } finally {
@@ -470,7 +470,7 @@ class GcsStorageServiceTest {
     // Now start that modification time update task in a separate thread. Since it calls our mock,
     // it won't finish until we call `finishUpdate.signal()`. Then, once the task has completed, it
     // will call `updateTaskCompleted.signal()`
-    thread {
+    val updateThread = thread(start = false) {
       lock.lock()
       try {
         executor.runNext()
@@ -480,13 +480,21 @@ class GcsStorageServiceTest {
       }
     }
 
+    lock.lock()
+    try {
+      updateThread.start()
+      updateStarted.await()
+    } finally {
+      lock.unlock()
+    }
+
     // With the modification time updater thread running, submit several more modifications.
     storageService.storeObject(ObjectType.APPLICATION, "app2", Application())
     storageService.storeObject(ObjectType.APPLICATION, "app3", Application())
     storageService.storeObject(ObjectType.APPLICATION, "app4", Application())
 
     // There shouldn't be any queued tasks, because there is already an updater running
-    expectThat(executor.runnables).isEmpty()
+    expectThat(executor.taskCount()).isEqualTo(0)
 
     // Now finish the update call and wait for `updateTaskCompleted`.
     lock.lock()
@@ -498,7 +506,7 @@ class GcsStorageServiceTest {
     }
 
     // Since the update task completed, we should immediate have another task queued.
-    expectThat(executor.runnables).hasSize(1)
+    expectThat(executor.taskCount()).isEqualTo(1)
   }
 
   @Test
@@ -563,15 +571,24 @@ private class SettableClock(
   }
 }
 
-private class ControlledExecutor() : AbstractExecutorService() {
-  val runnables = java.util.ArrayDeque<Runnable>()
+private class ControlledExecutor : AbstractExecutorService() {
+  private val runnables = java.util.ArrayDeque<Runnable>()
 
   override fun execute(command: Runnable) {
-    runnables.add(command)
+    synchronized(runnables) {
+      runnables.add(command)
+    }
   }
 
   fun runNext() {
-    runnables.pop().run()
+    val runnable = synchronized(runnables) {
+      runnables.pop()
+    }
+    runnable.run()
+  }
+
+  fun taskCount(): Int {
+    return synchronized(runnables) { runnables.size }
   }
 
   override fun isTerminated(): Boolean {
