@@ -17,10 +17,9 @@ package com.netflix.spinnaker.front50.model.plugins
 
 import com.netflix.spinnaker.front50.echo.EchoService
 import com.netflix.spinnaker.front50.exception.NotFoundException
-import com.netflix.spinnaker.front50.model.plugins.remote.RemoteExtension
-import com.netflix.spinnaker.front50.model.plugins.remote.stage.StageRemoteExtensionConfig
 import com.netflix.spinnaker.front50.plugins.PluginBinaryStorageService
 import com.netflix.spinnaker.front50.validator.PluginInfoValidator
+import com.netflix.spinnaker.kork.api.plugins.remote.RemoteExtension
 import com.netflix.spinnaker.kork.web.exceptions.InvalidRequestException
 import spock.lang.Specification
 import spock.lang.Subject
@@ -77,13 +76,14 @@ class PluginInfoServiceSpec extends Specification {
             url: "http://example.com"
           )
         ),
-        config: new StageRemoteExtensionConfig(
+        config: [
           type: "remoteWait",
           label: "Wait on a remote service",
           description: "A stage that waits on a remote service",
           parameters: ["waitTime": 30, "message": "Done"]
+        ]
         )
-      ))
+      )
 
     when:
     PluginInfo persistedPluginInfo = subject.upsert(newPluginInfo)
