@@ -42,15 +42,16 @@ class MoveSubpathToLocationMigrationSpec extends Specification {
     0 * pipelineDAO.update("pipeline-1", _)
 
     where:
-    original  || _
-    [:] || _
-    [type: "bitbucket/file", reference: "test-ref"] || _
-    [type: "github/file", reference: "test-ref", version: "test-ver"] || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver"] || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver", location: "test-subpath"] || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver", metadata: [foo: "test-foo"]] || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver", location: "test-subpath", metadata: [foo: "test-foo"]] || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver", location: "test-subpath", metadata: [subPath: "test-subpath"]] || _
+    original << [
+      [:],
+      [type: "bitbucket/file", reference: "test-ref"],
+      [type: "github/file", reference: "test-ref", version: "test-ver"],
+      [type: "git/repo", reference: "test-ref", version: "test-ver"],
+      [type: "git/repo", reference: "test-ref", version: "test-ver", location: "test-subpath"],
+      [type: "git/repo", reference: "test-ref", version: "test-ver", metadata: [foo: "test-foo"]],
+      [type: "git/repo", reference: "test-ref", version: "test-ver", location: "test-subpath", metadata: [foo: "test-foo"]],
+      [type: "git/repo", reference: "test-ref", version: "test-ver", location: "test-subpath", metadata: [subPath: "test-subpath"]]
+    ]
   }
 
   @Unroll
@@ -63,20 +64,21 @@ class MoveSubpathToLocationMigrationSpec extends Specification {
     migration.run()
 
     then:
-    pipeline.get("expectedArtifacts").find {true}.matchArtifact.location == "test-subpath"
+    pipeline.get("expectedArtifacts").first().matchArtifact.location == "test-subpath"
     _ * pipelineDAO.all() >> { return [pipeline] }
     1 * pipelineDAO.update("pipeline-1", _)
 
     where:
-    original  || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver", metadata: [subPath: "test-subpath"]] || _
-    [type: "git/repo", reference: "test-ref", version: "test-ver", location: "", metadata: [subPath: "test-subpath"]] || _
+    original << [
+      [type: "git/repo", reference: "test-ref", version: "test-ver", metadata: [subPath: "test-subpath"]],
+      [type: "git/repo", reference: "test-ref", version: "test-ver", location: "", metadata: [subPath: "test-subpath"]]
+    ]
   }
 
   @Unroll
   def "should set subpath to location with matchArtifact and defaultArtifact"() {
     given:
-    def pipeline = new Pipeline([application: "test", expectedArtifacts: [[matchArtifact: match, defaultArtifact: defaul]]])
+    def pipeline = new Pipeline([application: "test", expectedArtifacts: [[matchArtifact: matchArtifact, defaultArtifact: defaultArtifact]]])
     pipeline.id = "pipeline-1"
 
     when:
@@ -89,7 +91,7 @@ class MoveSubpathToLocationMigrationSpec extends Specification {
     0 * _
 
     where:
-    match  || defaul
+    matchArtifact || defaultArtifact
     [type: "git/repo", metadata: [subPath: "test-subpath"]] || [type: "bitbucket/file", reference: "test-ref"]
     [type: "bitbucket/file", reference: "test-ref"] || [type: "git/repo", metadata: [subPath: "test-subpath"]]
     [type: "git/repo", metadata: [subPath: "test-subpath"]] || [type: "git/repo", metadata: [subPath: "test-subpath"]]
