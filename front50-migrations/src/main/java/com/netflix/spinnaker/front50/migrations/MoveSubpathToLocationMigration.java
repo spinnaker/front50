@@ -23,6 +23,7 @@ import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import java.time.Clock;
 import java.util.*;
 import java.util.function.Predicate;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +32,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class MoveSubpathToLocationMigration implements Migration {
 
-  private static final Logger log = LoggerFactory.getLogger(CloudProvidersStringMigration.class);
+  private static final Logger log = LoggerFactory.getLogger(MoveSubpathToLocationMigration.class);
 
-  // Only valid until October 1st, 2020
-  private static final Date VALID_UNTIL = new GregorianCalendar(2020, 10, 1).getTime();
+  // Only valid until February 1st, 2021
+  private static final Date VALID_UNTIL = new GregorianCalendar(2021, 2, 1).getTime();
 
   private Clock clock = Clock.systemDefaultZone();
 
@@ -63,17 +64,9 @@ public class MoveSubpathToLocationMigration implements Migration {
 
           return expectedArtifacts.stream()
               .anyMatch(
-                  e -> {
-                    Map matchArtifact = (Map<String, Object>) e.get("matchArtifact");
-                    Map defaultArtifact = (Map<String, Object>) e.get("defaultArtifact");
-
-                    return matchArtifact != null
-                            && isGitRepoArtifact(matchArtifact)
-                            && hasSubpathInMetadata(matchArtifact)
-                        || defaultArtifact != null
-                            && isGitRepoArtifact(defaultArtifact)
-                            && hasSubpathInMetadata(defaultArtifact);
-                  });
+                  e ->
+                      shouldMigrateArtifact((Map<String, Object>) e.get("matchArtifact"))
+                          || shouldMigrateArtifact((Map<String, Object>) e.get("defaultArtifact")));
         };
 
     pipelineDAO.all().stream()
@@ -96,6 +89,10 @@ public class MoveSubpathToLocationMigration implements Migration {
     }
   }
 
+  private boolean shouldMigrateArtifact(@Nullable Map<String, Object> artifact) {
+    return artifact != null && isGitRepoArtifact(artifact) && hasSubpathInMetadata(artifact);
+  }
+
   private void migrate(ItemDAO<Pipeline> dao, Pipeline pipeline) {
 
     log.info(
@@ -109,24 +106,21 @@ public class MoveSubpathToLocationMigration implements Migration {
     for (Map<String, Object> expectedArtifact : expectedArtifacts) {
       Map<String, Object> matchArtifact =
           (Map<String, Object>) expectedArtifact.get("matchArtifact");
-      if (matchArtifact != null
-          && isGitRepoArtifact(matchArtifact)
-          && hasSubpathInMetadata(matchArtifact)) {
-        Map<String, Object> matchArtifactMetadata =
-            (Map<String, Object>) matchArtifact.get("metadata");
-        matchArtifact.put("location", matchArtifactMetadata.get("subPath"));
+      if (shouldMigrateArtifact(matchArtifact)) {
+        migrateArtifact(matchArtifact);
       }
 
       Map<String, Object> defaultArtifact =
           (Map<String, Object>) expectedArtifact.get("defaultArtifact");
-      if (defaultArtifact != null
-          && isGitRepoArtifact(defaultArtifact)
-          && hasSubpathInMetadata(defaultArtifact)) {
-        Map<String, Object> defaultArtifactMetadata =
-            (Map<String, Object>) defaultArtifact.get("metadata");
-        defaultArtifact.put("location", defaultArtifactMetadata.get("subPath"));
+      if (shouldMigrateArtifact(defaultArtifact)) {
+        migrateArtifact(defaultArtifact);
       }
     }
     dao.update(pipeline.getId(), pipeline);
+  }
+
+  private void migrateArtifact(@Nullable Map<String, Object> artifact) {
+    Map<String, Object> metadata = (Map<String, Object>) artifact.get("metadata");
+    artifact.put("location", metadata.get("subPath"));
   }
 }
