@@ -20,7 +20,8 @@ import com.google.common.base.Strings;
 import com.netflix.spinnaker.front50.model.ItemDAO;
 import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
-import java.time.Clock;
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.*;
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
@@ -35,9 +36,7 @@ public class MoveSubpathToLocationMigration implements Migration {
   private static final Logger log = LoggerFactory.getLogger(MoveSubpathToLocationMigration.class);
 
   // Only valid until February 1st, 2021
-  private static final Date VALID_UNTIL = new GregorianCalendar(2021, 2, 1).getTime();
-
-  private Clock clock = Clock.systemDefaultZone();
+  private static final LocalDate VALID_UNTIL = LocalDate.of(2021, Month.FEBRUARY, 1);
 
   private final PipelineDAO pipelineDAO;
 
@@ -48,7 +47,7 @@ public class MoveSubpathToLocationMigration implements Migration {
 
   @Override
   public boolean isValid() {
-    return clock.instant().toEpochMilli() < VALID_UNTIL.getTime();
+    return LocalDate.now().isBefore(VALID_UNTIL);
   }
 
   @Override
