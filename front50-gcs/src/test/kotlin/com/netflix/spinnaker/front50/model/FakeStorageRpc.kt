@@ -57,11 +57,12 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
 
   private data class Blob(val storageObject: StorageObject, val content: ByteArray)
 
-  private val blobs = mutableMapOf<String, MutableList<Blob>>()
+  private val buckets = mutableMapOf<String, MutableMap<String, MutableList<Blob>>>()
 
   override fun create(storageObject: StorageObject, data: InputStream, options: MutableMap<Option, *>): StorageObject {
     if (options.isNotEmpty()) throw UnsupportedOperationException("unsupported options to create: ${options.keys}")
     if (storageObject.generation != null) throw UnsupportedOperationException("can't call create with a specific generation")
+    val blobs = buckets[storageObject.bucket] ?: throw StorageException(404, "bucket ${storageObject.bucket} does not exist")
     val generations = blobs.getGenerations(storageObject)
     val stampedObject = storageObject.clone()
     stampedObject.generation = generations.size + 1L
@@ -73,6 +74,7 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
   override fun patch(storageObject: StorageObject, options: MutableMap<Option, *>): StorageObject {
     if (options.isNotEmpty()) throw UnsupportedOperationException("unsupported options to patch: ${options.keys}")
     if (storageObject.generation != null) throw UnsupportedOperationException("can't call patch with a specific generation")
+    val blobs = buckets[storageObject.bucket] ?: throw StorageException(404, "bucket ${storageObject.bucket} does not exist")
     val generations = blobs.getGenerations(storageObject)
     if (generations.isEmpty()) throw StorageException(404, "no object ${fullPath(storageObject)}")
     val foundObject = generations[generations.size - 1].storageObject
@@ -83,6 +85,7 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
 
   override fun get(storageObject: StorageObject, options: MutableMap<Option, *>): StorageObject? {
     if (options.isNotEmpty()) throw UnsupportedOperationException("unsupported options to get: ${options.keys}")
+    val blobs = buckets[storageObject.bucket] ?: return null
     val generations = blobs.getGenerations(storageObject)
     val generation = storageObject.generation ?: generations.size.toLong()
     if (generation == 0L || generation > generations.size) return null
@@ -91,6 +94,7 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
 
   override fun load(storageObject: StorageObject, options: MutableMap<Option, *>): ByteArray? {
     if (options.isNotEmpty()) throw UnsupportedOperationException("unsupported options to load: ${options.keys}")
+    val blobs = buckets[storageObject.bucket] ?: throw StorageException(404, "bucket ${storageObject.bucket} does not exist")
     val generations = blobs.getGenerations(storageObject)
     val generation = storageObject.generation ?: generations.size.toLong()
     if (generation == 0L || generation > generations.size) return null
@@ -100,6 +104,7 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
   override fun delete(storageObject: StorageObject, options: MutableMap<Option, *>): Boolean {
     if (options.isNotEmpty()) throw UnsupportedOperationException("unsupported options to delete: ${options.keys}")
     if (storageObject.generation != null) throw UnsupportedOperationException("can't delete generations")
+    val blobs = buckets[storageObject.bucket] ?: return false
     return blobs.remove(fullPath(storageObject)) != null
   }
 
@@ -114,6 +119,7 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
       // We want to return them in low- to high-generation order, so this will do it
       versionFilter = { it }
     }
+    val blobs = buckets[bucket] ?: throw StorageException(404, "bucket $bucket does not exist")
     return Tuple.of(
       /* pageToken= */ null,
       blobs.filter { (path, _) -> path.startsWith(prefix) }.values.flatMap(versionFilter).map { it.storageObject }
@@ -168,7 +174,10 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
   }
 
   override fun create(bucket: Bucket?, options: MutableMap<Option, *>?): Bucket {
-    TODO("Not yet implemented")
+    val name = bucket?.name ?: throw java.lang.UnsupportedOperationException("bucket name must be specified")
+    if (buckets.containsKey(name)) throw StorageException(409, "bucket $bucket already exists")
+    buckets[name] = mutableMapOf()
+    return Bucket().setName(name)
   }
 
   override fun updateHmacKey(hmacKeyMetadata: HmacKeyMetadata?, options: MutableMap<Option, *>?): HmacKeyMetadata {
@@ -199,8 +208,9 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
     TODO("Not yet implemented")
   }
 
-  override fun get(bucket: Bucket?, options: MutableMap<Option, *>?): Bucket {
-    TODO("Not yet implemented")
+  override fun get(bucket: Bucket?, options: MutableMap<Option, *>?): Bucket? {
+    val name = bucket?.name ?: throw java.lang.UnsupportedOperationException("bucket name must be specified")
+    return if (buckets.containsKey(name)) Bucket().setName(name) else null
   }
 
   override fun testIamPermissions(bucket: String?, permissions: MutableList<String>?, options: MutableMap<Option, *>?): TestIamPermissionsResponse {
