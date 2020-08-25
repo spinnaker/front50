@@ -3,6 +3,3 @@ spinnaker:
     enabled: true
     project: my-project
     bucket: my-bucket
-    # TODO(ezimanyi): Startup fails if bucketLocation is not provided; we should
-    # be able to remove it from this file.
-    bucketLocation: us
