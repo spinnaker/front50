@@ -86,7 +86,7 @@ class GcsStorageServiceTest {
       testInfo.tags.contains("mockGcs") -> mockk()
       else -> {
         val service = StorageOptions.newBuilder().setServiceRpcFactory(FakeStorageRpcFactory(clock)).build().service
-        service.create(Bucket.newBuilder(BUCKET_NAME).build())
+        service.create(Bucket.of(BUCKET_NAME))
         service
       }
     }
