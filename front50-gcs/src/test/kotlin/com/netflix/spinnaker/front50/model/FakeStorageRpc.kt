@@ -75,8 +75,8 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
   /**
    * Represents the contents of a bucket.
    */
-  private class BucketContents private constructor(val objects: MutableMap<String, MutableList<Blob>>) {
-    constructor() : this(mutableMapOf())
+  private class BucketContents {
+    private val objects: MutableMap<String, MutableList<Blob>> = mutableMapOf()
 
     fun getGenerations(storageObject: StorageObject) = objects.getOrPut(storageObject.name, { mutableListOf() })
 
