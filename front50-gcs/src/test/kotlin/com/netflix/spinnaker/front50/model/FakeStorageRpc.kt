@@ -73,7 +73,7 @@ internal class FakeStorageRpc(private val clock: Clock) : StorageRpc {
   }
 
   /**
-   * Representes the contents of a bucket.
+   * Represents the contents of a bucket.
    */
   private class BucketContents private constructor(val objects: MutableMap<String, MutableList<Blob>>) {
     constructor() : this(mutableMapOf())
