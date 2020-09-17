@@ -29,7 +29,9 @@ import org.springframework.stereotype.Component;
 /**
  * Migration runner runs all the registered migrations as scheduled. By default migration runner
  * will <strong>not</strong> run and need to set <strong>`migrations.enabled`</strong> property to
- * enable it. Note: Ideally migrations should be running only on one instance.
+ * enable it.
+ *
+ * <p>Note: Ideally migrations should be running only on one instance.
  */
 @Component
 @ConditionalOnProperty(name = "migrations.enabled", havingValue = "true", matchIfMissing = false)
