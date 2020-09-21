@@ -25,12 +25,12 @@ import com.google.cloud.storage.BucketInfo
 import com.google.cloud.storage.Storage
 import com.google.cloud.storage.StorageOptions
 import com.google.common.util.concurrent.MoreExecutors
-import com.netflix.spinnaker.front50.exception.NotFoundException
 import com.netflix.spinnaker.front50.model.GcsStorageService
 import com.netflix.spinnaker.front50.model.ObjectType
 import com.netflix.spinnaker.front50.model.application.Application
 import com.netflix.spinnaker.front50.model.delivery.Delivery
 import com.netflix.spinnaker.front50.model.pipeline.Pipeline
+import com.netflix.spinnaker.kork.web.exceptions.NotFoundException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -84,7 +84,11 @@ class GcsStorageServiceTest {
     clock = SettableClock()
     gcs = when {
       testInfo.tags.contains("mockGcs") -> mockk()
-      else -> StorageOptions.newBuilder().setServiceRpcFactory(FakeStorageRpcFactory(clock)).build().service
+      else -> {
+        val service = StorageOptions.newBuilder().setServiceRpcFactory(FakeStorageRpcFactory(clock)).build().service
+        service.create(Bucket.of(BUCKET_NAME))
+        service
+      }
     }
     executor = when {
       testInfo.tags.contains("testExecutor") -> ControlledExecutor()
