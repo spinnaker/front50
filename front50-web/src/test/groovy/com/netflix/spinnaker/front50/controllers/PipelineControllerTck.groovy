@@ -17,6 +17,7 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.netflix.spectator.api.NoopRegistry
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.S3StorageService
@@ -52,13 +53,15 @@ abstract class PipelineControllerTck extends Specification {
 
   @Subject PipelineDAO pipelineDAO
   def serviceAccountsService
+  def fiatPermissionEvaluator
 
   void setup() {
     this.pipelineDAO = createPipelineDAO()
     this.serviceAccountsService = Mock(ServiceAccountsService)
+    this.fiatPermissionEvaluator = Mock(FiatPermissionEvaluator)
 
     mockMvc = MockMvcBuilders
-      .standaloneSetup(new PipelineController(pipelineDAO, new ObjectMapper(), serviceAccountsService, Optional.empty()))
+      .standaloneSetup(new PipelineController(pipelineDAO, new ObjectMapper(), serviceAccountsService, Optional.empty(), fiatPermissionEvaluator))
       .setHandlerExceptionResolvers(createExceptionResolver())
       .build()
   }
@@ -80,10 +83,10 @@ abstract class PipelineControllerTck extends Specification {
     when:
     def response = mockMvc
       .perform(
-      post("/pipelines")
-        .contentType(MediaType.APPLICATION_JSON)
-        .content(new ObjectMapper().writeValueAsString(command))
-    )
+        post("/pipelines")
+          .contentType(MediaType.APPLICATION_JSON)
+          .content(new ObjectMapper().writeValueAsString(command))
+      )
       .andReturn()
       .response
 
@@ -125,7 +128,7 @@ abstract class PipelineControllerTck extends Specification {
     when:
     pipeline.name = "Updated Name"
     def response = mockMvc.perform(put("/pipelines/${pipeline.id}").contentType(MediaType.APPLICATION_JSON)
-        .content(new ObjectMapper().writeValueAsString(pipeline))).andReturn().response
+      .content(new ObjectMapper().writeValueAsString(pipeline))).andReturn().response
 
     then:
     response.status == OK
@@ -164,26 +167,26 @@ abstract class PipelineControllerTck extends Specification {
   void 'should only (re)generate cron trigger ids for new pipelines'() {
     given:
     def pipeline = [
-        name       : "My Pipeline",
-        application: "test",
-        triggers   : [
-            [type: "cron", id: "original-id"]
-        ]
+      name       : "My Pipeline",
+      application: "test",
+      triggers   : [
+        [type: "cron", id: "original-id"]
+      ]
     ]
     if (lookupPipelineId) {
       pipelineDAO.create(null, pipeline as Pipeline)
       pipeline.id = pipelineDAO.findById(
-          pipelineDAO.getPipelineId("test", "My Pipeline")
+        pipelineDAO.getPipelineId("test", "My Pipeline")
       ).getId()
     }
 
     when:
     def response = mockMvc.perform(post('/pipelines').
-        contentType(MediaType.APPLICATION_JSON).content(new ObjectMapper().writeValueAsString(pipeline)))
-        .andReturn().response
+      contentType(MediaType.APPLICATION_JSON).content(new ObjectMapper().writeValueAsString(pipeline)))
+      .andReturn().response
 
     def updatedPipeline = pipelineDAO.findById(
-        pipelineDAO.getPipelineId("test", "My Pipeline")
+      pipelineDAO.getPipelineId("test", "My Pipeline")
     )
 
     then:
@@ -232,10 +235,10 @@ abstract class PipelineControllerTck extends Specification {
   void 'should delete an existing pipeline by name or id and its associated managed service account'() {
     given:
     def pipelineToDelete = pipelineDAO.create(null, new Pipeline([
-        name: "pipeline1", application: "test"
+      name: "pipeline1", application: "test"
     ]))
     pipelineDAO.create(null, new Pipeline([
-        name: "pipeline2", application: "test"
+      name: "pipeline2", application: "test"
     ]))
 
     when:
@@ -258,10 +261,10 @@ abstract class PipelineControllerTck extends Specification {
   void 'should enforce unique names on save operations'() {
     given:
     pipelineDAO.create(null, new Pipeline([
-            name: "pipeline1", application: "test"
+      name: "pipeline1", application: "test"
     ]))
     pipelineDAO.create(null, new Pipeline([
-            name: "pipeline2", application: "test"
+      name: "pipeline2", application: "test"
     ]))
 
     when:
@@ -274,9 +277,9 @@ abstract class PipelineControllerTck extends Specification {
 
     when:
     def response = mockMvc.perform(post('/pipelines')
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(new ObjectMapper().writeValueAsString([name: "pipeline1", application: "test"])))
-                  .andReturn().response
+      .contentType(MediaType.APPLICATION_JSON)
+      .content(new ObjectMapper().writeValueAsString([name: "pipeline1", application: "test"])))
+      .andReturn().response
 
     then:
     response.status == BAD_REQUEST
