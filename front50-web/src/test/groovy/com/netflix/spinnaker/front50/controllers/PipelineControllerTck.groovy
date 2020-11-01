@@ -17,6 +17,7 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.netflix.spectator.api.NoopRegistry
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.SqlStorageService
@@ -55,10 +56,12 @@ abstract class PipelineControllerTck extends Specification {
   @Subject
   PipelineDAO pipelineDAO
   def serviceAccountsService
+  def fiatPermissionEvaluator
 
   void setup() {
     this.pipelineDAO = createPipelineDAO()
     this.serviceAccountsService = Mock(ServiceAccountsService)
+    this.fiatPermissionEvaluator = Mock(FiatPermissionEvaluator)
 
     mockMvc = MockMvcBuilders
       .standaloneSetup(
@@ -67,7 +70,8 @@ abstract class PipelineControllerTck extends Specification {
           new ObjectMapper(),
           Optional.of(serviceAccountsService),
           Collections.emptyList(),
-          Optional.empty()
+          Optional.empty(),
+          fiatPermissionEvaluator
         )
       )
       .setControllerAdvice(

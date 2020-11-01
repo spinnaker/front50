@@ -21,6 +21,7 @@ import static java.lang.String.format;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator;
 import com.netflix.spinnaker.front50.ServiceAccountsService;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
@@ -36,20 +37,18 @@ import com.netflix.spinnaker.front50.validator.GenericValidationErrors;
 import com.netflix.spinnaker.front50.validator.PipelineValidator;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.kork.web.exceptions.ValidationException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,18 +67,24 @@ public class PipelineController {
   private final Optional<ServiceAccountsService> serviceAccountsService;
   private final List<PipelineValidator> pipelineValidators;
   private final Optional<PipelineTemplateDAO> pipelineTemplateDAO;
+  private final FiatPermissionEvaluator fiatPermissionEvaluator;
+
+  @Value("${sql.enabled}")
+  private String sqlEnabled;
 
   public PipelineController(
       PipelineDAO pipelineDAO,
       ObjectMapper objectMapper,
       Optional<ServiceAccountsService> serviceAccountsService,
       List<PipelineValidator> pipelineValidators,
-      Optional<PipelineTemplateDAO> pipelineTemplateDAO) {
+      Optional<PipelineTemplateDAO> pipelineTemplateDAO,
+      FiatPermissionEvaluator fiatPermissionEvaluator) {
     this.pipelineDAO = pipelineDAO;
     this.objectMapper = objectMapper;
     this.serviceAccountsService = serviceAccountsService;
     this.pipelineValidators = pipelineValidators;
     this.pipelineTemplateDAO = pipelineTemplateDAO;
+    this.fiatPermissionEvaluator = fiatPermissionEvaluator;
   }
 
   @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
@@ -166,6 +171,73 @@ public class PipelineController {
     }
 
     return pipelineDAO.create(pipeline.getId(), pipeline);
+  }
+
+  @PreAuthorize(
+      "@fiatPermissionEvaluator.storeWholePermission() and @authorizationSupport.hasRunAsUserPermission(#pipelineList)")
+  @RequestMapping(value = "/bulksave", method = RequestMethod.POST)
+  public Map<String, Object> bulksave(
+      @RequestBody List<Pipeline> pipelineList,
+      @RequestParam(value = "staleCheck", required = false, defaultValue = "false")
+          Boolean staleCheck) {
+
+    Map<String, Object> returnData = new HashMap<>();
+    if ("true".equals(sqlEnabled)) {
+      final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+      List<Pipeline> savePipelineList = new ArrayList<>();
+      List<Pipeline> errorPipelineList = new ArrayList<>();
+      Set<String> uniqueIdSet = new HashSet<>();
+      boolean fiatPermission = false;
+      for (Pipeline pipeline : pipelineList) {
+        try {
+          fiatPermission =
+              fiatPermissionEvaluator.hasPermission(
+                  auth, pipeline.getApplication(), "APPLICATION", "WRITE");
+          if (!fiatPermission) {
+            errorPipelineList.add(pipeline);
+            pipeline.put(
+                "errorMsg", "Application do not have WRITE permission to save the pipeline.");
+            continue;
+          }
+          validatePipeline(pipeline, staleCheck);
+          pipeline.setName(pipeline.getName().trim());
+          pipeline = ensureCronTriggersHaveIdentifier(pipeline);
+
+          if (Strings.isNullOrEmpty(pipeline.getId())
+              || (boolean) pipeline.getOrDefault("regenerateCronTriggerIds", false)) {
+            // ensure that cron triggers are assigned a unique identifier for new pipelines
+            pipeline.getTriggers().stream()
+                .filter(it -> "cron".equals(it.getType()))
+                .forEach(it -> it.put("id", UUID.randomUUID().toString()));
+          }
+          String id = pipeline.getId();
+          if (id == null) {
+            id = UUID.randomUUID().toString();
+            pipeline.setId(id);
+          } else {
+            if (!(uniqueIdSet.add(id))) {
+              errorPipelineList.add(pipeline);
+              pipeline.put("errorMsg", "Duplicate pipeline id found.");
+              continue;
+            }
+          }
+          if (fiatPermission) {
+            savePipelineList.add(pipeline);
+          }
+        } catch (Exception e) {
+          errorPipelineList.add(pipeline);
+          pipeline.put("errorMsg", e.getMessage());
+        }
+      }
+      returnData.put("Successful", savePipelineList.size());
+      returnData.put("Failed", errorPipelineList.size());
+      returnData.put("Failed_list", errorPipelineList);
+      pipelineDAO.bulkImport(savePipelineList);
+    } else {
+      throw new InvalidRequestException(
+          "Bulk save enabled only for sql storage.Enable sql.enabled to true.");
+    }
+    return returnData;
   }
 
   @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
