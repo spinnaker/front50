@@ -41,6 +41,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Hex;
@@ -61,6 +63,9 @@ public class V2PipelineTemplateController {
   // TODO(jacobkiefer): (PLACEHOLDER) Decide on the final set of supported tags.
   private static final List<String> VALID_TEMPLATE_TAGS =
       Arrays.asList("latest", "stable", "unstable", "experimental", "test", "canary");
+
+  public static final Pattern VALID_TEMPLATE_TAG_PATTERN =
+      Pattern.compile("^v?[0-9]\\d*\\.\\d+\\.\\d+(?:-[a-zA-Z0-9]+)?$");
 
   @Autowired(required = false)
   PipelineTemplateDAO pipelineTemplateDAO = null;
@@ -257,10 +262,12 @@ public class V2PipelineTemplateController {
   }
 
   private void validatePipelineTemplateTag(String tag) {
-    if (!VALID_TEMPLATE_TAGS.contains(tag)) {
+    Matcher m = VALID_TEMPLATE_TAG_PATTERN.matcher(tag);
+    if (!VALID_TEMPLATE_TAGS.contains(tag) && !m.matches()) {
       throw new InvalidRequestException(
           String.format(
-              "The provided tag %s is not supported." + " Pipeline template must tag be one of %s",
+              "The provided tag %s is not supported."
+                  + " Pipeline template must tag be one of %s or semantic versioning",
               tag, VALID_TEMPLATE_TAGS));
     }
   }
