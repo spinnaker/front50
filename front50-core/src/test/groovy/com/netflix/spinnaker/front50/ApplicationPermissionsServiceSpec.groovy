@@ -27,12 +27,22 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 class ApplicationPermissionsServiceSpec extends Specification {
-
+  FiatService fiatService = Mock(FiatService)
+  FiatClientConfigurationProperties fiatClientConfigurationProperties = Mock(FiatClientConfigurationProperties) {
+    isEnabled() >> true
+  }
+  FiatConfigurationProperties fiatConfigurationProperties = Mock(FiatConfigurationProperties) {
+    getRoleSync() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties) {
+      isEnabled() >> true
+      getApplicationPermission() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties.ApplicationPermissionRoleSyncConfigurationProperties) {
+        isEnabled() >> false
+      }
+    }
+  }
 
   @Unroll
   def "test application creation will sync roles in fiat"(permission, expectedSyncedRoles) {
     given:
-    def fiatService = Mock(FiatService)
     ApplicationPermissionsService subject = createSubject(
       fiatService,
       Mock(ApplicationPermissionDAO) {
@@ -71,14 +81,8 @@ class ApplicationPermissionsServiceSpec extends Specification {
       Mock(ApplicationDAO),
       Optional.of(fiatService),
       Optional.of(applicationPermissionDAO),
-      Mock(FiatConfigurationProperties) {
-        getRoleSync() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties) {
-          isEnabled() >> true
-        }
-      },
-      Mock(FiatClientConfigurationProperties) {
-        isEnabled() >> true
-      },
+      fiatConfigurationProperties,
+      fiatClientConfigurationProperties,
       []
     )
   }
