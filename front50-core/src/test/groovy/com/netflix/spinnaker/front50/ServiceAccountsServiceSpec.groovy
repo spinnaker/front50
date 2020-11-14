@@ -126,7 +126,7 @@ class ServiceAccountsServiceSpec extends Specification {
   }
 
   @Unroll
-  def "" (){
+  def "should sync with service account role sync enabled" (){
     given:
     def serviceAccount = new ServiceAccount(
       name: "test-svc-acct",
