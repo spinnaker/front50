@@ -63,6 +63,34 @@ class ApplicationPermissionsServiceSpec extends Specification {
     appPermission(permissions(Authorization.WRITE, "my_group")) | ["my_group"]
   }
 
+  @Unroll
+  def "should sync with application permission role sync enabled"() {
+    given:
+    Application.Permission permission = appPermission(permissions(Authorization.WRITE, "my_group"))
+
+    ApplicationPermissionsService subject = createSubject(
+      fiatService,
+      Mock(ApplicationPermissionDAO) {
+        create(_, _) >> permission
+      }
+    )
+
+    when:
+    fiatConfigurationProperties.getRoleSync().isEnabled() >> roleSync
+    fiatConfigurationProperties.getRoleSync().getApplicationPermission().isEnabled() >> syncApplicationPermission
+    subject.createApplicationPermission(permission)
+
+    then:
+    called* fiatService.sync(["my_group"])
+
+    where:
+    roleSync | syncApplicationPermission || called
+    true     | true                      || 1
+    false    | false                     || 0
+    true     | false                     || 1
+    false    | true                      || 1
+  }
+
   private Application.Permission appPermission(Permissions permissions) {
     def permission = new Application.Permission()
     permission.name = "testName"

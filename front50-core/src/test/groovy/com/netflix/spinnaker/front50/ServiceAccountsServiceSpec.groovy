@@ -146,5 +146,6 @@ class ServiceAccountsServiceSpec extends Specification {
     true     | true               || 1
     false    | false              || 0
     true     | false              || 1
+    false    | true               || 1
   }
 }
