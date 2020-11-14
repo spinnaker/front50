@@ -180,7 +180,8 @@ public class ApplicationPermissionsService {
               }
             });
 
-    if (fiatConfigurationProperties.getRoleSync().isEnabled()) {
+    if (fiatConfigurationProperties.getRoleSync().isEnabled()
+        || fiatConfigurationProperties.getRoleSync().getApplicationPermission().isEnabled()) {
       try {
         fiatService.get().sync(new ArrayList<>(roles));
       } catch (RetrofitError e) {

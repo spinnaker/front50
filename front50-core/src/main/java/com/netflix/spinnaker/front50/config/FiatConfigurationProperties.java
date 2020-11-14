@@ -26,6 +26,22 @@ public class FiatConfigurationProperties {
 
   @Data
   public static class RoleSyncConfigurationProperties {
+    // for backward compatibility
     boolean enabled = true;
+
+    ApplicationPermissionRoleSyncConfigurationProperties applicationPermission =
+        new ApplicationPermissionRoleSyncConfigurationProperties();
+    ServiceAccountRoleSyncConfigurationProperties serviceAccount =
+        new ServiceAccountRoleSyncConfigurationProperties();
+
+    @Data
+    public static class ApplicationPermissionRoleSyncConfigurationProperties {
+      boolean enabled = true;
+    }
+
+    @Data
+    public static class ServiceAccountRoleSyncConfigurationProperties {
+      boolean enabled = true;
+    }
   }
 }

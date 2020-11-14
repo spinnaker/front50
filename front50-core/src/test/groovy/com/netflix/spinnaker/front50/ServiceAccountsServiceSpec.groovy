@@ -28,6 +28,7 @@ import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
 import spock.lang.Specification
 import spock.lang.Subject
+import spock.lang.Unroll
 
 class ServiceAccountsServiceSpec extends Specification {
   ServiceAccountDAO serviceAccountDAO = Mock(ServiceAccountDAO)
@@ -38,6 +39,12 @@ class ServiceAccountsServiceSpec extends Specification {
   FiatConfigurationProperties fiatConfigurationProperties = Mock(FiatConfigurationProperties) {
     getRoleSync() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties) {
       isEnabled() >> true
+      getApplicationPermission() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties.ApplicationPermissionRoleSyncConfigurationProperties) {
+        isEnabled() >> true
+      }
+      getServiceAccount() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties.ServiceAccountRoleSyncConfigurationProperties) {
+        isEnabled() >> true
+      }
     }
   }
   FiatPermissionEvaluator fiatPermissionsEvaluator = Mock(FiatPermissionEvaluator)
@@ -116,5 +123,31 @@ class ServiceAccountsServiceSpec extends Specification {
     1 * serviceAccountDAO.findById(test2ServiceAccount.id) >> { throw new NotFoundException(test2ServiceAccount.id) }
     1 * serviceAccountDAO.delete(test1ServiceAccount.id)
     0 * serviceAccountDAO.delete(test2ServiceAccount.id)
+  }
+
+  @Unroll
+  def "" (){
+    given:
+    def serviceAccount = new ServiceAccount(
+      name: "test-svc-acct",
+      memberOf: [
+        "test-role"
+      ]
+    )
+
+    when:
+    serviceAccountDAO.create(serviceAccount.id, serviceAccount) >> serviceAccount
+    service.createServiceAccount(serviceAccount)
+
+    then:
+    fiatConfigurationProperties.getRoleSync().isEnabled() >> roleSync
+    fiatConfigurationProperties.getRoleSync().getServiceAccount().isEnabled() >> syncServiceAccount
+    called * fiatService.sync(['test-role'])
+
+    where:
+    roleSync | syncServiceAccount || called
+    true     | true               || 1
+    false    | false              || 0
+    true     | false              || 1
   }
 }

@@ -122,7 +122,8 @@ public class ApplicationsController {
 
     Application createdApplication = applicationService.save(app);
     if (fiatStatus.isEnabled()
-        && fiatConfigurationProperties.getRoleSync().isEnabled()
+        && (fiatConfigurationProperties.getRoleSync().isEnabled()
+            || fiatConfigurationProperties.getRoleSync().getApplicationPermission().isEnabled())
         && fiatService.isPresent()) {
       try {
         fiatService.get().sync();
