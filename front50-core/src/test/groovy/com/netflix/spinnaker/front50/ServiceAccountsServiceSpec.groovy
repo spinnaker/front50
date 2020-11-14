@@ -39,9 +39,6 @@ class ServiceAccountsServiceSpec extends Specification {
   FiatConfigurationProperties fiatConfigurationProperties = Mock(FiatConfigurationProperties) {
     getRoleSync() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties) {
       isEnabled() >> true
-      getApplicationPermission() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties.ApplicationPermissionRoleSyncConfigurationProperties) {
-        isEnabled() >> false
-      }
       getServiceAccount() >> Mock(FiatConfigurationProperties.RoleSyncConfigurationProperties.ServiceAccountRoleSyncConfigurationProperties) {
         isEnabled() >> false
       }
