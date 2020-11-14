@@ -36,12 +36,12 @@ public class FiatConfigurationProperties {
 
     @Data
     public static class ApplicationPermissionRoleSyncConfigurationProperties {
-      boolean enabled = true;
+      boolean enabled = false;
     }
 
     @Data
     public static class ServiceAccountRoleSyncConfigurationProperties {
-      boolean enabled = true;
+      boolean enabled = false;
     }
   }
 }
