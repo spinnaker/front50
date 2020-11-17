@@ -50,7 +50,7 @@ public class AuthorizationSupport {
             .orElse(Collections.emptyList());
 
     if (runAsUsers.isEmpty()) {
-      return false;
+      return true;
     }
 
     final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
