@@ -28,6 +28,7 @@ import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.security.AuthenticatedRequest;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URLDecoder;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.joda.time.DateTime;
@@ -58,11 +59,14 @@ public class AzureStorageService implements StorageService {
       try {
         blobContainer = getBlobClient().getContainerReference(this.containerName);
         blobContainer.createIfNotExists();
-        BlobContainerPermissions permissions = new BlobContainerPermissions();
+        // removing the public access enforcement, so that we can leverage private and public AZ
+        // https://github.com/spinnaker/spinnaker/issues/6218
+        /*BlobContainerPermissions permissions = new BlobContainerPermissions()
         permissions.setPublicAccess(BlobContainerPublicAccessType.CONTAINER);
-        blobContainer.uploadPermissions(permissions);
+        blobContainer.uploadPermissions(permissions);*/
       } catch (Exception e) {
-        // log exception
+        // log exception is missed
+        log.error(e.getMessage() + e.getCause() + e.getStackTrace());
         blobContainer = null;
       }
     }
@@ -88,6 +92,11 @@ public class AzureStorageService implements StorageService {
   public <T extends Timestamped> T loadObject(ObjectType objectType, String objectKey) {
     String key = buildKeyPath(objectType.group, objectKey, objectType.defaultMetadataFilename);
     try {
+      /* Issue with special character(space)handling in dinghy file.
+       * https://github.com/spinnaker/spinnaker/issues/6221
+       * Container Blob Reference key generation has the logic of double encode of special chars
+       * Decode the key to avoid/fix double encode of special characters.*/
+      key = URLDecoder.decode(key, "ISO-8859-1");
       CloudBlockBlob blob = getBlobContainer().getBlockBlobReference(key);
       if (blob.exists()) {
         return deserialize(blob, (Class<T>) objectType.clazz);
