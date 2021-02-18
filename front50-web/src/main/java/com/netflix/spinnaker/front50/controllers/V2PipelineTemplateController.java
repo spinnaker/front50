@@ -90,7 +90,7 @@ public class V2PipelineTemplateController {
       @RequestParam(value = "tag", required = false) String tag,
       @RequestBody PipelineTemplate pipelineTemplate) {
 
-    if (StringUtils.isEmpty(tag)){
+    if (StringUtils.isEmpty(tag)) {
       tag = pipelineTemplate.getTag();
     }
 
@@ -124,7 +124,7 @@ public class V2PipelineTemplateController {
       @RequestParam(value = "tag", required = false) String tag,
       @RequestBody PipelineTemplate pipelineTemplate) {
 
-    if (StringUtils.isEmpty(tag)){
+    if (StringUtils.isEmpty(tag)) {
       tag = pipelineTemplate.getTag();
     }
 
