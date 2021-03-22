@@ -17,8 +17,8 @@
 dependencies {
   implementation project(":front50-core")
 
-  implementation "com.netflix.spinnaker.fiat:fiat-core:$fiatVersion"
-  implementation "com.netflix.spinnaker.kork:kork-core"
+  implementation "io.spinnaker.fiat:fiat-core:$fiatVersion"
+  implementation "io.spinnaker.kork:kork-core"
   implementation "org.apache.commons:commons-lang3"
   implementation "org.springframework.boot:spring-boot-autoconfigure"
 
