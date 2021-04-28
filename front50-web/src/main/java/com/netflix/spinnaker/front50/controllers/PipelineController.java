@@ -22,6 +22,7 @@ import static java.lang.String.format;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.netflix.spinnaker.front50.ServiceAccountsService;
+import com.netflix.spinnaker.front50.api.validator.PipelineValidator;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidEntityException;
@@ -33,7 +34,6 @@ import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration;
 import com.netflix.spinnaker.front50.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.pipeline.V2TemplateConfiguration;
 import com.netflix.spinnaker.front50.validator.GenericValidationErrors;
-import com.netflix.spinnaker.front50.validator.PipelineValidator;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.kork.web.exceptions.ValidationException;
 import java.util.ArrayList;
@@ -56,6 +56,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+// import org.springframework.validation.Errors;
+// class AppNameValidator implements PipelineValidator {
+//  @Override
+//  public void validate(Pipeline pipeline, Errors errors) {
+//    if (pipeline.getApplication() != "gadfly") {
+//      errors.reject("app", "application fails validation");
+//    }
+//  }
+// }
 
 /** Controller for presets */
 @RestController
