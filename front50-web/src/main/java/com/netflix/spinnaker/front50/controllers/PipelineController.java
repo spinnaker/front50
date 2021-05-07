@@ -15,23 +15,21 @@
  */
 package com.netflix.spinnaker.front50.controllers;
 
-import static com.netflix.spinnaker.front50.model.pipeline.Pipeline.TYPE_TEMPLATED;
 import static com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration.TemplateSource.SPINNAKER_PREFIX;
 import static java.lang.String.format;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.netflix.spinnaker.front50.ServiceAccountsService;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
+import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidRequestException;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO;
 import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration;
-import com.netflix.spinnaker.front50.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.pipeline.V2TemplateConfiguration;
 import com.netflix.spinnaker.front50.validator.GenericValidationErrors;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
@@ -57,15 +55,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-// import org.springframework.validation.Errors;
-// class AppNameValidator implements PipelineValidator {
-//  @Override
-//  public void validate(Pipeline pipeline, Errors errors) {
-//    if (pipeline.getApplication() != "gadfly") {
-//      errors.reject("app", "application fails validation");
-//    }
-//  }
-// }
+import static com.netflix.spinnaker.front50.api.model.pipeline.Pipeline.TYPE_TEMPLATED;
 
 /** Controller for presets */
 @RestController
@@ -165,10 +155,9 @@ public class PipelineController {
     pipeline.setName(pipeline.getName().trim());
     pipeline = ensureCronTriggersHaveIdentifier(pipeline);
 
-    if (Strings.isNullOrEmpty(pipeline.getId())
-        || (boolean) pipeline.getOrDefault("regenerateCronTriggerIds", false)) {
+    if (Strings.isNullOrEmpty(pipeline.getId())) {
       // ensure that cron triggers are assigned a unique identifier for new pipelines
-      Collection<Trigger> triggers = pipeline.getTriggers();
+      List<Trigger> triggers = pipeline.getTriggers();
       triggers.stream()
           .filter(it -> "cron".equals(it.getType()))
           .forEach(it -> it.put("id", UUID.randomUUID().toString()));
@@ -223,7 +212,7 @@ public class PipelineController {
     validatePipeline(pipeline, staleCheck);
 
     pipeline.setName(pipeline.getName().trim());
-    pipeline.put("updateTs", System.currentTimeMillis());
+    pipeline.setLastModified(System.currentTimeMillis());
     pipeline = ensureCronTriggersHaveIdentifier(pipeline);
 
     pipelineDAO.update(id, pipeline);
@@ -277,7 +266,11 @@ public class PipelineController {
         pipeline.getApplication(), pipeline.getName().trim(), pipeline.getId());
 
     final GenericValidationErrors errors = new GenericValidationErrors(pipeline);
-    pipelineValidators.forEach(it -> it.validate(pipeline, errors));
+    try {
+      pipelineValidators.forEach(it -> it.validate(pipeline));
+    } catch (ValidationException validationEx) {
+      errors.reject("validator.failure", validationEx.getMessage());
+    }
 
     if (staleCheck
         && !Strings.isNullOrEmpty(pipeline.getId())
@@ -329,9 +322,10 @@ public class PipelineController {
     checkForDuplicatePipeline(application, name, null);
   }
 
+
   private static Pipeline ensureCronTriggersHaveIdentifier(Pipeline pipeline) {
     // ensure that all cron triggers have an assigned identifier
-    Collection<Trigger> triggers = pipeline.getTriggers();
+    List<Trigger> triggers = pipeline.getTriggers();
     triggers.stream()
         .filter(it -> "cron".equalsIgnoreCase(it.getType()))
         .forEach(

@@ -8,11 +8,12 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.netflix.spinnaker.fiat.model.Authorization;
 import com.netflix.spinnaker.fiat.model.resources.Permissions;
-import com.netflix.spinnaker.front50.model.Timestamped;
-import java.util.*;
+import com.netflix.spinnaker.front50.api.model.Timestamped;
 import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
 
 public class Application implements Timestamped {
 

@@ -17,8 +17,8 @@
 
 package com.netflix.spinnaker.front50.migrations;
 
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.ItemDAO;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -62,13 +62,13 @@ public class V2PipelineTemplateIncludeToExcludeMigration implements Migration {
 
     Predicate<Pipeline> hasInheritOnly =
         p -> {
-          Map<String, Object> template = (Map<String, Object>) p.get("template");
+          Map<String, Object> template = p.getTemplate();
           if (template == null) {
             return false;
           }
-          String schema = (String) p.getOrDefault("schema", "");
-          List<String> inherit = (List<String>) p.get("inherit");
-          List<String> exclude = (List<String>) p.get("exclude");
+          String schema = p.getSchema();
+          List<String> inherit = p.getInherit();
+          List<String> exclude = p.getExclude();
 
           // There's 4 cases based on the existence of 'inherit' and 'exclude':
           // Neither exist -> do nothing.
@@ -84,7 +84,7 @@ public class V2PipelineTemplateIncludeToExcludeMigration implements Migration {
   }
 
   private void migrate(ItemDAO<Pipeline> dao, Pipeline pipeline) {
-    List<String> inherit = (List<String>) pipeline.get("inherit");
+    List<String> inherit = pipeline.getInherit();
     if (inherit == null) {
       return;
     }
@@ -92,8 +92,8 @@ public class V2PipelineTemplateIncludeToExcludeMigration implements Migration {
     List<String> exclude = new ArrayList<>(INHERIT_KEYS);
     exclude.removeAll(inherit);
 
-    pipeline.put("exclude", exclude);
-    pipeline.remove("inherit");
+    pipeline.setExclude(exclude);
+    pipeline.removeInherit();
     dao.update(pipeline.getId(), pipeline);
 
     log.info(

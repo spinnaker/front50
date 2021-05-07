@@ -19,13 +19,12 @@ package com.netflix.spinnaker.front50.migrations;
 
 import static net.logstash.logback.argument.StructuredArguments.value;
 
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
+import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
-import com.netflix.spinnaker.front50.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount;
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +86,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
         value("pipelineId", pipeline.getId()));
 
     Set<String> newRoles = new HashSet<>();
-    List<String> existingRoles = (List) pipeline.get(ROLES);
+    List<String> existingRoles = pipeline.getRoles();
     if (existingRoles != null) {
       existingRoles.stream().map(String::toLowerCase).forEach(newRoles::add);
     }
@@ -97,7 +96,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
     ServiceAccount automaticServiceAccount = new ServiceAccount();
     automaticServiceAccount.setName(serviceAccountName);
 
-    Collection<Trigger> triggers = pipeline.getTriggers();
+    List<Trigger> triggers = pipeline.getTriggers();
 
     triggers.forEach(
         trigger -> {
@@ -123,7 +122,7 @@ public class RunAsUserToPermissionsMigration implements Migration {
 
     log.info("Creating service user '{}' with roles {}", serviceAccountName, newRoles);
     automaticServiceAccount.getMemberOf().addAll(newRoles);
-    pipeline.put(ROLES, new ArrayList<>(newRoles));
+    pipeline.setRoles(new ArrayList<>(newRoles));
     pipeline.setTriggers(triggers);
 
     serviceAccountDAO.create(automaticServiceAccount.getId(), automaticServiceAccount);
@@ -136,8 +135,8 @@ public class RunAsUserToPermissionsMigration implements Migration {
   }
 
   private String generateSvcAcctName(Pipeline pipeline) {
-    if (pipeline.containsKey("serviceAccount")) {
-      return (String) pipeline.get("serviceAccount");
+    if (pipeline.getServiceAccount() != null) {
+      return pipeline.getServiceAccount();
     }
     String pipelineName = pipeline.getId();
     return pipelineName.toLowerCase() + SERVICE_ACCOUNT_SUFFIX;

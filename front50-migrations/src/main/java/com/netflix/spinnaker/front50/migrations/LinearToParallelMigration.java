@@ -19,8 +19,8 @@ package com.netflix.spinnaker.front50.migrations;
 import static java.lang.String.format;
 import static net.logstash.logback.argument.StructuredArguments.value;
 
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.ItemDAO;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO;
 import java.time.Clock;
@@ -52,15 +52,16 @@ public class LinearToParallelMigration implements Migration {
   @Override
   public void run() {
     log.info("Starting Linear -> Parallel Migration");
+
     pipelineDAO.all().stream()
-        .filter(pipeline -> !(Boolean.valueOf(pipeline.getOrDefault("parallel", false).toString())))
+        .filter(pipeline -> !Optional.ofNullable(pipeline.getParallel()).orElse(false))
         .forEach(
             pipeline -> {
               migrate(pipelineDAO, "pipeline", pipeline);
             });
 
     pipelineStrategyDAO.all().stream()
-        .filter(strategy -> !(Boolean.valueOf(strategy.getOrDefault("parallel", false).toString())))
+        .filter(strategy -> !Optional.ofNullable(strategy.getParallel()).orElse(false))
         .forEach(
             strategy -> {
               migrate(pipelineStrategyDAO, "pipeline strategy", strategy);
@@ -76,7 +77,10 @@ public class LinearToParallelMigration implements Migration {
 
     AtomicInteger refId = new AtomicInteger(0);
     List<Map<String, Object>> stages =
-        (List<Map<String, Object>>) pipeline.getOrDefault("stages", Collections.emptyList());
+        Optional.ofNullable(pipeline.getStages()).orElse(Collections.emptyList());
+    if (stages == null) {
+      stages = Collections.emptyList();
+    }
     stages.forEach(
         stage -> {
           stage.put("refId", String.valueOf(refId.get()));
@@ -90,7 +94,7 @@ public class LinearToParallelMigration implements Migration {
           refId.incrementAndGet();
         });
 
-    pipeline.put("parallel", true);
+    pipeline.setParallel(true);
     dao.update(pipeline.getId(), pipeline);
 
     log.info(

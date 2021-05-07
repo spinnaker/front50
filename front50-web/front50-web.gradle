@@ -46,6 +46,7 @@ dependencies {
 
   runtimeOnly "io.spinnaker.kork:kork-runtime"
 
+  testImplementation project(":front50-api")
   testImplementation project(":front50-test")
   testImplementation project(":front50-sql")
   testImplementation "io.spinnaker.kork:kork-sql-test"

@@ -15,15 +15,15 @@
  */
 package validator;
 
+import com.netflix.spinnaker.kork.web.exceptions.ValidationException
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
-import org.springframework.validation.Errors;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 
 public class AppNameValidator implements PipelineValidator {
   @Override
-  public void validate(Pipeline pipeline, Errors errors) {
+  public void validate(Pipeline pipeline) {
     if (pipeline.getApplication() != "gadfly") {
-      errors.reject("app", "application fails validation");
+      throw new ValidationException("Invalid app name", null);
     }
   }
 }

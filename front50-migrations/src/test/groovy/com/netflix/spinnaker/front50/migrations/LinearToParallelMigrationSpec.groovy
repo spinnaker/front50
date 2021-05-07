@@ -17,7 +17,7 @@
 
 package com.netflix.spinnaker.front50.migrations
 
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO
 import spock.lang.Specification
@@ -45,16 +45,18 @@ class LinearToParallelMigrationSpec extends Specification {
         stages: [
             [name: "stage1"],
             [name: "stage2"]
-        ]
-    ]) + additionalPipelineContext
+        ],
+        parallel: parallel,
+    ])
     pipeline.id = "pipeline-1"
 
     def pipelineStrategy = new Pipeline([
         stages: [
             [name: "stage1"],
             [name: "stage2"]
-        ]
-    ]) + additionalPipelineContext
+        ],
+        parallel: parallel,
+    ])
     pipelineStrategy.id = "pipelineStrategy-1"
 
     when:
@@ -82,9 +84,9 @@ class LinearToParallelMigrationSpec extends Specification {
     0 * _
 
     where:
-    additionalPipelineContext || _
-    [:]                       || _
-    [parallel: false]         || _
+    parallel || _
+    null     || _
+    false    || _
   }
 
   @Unroll

@@ -1,11 +1,13 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
+import com.netflix.spinnaker.kork.web.exceptions.ValidationException
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -17,7 +19,6 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
-import org.springframework.validation.Errors
 import spock.lang.Specification
 import spock.lang.Unroll
 import spock.mock.DetachedMockFactory
@@ -131,9 +132,6 @@ class PipelineControllerSpec extends Specification {
 
     then:
     response.status == HttpStatus.BAD_REQUEST.value()
-
-    where:
-    name << [ null, "", "      "]
   }
 
   @Configuration
@@ -147,9 +145,9 @@ class PipelineControllerSpec extends Specification {
 
   private class MockValidator implements PipelineValidator {
     @Override
-    void validate(Pipeline pipeline, Errors errors) {
+    void validate(Pipeline pipeline) {
       if (pipeline.getName() == "should-fail") {
-        errors.reject("validator.fail", "rejecting mock validator")
+         throw new ValidationException("mock validator rejection", null)
       }
     }
   }

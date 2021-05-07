@@ -19,8 +19,8 @@ package com.netflix.spinnaker.front50.migrations;
 import static java.lang.String.format;
 import static net.logstash.logback.argument.StructuredArguments.value;
 
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.ItemDAO;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineStrategyDAO;
 import java.time.Clock;
@@ -54,7 +54,7 @@ public class TriggerConstraintMigration implements Migration {
     log.info("Starting trigger constraint migration");
     Predicate<Pipeline> hasTriggerConstraints =
         p -> {
-          Map trigger = (Map) p.get("trigger");
+          Map trigger = (Map) p.getTriggers();
           return trigger != null && !trigger.isEmpty() && trigger.containsKey("constraints");
         };
     pipelineDAO.all().stream()
@@ -73,7 +73,7 @@ public class TriggerConstraintMigration implements Migration {
             value("type", type),
             value("pipelineId", pipeline.getId())));
 
-    pipeline.put("payloadConstraints", pipeline.get("constraints"));
+    pipeline.setPayloadConstraints(pipeline.getConstraints());
     dao.update(pipeline.getId(), pipeline);
 
     log.info(

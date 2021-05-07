@@ -17,8 +17,8 @@
 package com.netflix.spinnaker.front50.migrations;
 
 import com.google.common.base.Strings;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.ItemDAO;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import java.time.LocalDate;
 import java.time.Month;
@@ -56,7 +56,7 @@ public class MoveSubpathToLocationMigration implements Migration {
 
     Predicate<Pipeline> hasExpectedGitRepoArtifact =
         p -> {
-          List<Map> expectedArtifacts = (List<Map>) p.get("expectedArtifacts");
+          List<Map<String, Object>> expectedArtifacts = p.getExpectedArtifacts();
           if (expectedArtifacts == null) {
             return false;
           }
@@ -98,10 +98,9 @@ public class MoveSubpathToLocationMigration implements Migration {
         "Move git/repo subpath to location field (application: {}, pipelineId: {}, expectedArtifacts: {})",
         pipeline.getApplication(),
         pipeline.getId(),
-        pipeline.get("expectedArtifacts"));
+        pipeline.getExpectedArtifacts());
 
-    List<Map<String, Object>> expectedArtifacts =
-        (List<Map<String, Object>>) pipeline.get("expectedArtifacts");
+    List<Map<String, Object>> expectedArtifacts = pipeline.getExpectedArtifacts();
     for (Map<String, Object> expectedArtifact : expectedArtifacts) {
       Map<String, Object> matchArtifact =
           (Map<String, Object>) expectedArtifact.get("matchArtifact");

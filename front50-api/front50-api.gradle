@@ -17,12 +17,9 @@
 apply plugin: 'java-library'
 
 dependencies {
-  implementation project(":front50-core")
-  implementation "org.springframework:spring-context"
-
+  implementation "io.spinnaker.kork:kork-exceptions"
   implementation platform("io.spinnaker.kork:kork-bom:$korkVersion")
   annotationProcessor platform("io.spinnaker.kork:kork-bom:$korkVersion")
   api("io.spinnaker.kork:kork-plugins-api")
-  api("io.spinnaker.kork:kork-artifacts")
 
 }

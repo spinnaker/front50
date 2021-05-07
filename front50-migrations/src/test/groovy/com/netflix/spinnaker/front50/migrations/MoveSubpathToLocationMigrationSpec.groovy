@@ -16,7 +16,7 @@
 
 package com.netflix.spinnaker.front50.migrations
 
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import spock.lang.Specification
 import spock.lang.Subject
@@ -64,7 +64,7 @@ class MoveSubpathToLocationMigrationSpec extends Specification {
     migration.run()
 
     then:
-    pipeline.get("expectedArtifacts").first().matchArtifact.location == "test-subpath"
+    pipeline.getExpectedArtifacts().first().matchArtifact.location == "test-subpath"
     _ * pipelineDAO.all() >> { return [pipeline] }
     1 * pipelineDAO.update("pipeline-1", _)
 
