@@ -1,6 +1,7 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -84,6 +85,10 @@ class PipelineControllerSpec extends Specification {
       PipelineDAO pipelineDAO() {
         detachedMockFactory.Stub(PipelineDAO)
       }
+      @Bean
+      FiatPermissionEvaluator fiatPermissionEvaluator() {
+      detachedMockFactory.Stub(FiatPermissionEvaluator)
+    }
   }
 
 }

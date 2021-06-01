@@ -87,4 +87,11 @@ public class AuthorizationSupport {
 
     return permissionEvaluator.hasPermission(auth, application, "APPLICATION", "EXECUTE");
   }
+
+  public boolean hasRunAsUserPermission(final List<Pipeline> pipelineList) {
+    for (Pipeline pipeline : pipelineList) {
+      return hasRunAsUserPermission(pipeline);
+    }
+    return true;
+  }
 }
