@@ -15,14 +15,17 @@
  */
 package com.netflix.spinnaker.front50.controllers;
 
+import static com.netflix.spinnaker.front50.api.model.pipeline.Pipeline.TYPE_TEMPLATED;
 import static com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration.TemplateSource.SPINNAKER_PREFIX;
 import static java.lang.String.format;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.netflix.spinnaker.front50.ServiceAccountsService;
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator;
+import com.netflix.spinnaker.front50.api.validator.ValidatorErrors;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidEntityException;
@@ -31,7 +34,6 @@ import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO;
 import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration;
 import com.netflix.spinnaker.front50.model.pipeline.V2TemplateConfiguration;
-import com.netflix.spinnaker.front50.validator.GenericValidationErrors;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.kork.web.exceptions.ValidationException;
 import java.util.ArrayList;
@@ -40,11 +42,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -54,8 +54,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import static com.netflix.spinnaker.front50.api.model.pipeline.Pipeline.TYPE_TEMPLATED;
 
 /** Controller for presets */
 @RestController
@@ -265,12 +263,8 @@ public class PipelineController {
     checkForDuplicatePipeline(
         pipeline.getApplication(), pipeline.getName().trim(), pipeline.getId());
 
-    final GenericValidationErrors errors = new GenericValidationErrors(pipeline);
-    try {
-      pipelineValidators.forEach(it -> it.validate(pipeline));
-    } catch (ValidationException validationEx) {
-      errors.reject("validator.failure", validationEx.getMessage());
-    }
+    final ValidatorErrors errors = new ValidatorErrors();
+    pipelineValidators.forEach(it -> it.validate(pipeline, errors));
 
     if (staleCheck
         && !Strings.isNullOrEmpty(pipeline.getId())
@@ -279,11 +273,8 @@ public class PipelineController {
     }
 
     if (errors.hasErrors()) {
-      List<String> message =
-          errors.getAllErrors().stream()
-              .map(DefaultMessageSourceResolvable::getDefaultMessage)
-              .collect(Collectors.toList());
-      throw new ValidationException(message);
+      String message = errors.getAllErrorsMessage();
+      throw new ValidationException(message, errors.getAllErrors());
     }
   }
 
@@ -294,13 +285,12 @@ public class PipelineController {
                 "Pipeline Templates are not supported with your current storage backend"));
   }
 
-  private void checkForStalePipeline(Pipeline pipeline, GenericValidationErrors errors) {
+  private void checkForStalePipeline(Pipeline pipeline, ValidatorErrors errors) {
     Pipeline existingPipeline = pipelineDAO.findById(pipeline.getId());
     Long storedUpdateTs = existingPipeline.getLastModified();
     Long submittedUpdateTs = pipeline.getLastModified();
     if (!submittedUpdateTs.equals(storedUpdateTs)) {
       errors.reject(
-          "stale",
           "The submitted pipeline is stale.  submitted updateTs "
               + submittedUpdateTs
               + " does not match stored updateTs "
@@ -321,7 +311,6 @@ public class PipelineController {
   private void checkForDuplicatePipeline(String application, String name) {
     checkForDuplicatePipeline(application, name, null);
   }
-
 
   private static Pipeline ensureCronTriggersHaveIdentifier(Pipeline pipeline) {
     // ensure that all cron triggers have an assigned identifier

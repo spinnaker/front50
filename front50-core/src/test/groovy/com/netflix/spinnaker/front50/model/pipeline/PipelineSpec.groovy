@@ -20,7 +20,7 @@ class PipelineSpec extends Specification {
     String pipelineJSON = objectMapper.writeValueAsString(pipeline)
 
     expect:
-    pipelineJSON == '{"lastModifiedBy":null,"triggers":[],"lastModified":null,"createdAt":null}'
+    pipelineJSON == '{"triggers":[],"lastModifiedBy":null,"template":null,"roles":null,"serviceAccount":null,"stages":null,"constraints":null,"payloadConstraints":null,"lastModified":null,"createdAt":null}'
   }
 
   def 'should ignore correct pipeline properties from deserializing JSON to Pipeline'() {
@@ -45,7 +45,7 @@ class PipelineSpec extends Specification {
 
   def 'roundtrip (JSON -> Pipeline -> JSON) retains arbitrary values'() {
     given:
-    String pipelineJSON = '{"lastModifiedBy":"anonymous","triggers":[],"lastModified":null,"createdAt":null,"foo":"bar"}'
+    String pipelineJSON = '{"triggers":[],"lastModifiedBy":"anonymous","template":null,"roles":null,"serviceAccount":null,"stages":null,"constraints":null,"payloadConstraints":null,"lastModified":null,"createdAt":null,"foo":"bar"}'
 
     String pipeline = objectMapper.writeValueAsString(objectMapper.readValue(pipelineJSON, Pipeline.class))
 

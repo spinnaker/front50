@@ -138,7 +138,6 @@ class SharedManagedServiceAccountMigrationSpec extends Specification {
       roles: [
         "test-pipeline-role", "test-trigger-role"
       ],
-      runAsUser: expectedSharedManagedServiceAccountName,
       triggers: [
         new Trigger([
           enabled: true,

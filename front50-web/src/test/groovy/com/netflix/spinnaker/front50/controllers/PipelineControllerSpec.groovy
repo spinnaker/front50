@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator
+import com.netflix.spinnaker.front50.api.validator.ValidatorErrors
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
@@ -132,6 +133,7 @@ class PipelineControllerSpec extends Specification {
 
     then:
     response.status == HttpStatus.BAD_REQUEST.value()
+    response.errorMessage == "mock validator rejection 1\nmock validator rejection 2"
   }
 
   @Configuration
@@ -145,9 +147,10 @@ class PipelineControllerSpec extends Specification {
 
   private class MockValidator implements PipelineValidator {
     @Override
-    void validate(Pipeline pipeline) {
+    void validate(Pipeline pipeline, ValidatorErrors errors) {
       if (pipeline.getName() == "should-fail") {
-         throw new ValidationException("mock validator rejection", null)
+         errors.reject("mock validator rejection 1")
+         errors.reject("mock validator rejection 2")
       }
     }
   }
