@@ -17,79 +17,47 @@
 package com.netflix.spinnaker.front50.api.model.pipeline;
 
 import com.netflix.spinnaker.front50.api.model.Timestamped;
-
 import java.util.*;
+import lombok.Getter;
+import lombok.Setter;
 
 public class Pipeline implements Timestamped {
 
   public static final String TYPE_TEMPLATED = "templatedPipeline";
 
   private Map<String, Object> anyMap = new HashMap<>();
-  private String id;
-  private String name;
-  private String application;
-  private String email;
-  private String type;
+  @Setter private String id;
+  @Getter @Setter private String name;
+  @Getter @Setter private String application;
+  @Getter @Setter private String email;
+  @Getter @Setter private String type;
+  @Setter private String schema;
+  @Getter @Setter private Object config;
+  @Getter @Setter private List<Trigger> triggers = new ArrayList<>();
+  @Getter @Setter private Integer index;
+
   private String updateTs;
   private String createTs;
   private String lastModifiedBy;
-  private String schema;
-  private Object config;
-  private List<Trigger> triggers = new ArrayList<Trigger>();
-  private Integer index;
 
-  private List<String> inherit;
-  private List<String> exclude;
-
-  private Map<String, Object> template;
-  private List<String> roles;
-  private String runAsUser;
-  private String serviceAccount;
-  private List<Map<String, Object>> stages;
-  private List<Map<String, Object>> expectedArtifacts;
-  private Boolean parallel;
-  private Map<String, Object> constraints;
-  private Map<String, Object> payloadConstraints;
+  @Getter @Setter private Map<String, Object> template;
+  @Getter @Setter private List<String> roles;
+  @Getter @Setter private String serviceAccount;
+  @Getter @Setter private List<Map<String, Object>> stages;
+  @Getter @Setter private Map<String, Object> constraints;
+  @Getter @Setter private Map<String, Object> payloadConstraints;
 
   public void setAny(String key, Object value) {
     anyMap.put(key, value);
-  };
+  }
 
   public Map<String, Object> getAny() {
     return anyMap;
-  };
-
-  public String getApplication() {
-    return this.application;
-  }
-
-  public void setApplication(String application) {
-    this.application = application;
-  }
-
-  public String getName() {
-    return this.name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getEmail() {
-    return this.email;
-  }
-
-  public void setEmail(String email) {
-    this.email = email;
   }
 
   @Override
   public String getId() {
     return this.id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
   }
 
   @Override
@@ -118,30 +86,6 @@ public class Pipeline implements Timestamped {
     this.lastModifiedBy = lastModifiedBy;
   }
 
-  public Object getConfig() {
-    return this.config;
-  }
-
-  public void setConfig(Object config) {
-    this.config = config;
-  }
-
-  public String getType() {
-    return this.type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public List<Trigger> getTriggers() {
-    return this.triggers;
-  }
-
-  public void setTriggers(List<Trigger> triggers) {
-    this.triggers = triggers;
-  }
-
   /**
    * Denotes templated pipeline config schema version.
    *
@@ -153,109 +97,5 @@ public class Pipeline implements Timestamped {
       return "1";
     }
     return get;
-  }
-
-  public void setSchema(String schema) {
-    this.schema = schema;
-  }
-
-  public Integer getIndex() {
-    return this.index;
-  }
-
-  public void setIndex(Integer index) {
-    this.index = index;
-  }
-
-  public List<String> getInherit() {
-    return this.inherit;
-  }
-
-  public void setInherit(List<String> inherit) {
-    this.inherit = inherit;
-  }
-
-  public void removeInherit() {
-    this.inherit = new ArrayList();
-  }
-
-  public List<String> getExclude() {
-    return this.exclude;
-  }
-
-  public void setExclude(List<String> exclude) {
-    this.exclude = exclude;
-  }
-
-  public Map<String, Object> getTemplate() {
-    return this.template;
-  }
-
-  public void setTemplate(Map<String, Object> template) {
-    this.template = template;
-  }
-
-  public List<String> getRoles() {
-    return this.roles;
-  }
-
-  public void setRoles(List<String> roles) {
-    this.roles = roles;
-  }
-
-  public String getRunAsUser() {
-    return this.runAsUser;
-  }
-
-  public void setRoles(String runAsUser) {
-    this.runAsUser = runAsUser;
-  }
-
-  public String getServiceAccount() {
-    return this.serviceAccount;
-  }
-
-  public void setServiceAccount(String serviceAccount) {
-    this.serviceAccount = serviceAccount;
-  }
-
-  public List<Map<String, Object>> getStages() {
-    return this.stages;
-  }
-
-  public void setStages(List<Map<String, Object>> stages) {
-    this.stages = stages;
-  }
-
-  public List<Map<String, Object>> getExpectedArtifacts() {
-    return this.expectedArtifacts;
-  }
-
-  public void setExpectedArtifacts(List<Map<String, Object>> expectedArtifacts) {
-    this.expectedArtifacts = expectedArtifacts;
-  }
-
-  public Boolean getParallel() {
-    return this.parallel;
-  }
-
-  public void setParallel(Boolean parallel) {
-    this.parallel = parallel;
-  }
-
-  public Map<String, Object> getConstraints() {
-    return this.constraints;
-  }
-
-  public void setConstraints(Map<String, Object> constraints) {
-    this.constraints = constraints;
-  }
-
-  public Map<String, Object> getPayloadConstraints() {
-    return this.payloadConstraints;
-  }
-
-  public void setPayloadConstraints(Map<String, Object> payloadConstraints) {
-    this.payloadConstraints = payloadConstraints;
   }
 }

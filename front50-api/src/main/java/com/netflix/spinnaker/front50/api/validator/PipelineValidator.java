@@ -17,19 +17,18 @@
 package com.netflix.spinnaker.front50.api.validator;
 
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
-import com.netflix.spinnaker.kork.annotations.Alpha;
+import com.netflix.spinnaker.kork.annotations.Beta;
 import com.netflix.spinnaker.kork.plugins.api.internal.SpinnakerExtensionPoint;
-import com.netflix.spinnaker.kork.web.exceptions.ValidationException;
 
 /**
  * A {@link PipelineValidator} provides a hook where custom validation can be applied to pipeline
  * pre-save/update operations.
  */
-@Alpha
+@Beta
 public interface PipelineValidator extends SpinnakerExtensionPoint {
   /**
    * @param pipeline the pipeline being created/modified
-   * @throws ValidationException to fail validation
+   * @param errors specific validation errors for @param pipeline
    */
-  void validate(Pipeline pipeline);
+  void validate(Pipeline pipeline, ValidatorErrors errors);
 }

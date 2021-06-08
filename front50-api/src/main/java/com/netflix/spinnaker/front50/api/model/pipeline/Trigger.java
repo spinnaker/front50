@@ -32,7 +32,7 @@ public class Trigger extends ForwardingMap<String, Object> {
     return (String) backing.get("type");
   }
 
-  public void setType(Object type) {
+  public void setType(String type) {
     backing.put("type", type);
   }
 }
