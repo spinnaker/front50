@@ -56,7 +56,7 @@ public class SpelLoadBalancersMigration implements Migration {
       stages = Collections.emptyList();
     }
     List<Map<String, Object>> clusters =
-         stages.stream()
+        stages.stream()
             .filter(stage -> "deploy".equals(stage.get("type")))
             .flatMap(
                 stage ->
