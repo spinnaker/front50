@@ -1,9 +1,9 @@
 package com.netflix.spinnaker.front50.api.model.pipeline;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import javax.annotation.Nullable;
 
 abstract class ForwardingMap<K, V> implements Map<K, V> {
   public ForwardingMap() {}
@@ -79,5 +79,4 @@ abstract class ForwardingMap<K, V> implements Map<K, V> {
   public int hashCode() {
     return delegate().hashCode();
   }
-
 }
