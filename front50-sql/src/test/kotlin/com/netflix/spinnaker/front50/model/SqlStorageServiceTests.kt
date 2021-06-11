@@ -136,30 +136,28 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
             ObjectType.PIPELINE,
             "id-pipeline001",
             Pipeline().apply {
-              name = "pipeline001"
-              lastModified = 100
-
-              put("application", "application001")
+              this.setName("pipeline001")
+              this.setLastModified(100)
+              this.setApplication("application001")
             }
           )
 
           var pipeline = sqlStorageService.loadObject<Pipeline>(ObjectType.PIPELINE, "id-pipeline001")
-          expectThat(pipeline.name).isEqualTo("pipeline001")
+          expectThat(pipeline.getName()).isEqualTo("pipeline001")
 
           // verify that a pipeline can be updated
           sqlStorageService.storeObject(
             ObjectType.PIPELINE,
             "id-pipeline001",
             Pipeline().apply {
-              name = "pipeline001_updated"
-              lastModified = 200
-
-              put("application", "application001")
+              this.setName("pipeline001_updated")
+              this.setLastModified(200)
+              this.setApplication("application001_updated")
             }
           )
 
           pipeline = sqlStorageService.loadObject(ObjectType.PIPELINE, "id-pipeline001")
-          expectThat(pipeline.name).isEqualTo("pipeline001_updated")
+          expectThat(pipeline.getName()).isEqualTo("pipeline001_updated")
 
           expectThat(
             jooq
@@ -189,11 +187,11 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
               ObjectType.PIPELINE,
               objectKey,
               Pipeline().apply {
-                id = objectKey
-                name = "pipeline00$it"
-                lastModified = 100
+                this.setId(objectKey)
+                this.setName("pipeline00$it")
+                this.setLastModified(100)
 
-                put("application", "application001")
+                this.setApplication("application001")
               }
             )
           }
