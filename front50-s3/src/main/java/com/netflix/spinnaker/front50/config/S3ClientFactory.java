@@ -57,8 +57,10 @@ public class S3ClientFactory {
 
     AmazonS3Client client = new AmazonS3Client(awsCredentialsProvider, clientConfiguration);
 
-    S3ClientOptions.Builder clientOptionsBuilder = S3ClientOptions.builder()
-      .setPayloadSigningEnabled(s3Properties.getPayloadSigning());
+    S3ClientOptions.Builder clientOptionsBuilder = S3ClientOptions.builder();
+    if (s3Properties.getPayloadSigning() != null) {
+      clientOptionsBuilder.setPayloadSigningEnabled(s3Properties.getPayloadSigning());
+    }
 
     if (!StringUtils.isEmpty(s3Properties.getEndpoint())) {
       client.setEndpoint(s3Properties.getEndpoint());
