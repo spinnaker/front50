@@ -115,7 +115,8 @@ public class ServiceAccountsService {
     if (!fiatClientConfigurationProperties.isEnabled()
         || !fiatService.isPresent()
         || serviceAccounts == null
-        || !fiatConfigurationProperties.getRoleSync().isEnabled()) {
+        || !(fiatConfigurationProperties.getRoleSync().isEnabled()
+            || fiatConfigurationProperties.getRoleSync().getServiceAccount().isEnabled())) {
       return;
     }
     try {
