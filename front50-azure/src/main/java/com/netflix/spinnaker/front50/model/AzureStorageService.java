@@ -97,7 +97,6 @@ public class AzureStorageService implements StorageService {
     try {
       CloudBlockBlob blob = getBlobContainer().getBlockBlobReference(key);
       if (blob.exists()) {
-        // TODO Fix
         return deserialize(blob, (Class<T>) objectType.clazz);
       }
       throw new NotFoundException(
