@@ -66,12 +66,12 @@ public class AzureStorageService implements StorageService {
         blobContainer = getBlobClient().getContainerReference(this.containerName);
         blobContainer.createIfNotExists();
         BlobContainerPermissions permissions = new BlobContainerPermissions();
-        permissions.setPublicAccess(BlobContainerPublicAccessType.CONTAINER);
+        permissions.setPublicAccess(BlobContainerPublicAccessType.OFF);
         blobContainer.uploadPermissions(permissions);
       } catch (Exception e) {
         // log exception
         blobContainer = null;
-      }
+      } 
     }
     return blobContainer;
   }
