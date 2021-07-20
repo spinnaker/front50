@@ -18,6 +18,7 @@ package com.netflix.spinnaker.front50.jackson.mixins;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.List;
@@ -31,6 +32,8 @@ public abstract class PipelineMixins {
 
   @JsonAnyGetter
   abstract Map<String, Object> getAny();
+
+  @JsonIgnore private String lastModified;
 
   @JsonInclude(Include.NON_NULL)
   @Getter

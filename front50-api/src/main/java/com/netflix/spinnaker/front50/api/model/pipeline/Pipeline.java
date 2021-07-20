@@ -39,6 +39,7 @@ public class Pipeline implements Timestamped {
   private String updateTs;
   private String createTs;
   private String lastModifiedBy;
+  private String lastModified;
 
   // Excluded fields with null value: see PipelineMixins in front50-core
   @Getter @Setter private String email;
