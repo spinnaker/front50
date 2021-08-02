@@ -25,7 +25,7 @@ dependencies {
   testImplementation "org.testcontainers:mysql"
 
   testImplementation "org.testcontainers:postgresql"
-  testImplementation "org.postgresql:postgresql"
+  testImplementation "org.postgresql:postgresql:42.2.13"  // to fix CVE-2020-13692
 
   // Only used for Initializing Datasource. For actual CRUD, test containers preferred.
   testImplementation "com.h2database:h2"
