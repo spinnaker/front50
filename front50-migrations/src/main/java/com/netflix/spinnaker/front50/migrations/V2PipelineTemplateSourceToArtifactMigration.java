@@ -18,8 +18,11 @@
 package com.netflix.spinnaker.front50.migrations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.spinnaker.front50.api.model.Timestamped;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
+import com.netflix.spinnaker.front50.jackson.mixins.PipelineMixins;
+import com.netflix.spinnaker.front50.jackson.mixins.TimestampedMixins;
 import com.netflix.spinnaker.front50.model.ItemDAO;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration.TemplateSource;
 import java.time.Clock;
@@ -49,7 +52,10 @@ public class V2PipelineTemplateSourceToArtifactMigration implements Migration {
   public V2PipelineTemplateSourceToArtifactMigration(
       PipelineDAO pipelineDAO, ObjectMapper objectMapper) {
     this.pipelineDAO = pipelineDAO;
-    this.objectMapper = objectMapper;
+    this.objectMapper =
+        new ObjectMapper()
+            .addMixIn(Timestamped.class, TimestampedMixins.class)
+            .addMixIn(Pipeline.class, PipelineMixins.class);
   }
 
   @Override
@@ -63,11 +69,11 @@ public class V2PipelineTemplateSourceToArtifactMigration implements Migration {
 
     Predicate<Pipeline> hasV2TemplateSource =
         p -> {
-          Map<String, Object> template = (Map<String, Object>) p.get("template");
+          Map<String, Object> template = p.getTemplate();
           if (template == null) {
             return false;
           }
-          String schema = (String) p.getOrDefault("schema", "");
+          String schema = p.getSchema();
 
           return schema.equals("v2")
               && isTemplateSource(template)
@@ -91,7 +97,7 @@ public class V2PipelineTemplateSourceToArtifactMigration implements Migration {
 
   private void migrate(ItemDAO<Pipeline> dao, Pipeline pipeline) {
     Map<String, Object> templateArtifact = new HashMap<>();
-    Map<String, Object> template = (Map<String, Object>) pipeline.get("template");
+    Map<String, Object> template = pipeline.getTemplate();
     String templateSource = (String) template.get("source");
     if (!templateSource.startsWith(TemplateSource.SPINNAKER_PREFIX)) {
       return;
@@ -102,7 +108,7 @@ public class V2PipelineTemplateSourceToArtifactMigration implements Migration {
     templateArtifact.put("type", "front50/pipelineTemplate");
     templateArtifact.put("reference", templateSource);
 
-    pipeline.put("template", templateArtifact);
+    pipeline.setTemplate(templateArtifact);
     dao.update(pipeline.getId(), pipeline);
 
     log.info(
