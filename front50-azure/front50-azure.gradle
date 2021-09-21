@@ -23,6 +23,7 @@ repositories {
 
 dependencies {
   implementation project(":front50-core")
+  implementation project(":front50-api")
   implementation 'com.microsoft.azure:azure:1.0.0-beta3'
   implementation 'com.microsoft.azure:azure-storage:4.4.0'
   implementation 'com.microsoft.azure:azure-mgmt-storage:1.0.0-beta3'
@@ -30,8 +31,8 @@ dependencies {
   implementation "org.springframework.boot:spring-boot-starter-web"
   implementation "org.springframework.boot:spring-boot-starter-actuator"
   implementation "org.springframework.boot:spring-boot-autoconfigure"
-  implementation "com.netflix.spinnaker.kork:kork-exceptions"
-  implementation "com.netflix.spinnaker.kork:kork-security"
+  implementation "io.spinnaker.kork:kork-exceptions"
+  implementation "io.spinnaker.kork:kork-security"
 
   testImplementation project(":front50-test")
 }

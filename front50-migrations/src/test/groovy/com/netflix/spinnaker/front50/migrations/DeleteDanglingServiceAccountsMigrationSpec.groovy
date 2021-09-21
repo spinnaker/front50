@@ -17,7 +17,8 @@
 
 package com.netflix.spinnaker.front50.migrations
 
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
+import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccount
 import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO
@@ -29,7 +30,7 @@ class DeleteDanglingServiceAccountsMigrationSpec extends Specification {
   ServiceAccountDAO serviceAccountDAO = Mock()
 
   @Subject
-  def migration = new DeleteDanglingServiceAccountsMigration(pipelineDAO, serviceAccountDAO)
+  def migration = new DeleteDanglingServiceAccountsMigration(pipelineDAO, serviceAccountDAO, true, false)
 
   def "should delete service account not found in any triggers"() {
     given:
@@ -38,19 +39,19 @@ class DeleteDanglingServiceAccountsMigrationSpec extends Specification {
       id         : "1",
       name       : "My Pipeline 1",
       triggers   : [
-        [
+        new Trigger([
           enabled  : true,
           job      : "org/repo/master",
           master   : "travis",
           runAsUser: "my-existing-service-user@org.com",
           type     : "travis"
-        ], [
+        ]), new Trigger([
           enabled  : true,
           job      : "org/repo2/master",
           master   : "jenkins",
           runAsUser: "1@managed-service-account",
           type     : "jenkins"
-        ]
+        ]),
       ]
     ])
 
@@ -59,19 +60,19 @@ class DeleteDanglingServiceAccountsMigrationSpec extends Specification {
       id         : "2",
       name       : "My Pipeline 2",
       triggers   : [
-        [
+        new Trigger([
           enabled  : true,
           job      : "org/repo/master",
           master   : "travis",
           runAsUser: "2@managed-service-account",
           type     : "travis"
-        ], [
+        ]), new Trigger([
           enabled  : true,
           job      : "org/repo2/master",
           master   : "jenkins",
           runAsUser: "2@managed-service-account",
           type     : "jenkins"
-        ]
+        ]),
       ]
     ])
 
@@ -92,6 +93,9 @@ class DeleteDanglingServiceAccountsMigrationSpec extends Specification {
     def serviceAccount5 = new ServiceAccount(
       name: "another-existing-service-user@org.com"
     )
+    def serviceAccount6 = new ServiceAccount(
+      name: "shared-account@shared-managed-service-account"
+    )
 
     when:
     migration.run()
@@ -100,6 +104,30 @@ class DeleteDanglingServiceAccountsMigrationSpec extends Specification {
     1 * serviceAccountDAO.all() >> [serviceAccount1, serviceAccount2, serviceAccount3, serviceAccount4, serviceAccount5]
     1 * pipelineDAO.all() >> [pipeline1, pipeline2]
     1 * serviceAccountDAO.delete("3@managed-service-account")
+    0 * serviceAccountDAO.delete(_)
+  }
+
+  def "when deleteDanglingSharedManagedServiceAccounts enabled should delete dangling shared managed service account"() {
+    given:
+    def migration = new DeleteDanglingServiceAccountsMigration(pipelineDAO, serviceAccountDAO, false, true)
+
+    def serviceAccountName = "test-managed-service-account@managed-service-account"
+    def serviceAccount = new ServiceAccount(
+      name: serviceAccountName
+    )
+
+    def sharedServiceAccountName = "test-shared-managed-service-account@shared-managed-service-account"
+    def sharedServiceAccount = new ServiceAccount(
+      name: sharedServiceAccountName
+    )
+
+    when:
+    migration.run()
+
+    then:
+    1 * serviceAccountDAO.all() >> [serviceAccount, sharedServiceAccount]
+    1 * pipelineDAO.all() >> []
+    1 * serviceAccountDAO.delete(sharedServiceAccountName)
     0 * serviceAccountDAO.delete(_)
   }
 }
