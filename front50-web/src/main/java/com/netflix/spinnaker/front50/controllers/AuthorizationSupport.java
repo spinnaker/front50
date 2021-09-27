@@ -55,24 +55,10 @@ public class AuthorizationSupport {
 
     final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-    return runAsUsers.stream()
+    return !runAsUsers.stream()
         .noneMatch(
             runAsUser -> {
-              if (!userCanAccessServiceAccount(auth, runAsUser)) {
-                log.error(
-                    "User {} does not have access to service account {}",
-                    Optional.ofNullable(auth).map(Authentication::getPrincipal).orElse("unknown"),
-                    runAsUser);
-                return true;
-              }
-              if (!serviceAccountCanAccessApplication(runAsUser, pipeline.getApplication())) {
-                log.error(
-                    "Service account {} does not have access to application {}",
-                    runAsUser,
-                    pipeline.getApplication());
-                return true;
-              }
-              return false;
+              userCanAccessServiceAccount(auth, runAsUser) && serviceAccountCanAccessApplication(runAsUser, pipeline.getApplication()
             });
   }
 
