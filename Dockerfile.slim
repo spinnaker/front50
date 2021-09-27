@@ -1,0 +1,9 @@
+FROM alpine:3.11
+LABEL maintainer="sig-platform@spinnaker.io"
+RUN apk --no-cache add --update bash openjdk11-jre
+RUN addgroup -S -g 10111 spinnaker
+RUN adduser -S -G spinnaker -u 10111 spinnaker
+COPY front50-web/build/install/front50 /opt/front50
+RUN mkdir -p /opt/front50/plugins && chown -R spinnaker:nogroup /opt/front50/plugins
+USER spinnaker
+CMD ["/opt/front50/bin/front50"]
