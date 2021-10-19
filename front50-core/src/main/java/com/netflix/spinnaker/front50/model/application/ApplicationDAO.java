@@ -23,6 +23,7 @@ import com.netflix.spinnaker.front50.model.SearchUtils;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.util.LinkedCaseInsensitiveMap;
 
 public interface ApplicationDAO extends ItemDAO<Application> {
   Application findByName(String name) throws NotFoundException;
@@ -44,15 +45,19 @@ public interface ApplicationDAO extends ItemDAO<Application> {
                   if (Strings.isNullOrEmpty(e.getValue())) {
                     continue;
                   }
+
+                  Map<String, Object> details = new LinkedCaseInsensitiveMap<>();
+                  details.putAll(it.details());
+
                   if (!UntypedUtils.hasProperty(it, e.getKey())
-                      && !it.details().containsKey(e.getKey())) {
+                      && !details.containsKey(e.getKey())) {
                     return false;
                   }
 
                   Object appVal =
                       UntypedUtils.hasProperty(it, e.getKey())
                           ? UntypedUtils.getProperty(it, e.getKey())
-                          : it.details().get(e.getKey());
+                          : details.get(e.getKey());
                   if (appVal == null) {
                     appVal = "";
                   }

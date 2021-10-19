@@ -82,4 +82,18 @@ class ApplicationDAOSpec extends Specification {
     ["name": "Netflix", description: "Spinnaker"] | ["name": "flix", description: "ker"]  || 93
     ["name": "Netflix", description: "Spinnaker"] | ["name": "flix", owner: "netflix"]    || 59
   }
+
+  @Unroll
+  def "search applications by details"() {
+    given:
+    def applications = [
+      new Application(name: "SOMEAPP", details: [repoSlug: "someapp"]),
+      new Application(name: "ANOTHERAPP", details: [repoSlug: "anotherapp"]),
+    ]
+
+    expect:
+    ApplicationDAO.Searcher.search(applications, ["repoSlug": "someapp"])*.name == [
+      "SOMEAPP"
+    ]
+  }
 }
