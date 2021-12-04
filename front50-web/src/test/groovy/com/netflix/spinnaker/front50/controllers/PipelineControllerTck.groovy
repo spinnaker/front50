@@ -17,7 +17,9 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.netflix.spectator.api.NoopRegistry
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.ServiceAccountsService
+import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.SqlStorageService
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineDAO
@@ -31,7 +33,8 @@ import org.springframework.beans.factory.ObjectProvider
 import java.time.Clock
 import java.util.concurrent.Executors
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline
+import groovy.json.JsonSlurper
+
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
@@ -176,7 +179,7 @@ abstract class PipelineControllerTck extends Specification {
       name       : "My Pipeline",
       application: "test",
       triggers   : [
-        [type: "cron", id: "original-id"]
+        new Trigger([type: "cron", id: "original-id"])
       ]
     ]
     if (lookupPipelineId) {
@@ -201,8 +204,8 @@ abstract class PipelineControllerTck extends Specification {
 
     where:
     lookupPipelineId || expectedTriggerCheck
-    false            || { Map p -> p.triggers*.id != ["original-id"] }
-    true             || { Map p -> p.triggers*.id == ["original-id"] }
+    false            || { Pipeline p -> p.triggers*.id != ["original-id"] }
+    true             || { Pipeline p -> p.triggers*.id == ["original-id"] }
   }
 
   void 'should ensure that all cron triggers have an identifier'() {
@@ -211,9 +214,9 @@ abstract class PipelineControllerTck extends Specification {
       name       : "My Pipeline",
       application: "test",
       triggers   : [
-        [type: "cron", id: "original-id", expression: "1"],
-        [type: "cron", expression: "2"],
-        [type: "cron", id: "", expression: "3"]
+        new Trigger([type: "cron", id: "original-id", expression: "1"]),
+        new Trigger([type: "cron", expression: "2"]),
+        new Trigger([type: "cron", id: "", expression: "3"])
       ]
     ]
 
@@ -233,9 +236,9 @@ abstract class PipelineControllerTck extends Specification {
 
     then:
     response.status == OK
-    updatedPipeline.get("triggers").find { it.expression == "1" }.id == "original-id"
-    updatedPipeline.get("triggers").find { it.expression == "2" }.id.length() > 1
-    updatedPipeline.get("triggers").find { it.expression == "3" }.id.length() > 1
+    updatedPipeline.getTriggers().find { it.expression == "1" }.id == "original-id"
+    updatedPipeline.getTriggers().find { it.expression == "2" }.id.length() > 1
+    updatedPipeline.getTriggers().find { it.expression == "3" }.id.length() > 1
   }
 
   void 'should delete an existing pipeline by name or id and its associated managed service account'() {
@@ -290,6 +293,59 @@ abstract class PipelineControllerTck extends Specification {
     then:
     response.status == BAD_REQUEST
     response.errorMessage == "A pipeline with name pipeline1 already exists in application test"
+  }
+
+  @Unroll
+  void "pipeline with limitConcurrent = #limitConcurrent and maxConcurrentExecutions = #maxConcurrentExecutions"() {
+    def appName = "test"
+    def pipelineName = "a_pipeline"
+    def Map pipelineData
+    given:
+    if (type == "max") {
+      pipelineData = [
+        name: pipelineName,
+        application: appName,
+        limitConcurrent: limitConcurrent,
+        maxConcurrentExecutions: maxConcurrentExecutions
+      ]
+    } else {
+      pipelineData = [
+        name: pipelineName,
+        application: appName,
+        limitConcurrent: limitConcurrent
+      ]
+    }
+
+    when:
+    def postResponse = mockMvc.perform(
+      post("/pipelines")
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(new ObjectMapper().writeValueAsString(pipelineData))
+      )
+      .andReturn()
+      .response
+    def postContent = new JsonSlurper().parseText(postResponse.contentAsString)
+    def id_from_db = pipelineDAO.getPipelineId(appName, pipelineName)
+    def getResponse = mockMvc.perform(
+      get("/pipelines/"+id_from_db+"/get"))
+      .andReturn()
+      .response
+    def getContent = new JsonSlurper().parseText(getResponse.contentAsString)
+
+    then:
+    postResponse.status == OK
+    postContent.id == id_from_db
+
+    getResponse.status == OK
+    getContent.limitConcurrent == expectedLimitConcurrent
+    getContent.maxConcurrentExecutions == expectedMaxConcurrentExecutions
+
+    where:
+      type | limitConcurrent | maxConcurrentExecutions || expectedLimitConcurrent || expectedMaxConcurrentExecutions
+      "limit" | false | "not_set" || false || null
+      "limit" | true | "not_set" || true || null
+      "max" | true | 0 || true || 0
+      "max" | true | 5 || true || 5
   }
 }
 

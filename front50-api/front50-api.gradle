@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Netflix, Inc.
+ * Copyright 2021 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.spinnaker.front50.model;
+apply plugin: 'java-library'
 
-public interface Timestamped {
-  /**
-   * TODO(rz): Move this method into new Identifiable interface. Has nothing to do with timestamps.
-   *
-   * @return
-   */
-  String getId();
+dependencies {
+  implementation "io.spinnaker.kork:kork-exceptions"
+  implementation platform("io.spinnaker.kork:kork-bom:$korkVersion")
+  annotationProcessor platform("io.spinnaker.kork:kork-bom:$korkVersion")
+  api("io.spinnaker.kork:kork-plugins-api")
 
-  Long getLastModified();
-
-  void setLastModified(Long lastModified);
-
-  String getLastModifiedBy();
-
-  void setLastModifiedBy(String lastModifiedBy);
 }

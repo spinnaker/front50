@@ -24,6 +24,10 @@ import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.*;
+import com.netflix.spinnaker.front50.api.model.Timestamped;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
+import com.netflix.spinnaker.front50.jackson.mixins.PipelineMixins;
+import com.netflix.spinnaker.front50.jackson.mixins.TimestampedMixins;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.security.AuthenticatedRequest;
 import java.io.IOException;
@@ -40,7 +44,10 @@ public class AzureStorageService implements StorageService {
   private CloudStorageAccount storageAccount = null;
   private CloudBlobClient blobClient = null;
   private CloudBlobContainer blobContainer = null;
-  private ObjectMapper objectMapper = new ObjectMapper();
+  private ObjectMapper objectMapper =
+      new ObjectMapper()
+          .addMixIn(Timestamped.class, TimestampedMixins.class)
+          .addMixIn(Pipeline.class, PipelineMixins.class);
 
   private static final String LAST_MODIFIED_FILENAME = "last_modified";
   private static final String LAST_MODIFIED_METADATA_NAME = "lastmodifydate";
@@ -56,17 +63,24 @@ public class AzureStorageService implements StorageService {
   private CloudBlobContainer getBlobContainer() {
     if (storageAccount != null && blobContainer == null) {
       try {
-        blobContainer = getBlobClient().getContainerReference(this.containerName);
-        blobContainer.createIfNotExists();
-        BlobContainerPermissions permissions = new BlobContainerPermissions();
-        permissions.setPublicAccess(BlobContainerPublicAccessType.CONTAINER);
-        blobContainer.uploadPermissions(permissions);
+        CloudBlobContainer localBlobContainer =
+            getBlobClient().getContainerReference(this.containerName);
+        // Do not modify the blob containers permissions if it already exists.
+        // This should keep things backwards compatible.
+        if (localBlobContainer.createIfNotExists()) {
+          // Default to private access if creating.
+          BlobContainerPermissions permissions = new BlobContainerPermissions();
+          permissions.setPublicAccess(BlobContainerPublicAccessType.OFF);
+          localBlobContainer.uploadPermissions(permissions);
+        }
+        this.blobContainer = localBlobContainer;
       } catch (Exception e) {
-        // log exception
-        blobContainer = null;
+        log.error(
+            "Exception occurred getting/creating the blob container: {} ",
+            value("exception", e.getMessage()));
       }
     }
-    return blobContainer;
+    return this.blobContainer;
   }
 
   public AzureStorageService(String connectionString, String containerName) {

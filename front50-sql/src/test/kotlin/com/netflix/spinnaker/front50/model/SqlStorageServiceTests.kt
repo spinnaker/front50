@@ -18,8 +18,8 @@ package com.netflix.spinnaker.front50.model
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.NoopRegistry
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.application.Application
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.model.tag.EntityTags
 import com.netflix.spinnaker.kork.sql.config.SqlRetryProperties
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException
@@ -32,6 +32,8 @@ import org.jooq.impl.DSL
 import strikt.api.expectThat
 import strikt.api.expectThrows
 import strikt.assertions.isEqualTo
+import strikt.assertions.isNotEmpty
+import strikt.assertions.isNotNull
 
 internal object SqlStorageServiceTests : JUnit5Minutests {
 
@@ -74,6 +76,7 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
 
           var application = sqlStorageService.loadObject<Application>(ObjectType.APPLICATION, "application001")
           expectThat(application.description).isEqualTo("my first application!")
+          expectThat(application.createdAt).isNotNull()
 
           // verify that an application can be updated
           sqlStorageService.storeObject(
@@ -114,6 +117,15 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
 
           application = sqlStorageService.loadObject(ObjectType.APPLICATION, "application001")
           expectThat(application.description).isEqualTo("my updated application!")
+
+          val allApplications = sqlStorageService.loadObjects<Application>(
+            ObjectType.APPLICATION,
+            sqlStorageService.listObjectKeys(ObjectType.APPLICATION).keys.toList()
+          )
+          expectThat(allApplications).isNotEmpty()
+          allApplications.forEach {
+            expectThat(it.createdAt).isNotNull()
+          }
         }
       }
 
@@ -124,30 +136,28 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
             ObjectType.PIPELINE,
             "id-pipeline001",
             Pipeline().apply {
-              name = "pipeline001"
-              lastModified = 100
-
-              put("application", "application001")
+              this.setName("pipeline001")
+              this.setLastModified(100)
+              this.setApplication("application001")
             }
           )
 
           var pipeline = sqlStorageService.loadObject<Pipeline>(ObjectType.PIPELINE, "id-pipeline001")
-          expectThat(pipeline.name).isEqualTo("pipeline001")
+          expectThat(pipeline.getName()).isEqualTo("pipeline001")
 
           // verify that a pipeline can be updated
           sqlStorageService.storeObject(
             ObjectType.PIPELINE,
             "id-pipeline001",
             Pipeline().apply {
-              name = "pipeline001_updated"
-              lastModified = 200
-
-              put("application", "application001")
+              this.setName("pipeline001_updated")
+              this.setLastModified(200)
+              this.setApplication("application001_updated")
             }
           )
 
           pipeline = sqlStorageService.loadObject(ObjectType.PIPELINE, "id-pipeline001")
-          expectThat(pipeline.name).isEqualTo("pipeline001_updated")
+          expectThat(pipeline.getName()).isEqualTo("pipeline001_updated")
 
           expectThat(
             jooq
@@ -177,11 +187,11 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
               ObjectType.PIPELINE,
               objectKey,
               Pipeline().apply {
-                id = objectKey
-                name = "pipeline00$it"
-                lastModified = 100
+                this.setId(objectKey)
+                this.setName("pipeline00$it")
+                this.setLastModified(100)
 
-                put("application", "application001")
+                this.setApplication("application001")
               }
             )
           }
@@ -291,15 +301,15 @@ internal object SqlStorageServiceTests : JUnit5Minutests {
   fun tests() = rootContext<JooqConfig> {
 
     fixture {
-      JooqConfig(SQLDialect.MYSQL, "jdbc:tc:mysql:5.7.22://somehostname:someport/databasename")
+      JooqConfig(SQLDialect.MYSQL, "jdbc:tc:mysql:5.7.22://somehostname/databasename")
     }
 
     context("mysql CRUD operations") {
-      crudOperations(JooqConfig(SQLDialect.MYSQL, "jdbc:tc:mysql:5.7.22://somehostname:someport/databasename"))
+      crudOperations(JooqConfig(SQLDialect.MYSQL, "jdbc:tc:mysql:5.7.22://somehostname/databasename"))
     }
 
     context("postgresql CRUD operations") {
-      crudOperations(JooqConfig(SQLDialect.POSTGRES, "jdbc:tc:postgresql:12-alpine://somehostname:someport/databasename"))
+      crudOperations(JooqConfig(SQLDialect.POSTGRES, "jdbc:tc:postgresql:12-alpine://somehostname/databasename"))
     }
   }
 }

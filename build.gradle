@@ -20,9 +20,12 @@ plugins {
   id "org.jetbrains.kotlin.plugin.allopen" version "$kotlinVersion" apply false
 }
 
-subprojects { project ->
-  group = "com.netflix.spinnaker.front50"
+allprojects {
   apply plugin: 'io.spinnaker.project'
+}
+
+subprojects { project ->
+  group = "io.spinnaker.front50"
 
   if ([korkVersion, fiatVersion].find { it.endsWith("-SNAPSHOT") }) {
     repositories {
@@ -49,10 +52,10 @@ subprojects { project ->
     }
 
     dependencies {
-      implementation(platform("com.netflix.spinnaker.kork:kork-bom:$korkVersion"))
-      annotationProcessor(platform("com.netflix.spinnaker.kork:kork-bom:$korkVersion"))
+      implementation(platform("io.spinnaker.kork:kork-bom:$korkVersion"))
+      annotationProcessor(platform("io.spinnaker.kork:kork-bom:$korkVersion"))
       annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
-      testAnnotationProcessor(platform("com.netflix.spinnaker.kork:kork-bom:$korkVersion"))
+      testAnnotationProcessor(platform("io.spinnaker.kork:kork-bom:$korkVersion"))
 
       implementation("net.logstash.logback:logstash-logback-encoder")
 

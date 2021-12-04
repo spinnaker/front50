@@ -18,6 +18,7 @@ package com.netflix.spinnaker.front50.model
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.Registry
+import com.netflix.spinnaker.front50.api.model.Timestamped
 import com.netflix.spinnaker.front50.model.ObjectType.APPLICATION
 import com.netflix.spinnaker.front50.model.ObjectType.APPLICATION_PERMISSION
 import com.netflix.spinnaker.front50.model.ObjectType.DELIVERY
@@ -90,7 +91,10 @@ class SqlStorageService(
     val result = withPool(poolName) {
       jooq.withRetry(sqlRetryProperties.reads) { ctx ->
         ctx
-          .select(field("body", String::class.java))
+          .select(
+            field("body", String::class.java),
+            field("created_at", Long::class.java)
+          )
           .from(definitionsByType[objectType]!!.tableName)
           .where(
             field("id", String::class.java).eq(objectKey).and(
@@ -101,7 +105,12 @@ class SqlStorageService(
       } ?: throw NotFoundException("Object not found (key: $objectKey)")
     }
 
-    return objectMapper.readValue(result.get(field("body", String::class.java)), objectType.clazz as Class<T>)
+    return objectMapper.readValue(
+      result.get(field("body", String::class.java)),
+      objectType.clazz as Class<T>
+    ).apply {
+      this.createdAt = result.get(field("created_at", Long::class.java))
+    }
   }
 
   override fun <T : Timestamped> loadObjects(objectType: ObjectType, objectKeys: List<String>): List<T> {
@@ -110,10 +119,13 @@ class SqlStorageService(
     val timeToLoadObjects = measureTimeMillis {
       objects.addAll(
         objectKeys.chunked(chunkSize).flatMap { keys ->
-          val bodies = withPool(poolName) {
+          val records = withPool(poolName) {
             jooq.withRetry(sqlRetryProperties.reads) { ctx ->
               ctx
-                .select(field("body", String::class.java))
+                .select(
+                  field("body", String::class.java),
+                  field("created_at", Long::class.java)
+                )
                 .from(definitionsByType[objectType]!!.tableName)
                 .where(
                   field("id", String::class.java).`in`(keys).and(
@@ -121,12 +133,16 @@ class SqlStorageService(
                   )
                 )
                 .fetch()
-                .getValues(field("body", String::class.java))
             }
           }
 
-          bodies.map {
-            objectMapper.readValue(it, objectType.clazz as Class<T>)
+          records.map {
+            objectMapper.readValue(
+              it.getValue(field("body", String::class.java)),
+              objectType.clazz as Class<T>
+            ).apply {
+              this.createdAt = it.getValue(field("created_at", Long::class.java))
+            }
           }
         }
       )

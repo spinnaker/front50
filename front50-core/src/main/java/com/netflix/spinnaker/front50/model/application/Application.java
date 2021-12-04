@@ -8,7 +8,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.netflix.spinnaker.fiat.model.Authorization;
 import com.netflix.spinnaker.fiat.model.resources.Permissions;
-import com.netflix.spinnaker.front50.model.Timestamped;
+import com.netflix.spinnaker.front50.api.model.Timestamped;
 import java.util.*;
 import net.logstash.logback.argument.StructuredArguments;
 import org.slf4j.Logger;
@@ -88,6 +88,18 @@ public class Application implements Timestamped {
   @Override
   public void setLastModified(Long lastModified) {
     this.updateTs = lastModified.toString();
+  }
+
+  @Override
+  public void setCreatedAt(Long createdAt) {
+    if (createdAt != null) {
+      this.createTs = createdAt.toString();
+    }
+  }
+
+  @Override
+  public Long getCreatedAt() {
+    return Strings.isNullOrEmpty(createTs) ? null : Long.valueOf(createTs);
   }
 
   @Override

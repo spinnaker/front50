@@ -17,17 +17,17 @@
 
 package com.netflix.spinnaker.front50.controllers;
 
-import static com.netflix.spinnaker.front50.model.pipeline.Pipeline.TYPE_TEMPLATED;
+import static com.netflix.spinnaker.front50.api.model.pipeline.Pipeline.TYPE_TEMPLATED;
 import static com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration.TemplateSource.SPINNAKER_PREFIX;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidRequestException;
-import com.netflix.spinnaker.front50.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplate;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO;
@@ -260,7 +260,7 @@ public class V2PipelineTemplateController {
     if (!VALID_TEMPLATE_TAGS.contains(tag)) {
       throw new InvalidRequestException(
           String.format(
-              "The provided tag %s is not supported." + " Pipeline template must tag be one of %s",
+              "The provided tag %s is not supported." + " Pipeline template tag must be one of %s",
               tag, VALID_TEMPLATE_TAGS));
     }
   }
