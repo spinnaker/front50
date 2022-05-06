@@ -41,7 +41,8 @@ include 'front50-web',
     'front50-azure',
     'front50-swift',
     'front50-oracle',
-    'front50-bom'
+    'front50-bom',
+    'front50-oss'
 
 def setBuildFile(project) {
   project.buildFileName = "${project.name}.gradle"
