@@ -16,6 +16,7 @@
  */
 package com.netflix.spinnaker.front50.api.model.pipeline;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.netflix.spinnaker.front50.api.model.Timestamped;
 import java.util.*;
 import lombok.Getter;
@@ -36,10 +37,10 @@ public class Pipeline implements Timestamped {
   @Getter @Setter private List<Trigger> triggers = new ArrayList<>();
   @Getter @Setter private Integer index;
 
-  @Getter @Setter private String updateTs;
   private String createTs;
+  @JsonIgnore private String updateTs;
   private String lastModifiedBy;
-  private String lastModified;
+  @Getter @Setter private Long lastModified;
 
   @Getter @Setter private String email;
   @Getter @Setter private Boolean disabled;
@@ -57,6 +58,10 @@ public class Pipeline implements Timestamped {
   @Getter @Setter private List<Map<String, Object>> parameterConfig;
   @Getter @Setter private String spelEvaluator;
 
+  public String getUpdateTs() {
+    return getLastModified().toString();
+  }
+
   public void setAny(String key, Object value) {
     anyMap.put(key, value);
   }
@@ -68,22 +73,6 @@ public class Pipeline implements Timestamped {
   @Override
   public String getId() {
     return this.id;
-  }
-
-  @Override
-  public Long getLastModified() {
-    String updateTs = this.updateTs;
-    if (updateTs == null || updateTs == "") {
-      return null;
-    }
-    return Long.valueOf(updateTs);
-  }
-
-  @Override
-  public void setLastModified(Long lastModified) {
-    if (lastModified != null) {
-      this.updateTs = lastModified.toString();
-    }
   }
 
   @Override
