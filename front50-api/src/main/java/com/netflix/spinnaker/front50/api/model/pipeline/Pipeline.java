@@ -59,7 +59,9 @@ public class Pipeline implements Timestamped {
   @Getter @Setter private String spelEvaluator;
 
   public String getUpdateTs() {
-    return getLastModified().toString();
+    var lastModified = getLastModified();
+
+    return lastModified != null ? lastModified.toString() : null;
   }
 
   public void setAny(String key, Object value) {
