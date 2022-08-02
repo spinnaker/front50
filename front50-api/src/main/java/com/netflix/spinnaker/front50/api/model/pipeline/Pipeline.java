@@ -37,10 +37,6 @@ public class Pipeline implements Timestamped {
   @Getter @Setter private List<Trigger> triggers = new ArrayList<>();
   @Getter @Setter private Integer index;
 
-<<<<<<< HEAD
-  private String updateTs;
-=======
->>>>>>> 5c15d0c9 (fix: Revision history is not showing the timestamp of the revision (#1142))
   private String createTs;
   @JsonIgnore private String updateTs;
   private String lastModifiedBy;
