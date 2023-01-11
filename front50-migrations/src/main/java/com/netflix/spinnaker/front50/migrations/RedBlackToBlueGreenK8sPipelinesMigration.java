@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -83,6 +84,7 @@ public class RedBlackToBlueGreenK8sPipelinesMigration implements Migration {
             .filter(RedBlackToBlueGreenK8sPipelinesMigration::kubernetesProvider)
             .filter(RedBlackToBlueGreenK8sPipelinesMigration::deployManifestStage)
             .map(RedBlackToBlueGreenK8sPipelinesMigration::getTrafficManagement)
+            .filter(Objects::nonNull)
             .filter(RedBlackToBlueGreenK8sPipelinesMigration::trafficManagementEnabled)
             .map(RedBlackToBlueGreenK8sPipelinesMigration::getTrafficManagementOptions)
             .anyMatch(RedBlackToBlueGreenK8sPipelinesMigration::redBlackStrategy);
