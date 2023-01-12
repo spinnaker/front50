@@ -17,8 +17,6 @@ package com.netflix.spinnaker.front50.migrations;
 
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +29,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class RedBlackToBlueGreenK8sPipelinesMigration implements Migration {
 
-  private static final LocalDate VALID_UNTIL = LocalDate.of(2023, 6, 1);
-
   private final PipelineDAO pipelineDAO;
 
   public RedBlackToBlueGreenK8sPipelinesMigration(PipelineDAO pipelineDAO) {
@@ -41,7 +37,7 @@ public class RedBlackToBlueGreenK8sPipelinesMigration implements Migration {
 
   @Override
   public boolean isValid() {
-    return LocalDate.now(Clock.systemDefaultZone()).isBefore(VALID_UNTIL);
+    return true;
   }
 
   @Override
@@ -60,6 +56,7 @@ public class RedBlackToBlueGreenK8sPipelinesMigration implements Migration {
         .filter(RedBlackToBlueGreenK8sPipelinesMigration::kubernetesProvider)
         .filter(RedBlackToBlueGreenK8sPipelinesMigration::deployManifestStage)
         .map(RedBlackToBlueGreenK8sPipelinesMigration::getTrafficManagement)
+        .filter(Objects::nonNull)
         .filter(RedBlackToBlueGreenK8sPipelinesMigration::trafficManagementEnabled)
         .map(RedBlackToBlueGreenK8sPipelinesMigration::getTrafficManagementOptions)
         .forEach(
