@@ -59,6 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 abstract class PipelineControllerTck extends Specification {
   static final int OK = 200
   static final int BAD_REQUEST = 400
+  static final int NOT_FOUND = 404
   static final int UNPROCESSABLE_ENTITY = 422
 
   MockMvc mockMvc
@@ -72,7 +73,7 @@ abstract class PipelineControllerTck extends Specification {
   void setup() {
     println "--------------- Test " + specificationContext.currentIteration.name
 
-    this.pipelineDAO = createPipelineDAO()
+    this.pipelineDAO = Spy(createPipelineDAO())
     this.serviceAccountsService = Mock(ServiceAccountsService)
 
     mockMvc = MockMvcBuilders
@@ -656,6 +657,33 @@ abstract class PipelineControllerTck extends Specification {
     null             | null            | "bar"          | ["pipeline with trigger type bar"]
     true             | true            | "foo"          | ["enabled pipeline with enabled trigger", "implicitly enabled pipeline with enabled trigger"]
     false            | true            | "foo,bar"      | ["disabled pipeline with enabled trigger", "pipeline with trigger type bar"]
+  }
+
+  void "getByApplicationAndName returns the appropriate pipeline"() {
+    given:
+    pipelineDAO.create(null, new Pipeline([
+      name       : "my-pipeline",
+      application: "test",
+    ]))
+    pipelineDAO.create(null, new Pipeline([
+      name       : "my-pipeline",
+      application: "another-application",
+    ]))
+
+    when:
+    def response = mockMvc.perform(get("/pipelines/test/name/my-pipeline/"))
+
+    then:
+    1 * pipelineDAO.getPipelineByName("test", "my-pipeline", true)
+    response.andReturn().response.status == OK
+    response.andExpect(jsonPath('$.name').value("my-pipeline"))
+    response.andExpect(jsonPath('$.application').value("test"))
+
+    when:
+    response = mockMvc.perform(get("/pipelines/test/name/other-pipeline/"))
+
+    then:
+    response.andReturn().response.status == NOT_FOUND
   }
 
   def "should optimally refresh the cache after updates and deletes"() {

@@ -225,6 +225,16 @@ public class PipelineController {
     return pipelineDAO.findById(id);
   }
 
+  @PreAuthorize("@fiatPermissionEvaluator.storeWholePermission()")
+  @PostAuthorize("hasPermission(returnObject.application, 'APPLICATION', 'READ')")
+  @RequestMapping(value = "{application:.+}/name/{name:.+}", method = RequestMethod.GET)
+  public Pipeline getByApplicationAndName(
+      @PathVariable String application,
+      @PathVariable String name,
+      @RequestParam(required = false, value = "refresh", defaultValue = "true") boolean refresh) {
+    return pipelineDAO.getPipelineByName(application, name, refresh);
+  }
+
   @PreAuthorize(
       "@fiatPermissionEvaluator.storeWholePermission() and hasPermission(#pipeline.application, 'APPLICATION', 'WRITE') and @authorizationSupport.hasRunAsUserPermission(#pipeline)")
   @RequestMapping(value = "", method = RequestMethod.POST)
