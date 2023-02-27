@@ -60,7 +60,7 @@ class StorageServiceMigrator(
 
     val targetObjectKeys = target.listObjectKeys(objectType)
 
-    if (dynamicConfigService.getConfig(Boolean::class.java, "spinnaker.migration.compositeStorageService.writeOnly", false)) {
+    if (dynamicConfigService.getConfig(Boolean::class.java, "spinnaker.migration.compositeStorageService.deleteOrphans", true)) {
       log.info("Checking for orphaned objects in {}", target.javaClass.simpleName)
       val deletableObjectKeys = targetObjectKeys.filter { e ->
         // only cleanup "orphans" if they don't exist in source _AND_ they are at least five minutes old
@@ -91,7 +91,7 @@ class StorageServiceMigrator(
         )
       }
     } else {
-      log.info("Not deleting orphaned objects in the primary datasource as writeOnly mode is enabled")
+      log.info("Not deleting orphaned objects in {} as deleteOrphans is disabled", source.javaClass.simpleName)
     }
 
     val migratableObjectKeys = sourceObjectKeys.filter { e ->
