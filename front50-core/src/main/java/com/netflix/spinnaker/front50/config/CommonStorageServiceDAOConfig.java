@@ -75,7 +75,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getApplication().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getApplication().getRefreshMs(),
-        storageServiceConfigurationProperties.getApplication().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getApplication().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -95,7 +95,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getApplicationPermission().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getApplicationPermission().getRefreshMs(),
-        storageServiceConfigurationProperties.getApplicationPermission().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getApplicationPermission().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -114,7 +114,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getServiceAccount().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getServiceAccount().getRefreshMs(),
-        storageServiceConfigurationProperties.getServiceAccount().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getServiceAccount().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -133,7 +133,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getProject().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getProject().getRefreshMs(),
-        storageServiceConfigurationProperties.getProject().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getProject().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -152,7 +152,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getNotification().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getNotification().getRefreshMs(),
-        storageServiceConfigurationProperties.getNotification().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getNotification().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -171,7 +171,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getPipelineStrategy().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getPipelineStrategy().getRefreshMs(),
-        storageServiceConfigurationProperties.getPipelineStrategy().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getPipelineStrategy().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -190,7 +190,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getPipeline().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getPipeline().getRefreshMs(),
-        storageServiceConfigurationProperties.getPipeline().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getPipeline().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -209,7 +209,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getPipelineTemplate().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getPipelineTemplate().getRefreshMs(),
-        storageServiceConfigurationProperties.getPipelineTemplate().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getPipelineTemplate().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -228,7 +228,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getSnapshot().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getSnapshot().getRefreshMs(),
-        storageServiceConfigurationProperties.getSnapshot().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getSnapshot().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -247,7 +247,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getEntityTags().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getEntityTags().getRefreshMs(),
-        storageServiceConfigurationProperties.getEntityTags().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getEntityTags().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -266,7 +266,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getDeliveryConfig().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getDeliveryConfig().getRefreshMs(),
-        storageServiceConfigurationProperties.getDeliveryConfig().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getDeliveryConfig().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -285,7 +285,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getPluginInfo().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getPluginInfo().getRefreshMs(),
-        storageServiceConfigurationProperties.getPluginInfo().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getPluginInfo().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
@@ -304,7 +304,7 @@ public class CommonStorageServiceDAOConfig {
                 storageServiceConfigurationProperties.getPluginInfo().getThreadPool())),
         objectKeyLoader,
         storageServiceConfigurationProperties.getPluginInfo().getRefreshMs(),
-        storageServiceConfigurationProperties.getPluginInfo().getShouldWarmCache(),
+        storageServiceConfigurationProperties.getPluginInfo().isShouldWarmCache(),
         registry,
         circuitBreakerRegistry);
   }
