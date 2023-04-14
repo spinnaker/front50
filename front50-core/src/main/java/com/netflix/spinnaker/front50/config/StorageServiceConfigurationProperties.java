@@ -75,6 +75,13 @@ public class StorageServiceConfigurationProperties {
     private boolean shouldWarmCache;
     private long cacheHealthCheckTimeoutSeconds = 90L;
 
+    /**
+     * When true, if multiple threads attempt to refresh the cache in StorageServiceSupport
+     * simultaneously, only one actually does the refresh. The others wait until it's complete. This
+     * reduces load on the data store.
+     */
+    private boolean synchronizeCacheRefresh;
+
     public PerObjectType setThreadPool(int threadPool) {
       if (threadPool <= 1) {
         throw new IllegalArgumentException("threadPool must be >= 1");

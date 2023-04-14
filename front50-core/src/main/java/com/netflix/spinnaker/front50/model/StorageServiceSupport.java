@@ -30,7 +30,16 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.core.SupplierUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -65,6 +74,8 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   private final AtomicLong lastRefreshedTime = new AtomicLong();
   private final AtomicLong lastSeenStorageTime = new AtomicLong();
+
+  AtomicReference<CountDownLatch> globalLatch = new AtomicReference<>(null);
 
   public StorageServiceSupport(
       ObjectType objectType,
@@ -109,7 +120,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
         new ToDoubleFunction() {
           @Override
           public double applyAsDouble(Object ignore) {
-            Set itemCache = allItemsCache.get();
+            Set<T> itemCache = allItemsCache.get();
             return itemCache != null ? itemCache.size() : 0;
           }
         });
@@ -132,7 +143,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
           log.info("Warming Cache");
           refresh();
         } catch (Exception e) {
-          log.error("Unable to warm cache: {}", e);
+          log.error("Unable to warm cache: ", e);
         }
       }
 
@@ -146,7 +157,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
                   long elapsed = System.nanoTime() - startTime;
                   scheduledRefreshTimer.record(elapsed, TimeUnit.NANOSECONDS);
                 } catch (Exception e) {
-                  log.error("Unable to refresh: {}", e);
+                  log.error("Unable to refresh: ", e);
                 }
               });
     }
@@ -161,8 +172,14 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
       return new ArrayList<>(allItemsCache.get());
     }
 
-    doRefresh();
-
+    log.debug(
+        "performing cache refresh with synchronization: {}",
+        configProperties.isSynchronizeCacheRefresh());
+    if (configProperties.isSynchronizeCacheRefresh()) {
+      doSynchronizedRefresh();
+    } else {
+      doRefresh();
+    }
     return new ArrayList<>(allItemsCache.get());
   }
 
@@ -314,14 +331,14 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     AtomicLong numRemoved = new AtomicLong();
     AtomicLong numUpdated = new AtomicLong();
 
-    Map<String, String> keyToId = new HashMap<String, String>();
+    Map<String, String> keyToId = new HashMap<>();
     for (T item : existingItems) {
       String id = item.getId();
       keyToId.put(buildObjectKey(id), id);
     }
 
-    Long refreshTime = System.currentTimeMillis();
-    Long storageLastModified = readLastModified();
+    long refreshTime = System.currentTimeMillis();
+    long storageLastModified = readLastModified();
     Map<String, Long> keyUpdateTime = objectKeyLoader.listObjectKeys(objectType);
 
     // Expanded from a stream collector to avoid DuplicateKeyExceptions
@@ -415,13 +432,10 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
           .toList()
           .toBlocking()
           .single()
-          .forEach(
-              item -> {
-                resultMap.put(buildObjectKey(item), item);
-              });
+          .forEach(item -> resultMap.put(buildObjectKey(item), item));
     }
 
-    Set<T> result = resultMap.values().stream().collect(Collectors.toSet());
+    Set<T> result = new HashSet<>(resultMap.values());
     this.lastRefreshedTime.set(refreshTime);
     this.lastSeenStorageTime.set(storageLastModified);
 
@@ -429,11 +443,14 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     addCounter.increment(numAdded.get());
     updateCounter.increment(numUpdated.get());
     removeCounter.increment(existingSize + numAdded.get() - resultSize);
-    if (existingSize != resultSize) {
+    if (numAdded.get() > 0 || numUpdated.get() > 0 || numRemoved.get() > 0) {
       log.info(
-          "{}={} delta={}",
-          value("objectType", objectType.group),
+          "Fetched {} {} objects after adding {} objects, updating {} objects and removing {} objects with a delta of {}.",
           value("resultSize", resultSize),
+          value("objectType", objectType.group),
+          value("numAdded", numAdded.get()),
+          value("numUpdated", numUpdated.get()),
+          value("numRemoved", numRemoved.get()),
           value("delta", resultSize - existingSize));
     }
 
@@ -446,6 +463,72 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   protected long getHealthMillis() {
     return TimeUnit.SECONDS.toMillis(configProperties.getCacheHealthCheckTimeoutSeconds());
+  }
+
+  /*
+   only allow those threads to refresh the cache for whom the db's lastRefreshTime precedes the time at which
+   it attempted to do a refresh.
+   We have seen that when multiple threads attempt to refresh at the same time, primarily due to writes to the db, it
+   causes DB performance to degrade. At normal loads, we have seen around 12 refreshes per min on avg. This only gets
+    worse during peak load time. This function limits which thread actually needs to do the cache refresh and which
+    thread can exit with a no-op. It works by allowing multiple threads to attempt a refresh, but only allowing one
+    thread at a time to obtain a CountDownLatch to actually perform the refresh. These other threads continuously check
+    to see if the db's lastRefreshTime > the time at which it entered this function. If yes, that means some other
+    thread has already refreshed the cache, so these threads exit with a no-op.
+  */
+  private void doSynchronizedRefresh() {
+    // this is the timestamp at which a thread attempts to refresh
+    long refreshAttemptTime = System.currentTimeMillis();
+    log.debug(
+        "Attempting to perform cache refresh at: {}",
+        value("refreshAttemptTime", new Date(refreshAttemptTime)));
+
+    while (true) {
+      boolean isRefreshAllowed = false; // flag to control which thread can refresh the cache
+      // since countdown latches can't be reset, we keep a pointer to a global latch
+      // so that others can wait on it
+      CountDownLatch localLatch;
+      synchronized (this) {
+        if (globalLatch.get() == null) {
+          log.debug("Latch obtained. Attempting to refresh cache");
+          isRefreshAllowed = true;
+          globalLatch.set(new CountDownLatch(1));
+        } else {
+          log.debug("Waiting to obtain latch");
+        }
+        localLatch = globalLatch.get();
+      }
+
+      if (isRefreshAllowed) {
+        try {
+          doRefresh();
+        } finally {
+          synchronized (this) {
+            localLatch.countDown(); // release all other threads waiting on this one
+            globalLatch.set(null);
+          }
+        }
+        break;
+      } else {
+        try {
+          localLatch.await(); // all other threads will be waiting here
+        } catch (Exception e) {
+          log.warn("current thread was interrupted while waiting to obtain the latch", e);
+        }
+        // this thread doesn't need to refresh anymore, since some other thread already refreshed
+        // the db while this was
+        // waiting
+        if (lastRefreshedTime.get() > refreshAttemptTime) {
+          log.info(
+              "Not refreshing the cache since the lastRefreshedTime: {} is later than this thread's "
+                  + "refreshAttemptTime: {}",
+              value("lastRefreshedTime", new Date(lastRefreshedTime.get())),
+              value("refreshAttemptTime", new Date(refreshAttemptTime)));
+          break;
+        }
+      }
+    }
+    log.debug("Synchronized refresh completed");
   }
 
   /** Refresh if the data store is empty, or has been modified since the last refresh */
