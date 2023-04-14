@@ -45,7 +45,6 @@ import rx.Observable;
 import rx.Scheduler;
 
 public abstract class StorageServiceSupport<T extends Timestamped> {
-  private static final long HEALTH_MILLIS = TimeUnit.SECONDS.toMillis(90);
   private final Logger log = LoggerFactory.getLogger(getClass());
   protected final AtomicReference<Set<T>> allItemsCache = new AtomicReference<>();
 
@@ -458,6 +457,6 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   protected long getHealthMillis() {
-    return HEALTH_MILLIS;
+    return TimeUnit.SECONDS.toMillis(configProperties.getCacheHealthCheckTimeoutSeconds());
   }
 }

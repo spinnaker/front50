@@ -73,6 +73,7 @@ public class StorageServiceConfigurationProperties {
     private int threadPool;
     private long refreshMs;
     private boolean shouldWarmCache;
+    private long cacheHealthCheckTimeoutSeconds = 90L;
 
     public PerObjectType setThreadPool(int threadPool) {
       if (threadPool <= 1) {
