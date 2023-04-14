@@ -161,19 +161,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
       return new ArrayList<>(allItemsCache.get());
     }
 
-    long lastModified = readLastModified();
-    if (lastModified > lastSeenStorageTime.get() || allItemsCache.get() == null) {
-      // only refresh if there was a modification since our last refresh cycle
-      log.debug(
-          "all() forcing refresh (lastModified: {}, lastRefreshed: {}, lastSeenStorageTime: {})",
-          value("lastModified", new Date(lastModified)),
-          value("lastRefreshed", new Date(lastRefreshedTime.get())),
-          value("lastSeenStorageTime", new Date(lastSeenStorageTime.get())));
-      long startTime = System.nanoTime();
-      refresh();
-      long elapsed = System.nanoTime() - startTime;
-      autoRefreshTimer.record(elapsed, TimeUnit.NANOSECONDS);
-    }
+    doRefresh();
 
     return new ArrayList<>(allItemsCache.get());
   }
@@ -458,5 +446,24 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   protected long getHealthMillis() {
     return TimeUnit.SECONDS.toMillis(configProperties.getCacheHealthCheckTimeoutSeconds());
+  }
+
+  /** Refresh if the data store is empty, or has been modified since the last refresh */
+  private void doRefresh() {
+    long lastModified = readLastModified();
+    if (lastModified > lastSeenStorageTime.get() || allItemsCache.get() == null) {
+      // only refresh if there was a modification since our last refresh cycle
+      log.debug(
+          "all() forcing refresh (lastModified: {}, lastRefreshed: {}, lastSeenStorageTime: {})",
+          value("lastModified", new Date(lastModified)),
+          value("lastRefreshed", new Date(lastRefreshedTime.get())),
+          value("lastSeenStorageTime", new Date(lastSeenStorageTime.get())));
+      long startTime = System.nanoTime();
+      refresh();
+      long elapsed = System.nanoTime() - startTime;
+      autoRefreshTimer.record(elapsed, TimeUnit.NANOSECONDS);
+    } else {
+      log.info("refresh not required");
+    }
   }
 }
