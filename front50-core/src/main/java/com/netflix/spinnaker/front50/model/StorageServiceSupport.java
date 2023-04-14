@@ -22,6 +22,7 @@ import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
 import com.netflix.spinnaker.front50.api.model.Timestamped;
+import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.security.AuthenticatedRequest;
 import com.netflix.spinnaker.security.User;
@@ -52,10 +53,9 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   private final StorageService service;
   private final Scheduler scheduler;
   private final ObjectKeyLoader objectKeyLoader;
-  private final long refreshIntervalMs;
-  private final boolean shouldWarmCache;
   private final Registry registry;
   private final CircuitBreakerRegistry circuitBreakerRegistry;
+  private StorageServiceConfigurationProperties.PerObjectType configProperties;
 
   private final Timer autoRefreshTimer; // Only spontaneous refreshes in all()
   private final Timer scheduledRefreshTimer; // Only refreshes from scheduler
@@ -72,20 +72,18 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
       StorageService service,
       Scheduler scheduler,
       ObjectKeyLoader objectKeyLoader,
-      long refreshIntervalMs,
-      boolean shouldWarmCache,
+      StorageServiceConfigurationProperties.PerObjectType configurationProperties,
       Registry registry,
       CircuitBreakerRegistry circuitBreakerRegistry) {
     this.objectType = objectType;
     this.service = service;
     this.scheduler = scheduler;
     this.objectKeyLoader = objectKeyLoader;
-    this.refreshIntervalMs = refreshIntervalMs;
-    if (refreshIntervalMs >= getHealthMillis()) {
+    this.configProperties = configurationProperties;
+    if (configProperties.getRefreshMs() >= getHealthMillis()) {
       throw new IllegalArgumentException(
           "Cache refresh time must be more frequent than cache health timeout");
     }
-    this.shouldWarmCache = shouldWarmCache;
     this.registry = registry;
     this.circuitBreakerRegistry = circuitBreakerRegistry;
 
@@ -128,8 +126,8 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   @PostConstruct
   void startRefresh() {
-    if (refreshIntervalMs > 0) {
-      if (shouldWarmCache) {
+    if (configProperties.getRefreshMs() > 0) {
+      if (configProperties.isShouldWarmCache()) {
         try {
           log.info("Warming Cache");
           refresh();
@@ -138,7 +136,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
         }
       }
 
-      Observable.timer(refreshIntervalMs, TimeUnit.MILLISECONDS, scheduler)
+      Observable.timer(configProperties.getRefreshMs(), TimeUnit.MILLISECONDS, scheduler)
           .repeat()
           .subscribe(
               interval -> {

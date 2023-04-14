@@ -20,6 +20,7 @@ import com.netflix.spectator.api.NoopRegistry
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
+import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.SqlStorageService
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineDAO
@@ -377,8 +378,7 @@ class SqlPipelineControllerTck extends PipelineControllerTck {
       storageService,
       scheduler,
       new DefaultObjectKeyLoader(storageService),
-      0,
-      false,
+      new StorageServiceConfigurationProperties.PerObjectType(),
       new NoopRegistry(),
       new InMemoryCircuitBreakerRegistry()
     )
