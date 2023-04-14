@@ -170,7 +170,7 @@ abstract class PipelineControllerTck extends Specification {
 
     then:
     response.status == BAD_REQUEST
-    response.errorMessage == "The provided id ${pipeline1.id} doesn't match the pipeline id ${pipeline2.id}"
+    response.errorMessage == "The provided id ${pipeline1.id} doesn't match the existing pipeline id ${pipeline2.id}"
   }
 
   @Unroll
