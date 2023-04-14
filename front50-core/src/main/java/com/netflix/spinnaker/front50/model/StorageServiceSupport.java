@@ -80,10 +80,6 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     this.scheduler = scheduler;
     this.objectKeyLoader = objectKeyLoader;
     this.configProperties = configurationProperties;
-    if (configProperties.getRefreshMs() >= getHealthMillis()) {
-      throw new IllegalArgumentException(
-          "Cache refresh time must be more frequent than cache health timeout");
-    }
     this.registry = registry;
     this.circuitBreakerRegistry = circuitBreakerRegistry;
 
@@ -126,6 +122,11 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
   @PostConstruct
   void startRefresh() {
+    if (configProperties.getRefreshMs() >= getHealthMillis()) {
+      throw new IllegalArgumentException(
+          "Cache refresh time must be more frequent than cache health timeout");
+    }
+
     if (configProperties.getRefreshMs() > 0) {
       if (configProperties.isShouldWarmCache()) {
         try {
