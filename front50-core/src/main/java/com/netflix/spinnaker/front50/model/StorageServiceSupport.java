@@ -128,6 +128,17 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
         registry.createId("storageServiceSupport.cacheAge", "objectType", typeName),
         lastRefreshedTime,
         (lrt) -> Long.valueOf(System.currentTimeMillis() - lrt.get()).doubleValue());
+
+    if (configProperties.isOptimizeCacheRefreshes()) {
+      if (!service.supportsVersioning()) {
+        log.warn(
+            "Optimized refresh is not available to un-versioned {} objects since they don't support soft deletes.",
+            objectType);
+        configProperties.setOptimizeCacheRefreshes(false);
+      } else {
+        log.info("Optimized refreshes are now enabled for versioned {} objects.", objectType);
+      }
+    }
   }
 
   @PostConstruct
@@ -299,7 +310,13 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   /** Update local cache with any recently modified items. */
   protected void refresh() {
     long startTime = System.nanoTime();
-    allItemsCache.set(fetchAllItems(allItemsCache.get()));
+    if (configProperties.isOptimizeCacheRefreshes()) {
+      log.debug("Running optimized cache refresh");
+      allItemsCache.set(fetchAllItemsOptimized(allItemsCache.get()));
+    } else {
+      log.debug("Running unoptimized cache refresh");
+      allItemsCache.set(fetchAllItems(allItemsCache.get()));
+    }
     long elapsed = System.nanoTime() - startTime;
     registry
         .timer("storageServiceSupport.cacheRefreshTime", "objectType", objectType.name())
@@ -454,6 +471,86 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
           value("delta", resultSize - existingSize));
     }
 
+    return result;
+  }
+
+  private Set<T> fetchAllItemsOptimized(Set<T> existingItems) {
+    if (existingItems == null) {
+      existingItems = new HashSet<>();
+    }
+    int existingSize = existingItems.size();
+    AtomicLong numAdded = new AtomicLong();
+    AtomicLong numRemoved = new AtomicLong();
+    AtomicLong numUpdated = new AtomicLong();
+
+    long refreshTime = System.currentTimeMillis();
+    long storageLastModified = readLastModified();
+
+    // Get lists of modified and deleted objects from the store
+    Map<String, List<T>> newerItems =
+        service.loadObjectsNewerThan(objectType, lastSeenStorageTime.get());
+    Map<String, T> modifiedItems =
+        newerItems.get("not_deleted").stream()
+            .collect(Collectors.toMap(Timestamped::getId, item -> item));
+    Map<String, T> deletedItems =
+        newerItems.get("deleted").stream()
+            .collect(Collectors.toMap(Timestamped::getId, item -> item));
+
+    // Expanded from a stream collector to avoid DuplicateKeyExceptions
+    Map<String, T> resultMap = new HashMap<>();
+    existingItems.forEach(
+        existingItem -> {
+          String existingItemId = buildObjectKey(existingItem.getId());
+          if (deletedItems.containsKey(existingItemId)) {
+            // item was deleted, skip it
+            log.debug(
+                "Item with id {} deleted from the store. Will not add to the result.",
+                existingItemId);
+            numRemoved.getAndIncrement();
+          } else if (!modifiedItems.containsKey(existingItemId)) {
+            // item was unchanged, add it back as is
+            resultMap.put(existingItemId, existingItem);
+          }
+        });
+
+    // add all modified items to the result map
+    modifiedItems.forEach(
+        (id, item) -> {
+          if (resultMap.containsKey(id)) {
+            log.debug(
+                "Item with id {} was modified in the store. Will update it in the result.", id);
+            numUpdated.getAndIncrement();
+          } else {
+            log.debug("Item with id {} was added to the store. Will add it in the result.", id);
+            numAdded.getAndIncrement();
+          }
+          resultMap.put(id, item);
+        });
+
+    if (!existingItems.isEmpty() && !modifiedItems.isEmpty()) {
+      // only log keys that have been modified/deleted after initial cache load
+      log.debug("Modified object keys: {}", value("keys", modifiedItems.keySet()));
+      log.debug("Deleted object keys: {}", value("keys", deletedItems.keySet()));
+    }
+
+    Set<T> result = new HashSet<>(resultMap.values());
+    this.lastRefreshedTime.set(refreshTime);
+    this.lastSeenStorageTime.set(storageLastModified);
+
+    int resultSize = result.size();
+    addCounter.increment(numAdded.get());
+    updateCounter.increment(numUpdated.get());
+    removeCounter.increment(numRemoved.get());
+    if (numAdded.get() > 0 || numUpdated.get() > 0 || numRemoved.get() > 0) {
+      log.info(
+          "Fetched {} {} objects after adding {} objects, updating {} objects and removing {} objects with a delta of {}.",
+          value("resultSize", resultSize),
+          value("objectType", objectType.group),
+          value("numAdded", numAdded.get()),
+          value("numUpdated", numUpdated.get()),
+          value("numRemoved", numRemoved.get()),
+          value("delta", resultSize - existingSize));
+    }
     return result;
   }
 

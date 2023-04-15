@@ -46,6 +46,9 @@ import com.netflix.spinnaker.security.AuthenticatedRequest
 import java.time.Clock
 import kotlin.system.measureTimeMillis
 import org.jooq.DSLContext
+import org.jooq.Record
+import org.jooq.Result
+import org.jooq.SelectFieldOrAsterisk
 import org.jooq.exception.SQLDialectNotSupportedException
 import org.jooq.impl.DSL
 import org.jooq.impl.DSL.field
@@ -162,6 +165,62 @@ class SqlStorageService(
     )
 
     return objects
+  }
+
+  override fun <T : Timestamped> loadObjectsNewerThan(
+    objectType: ObjectType,
+    lastModifiedThreshold: Long
+  ):
+    Map<String, List<T>> {
+
+    log.debug("Fetching {} objects with last_modified_at value greater than {}",
+      objectType.name,
+      lastModifiedThreshold)
+
+    val deletedKey = "deleted"
+    val notDeletedKey = "not_deleted"
+
+    val resultMap = mapOf<String, MutableList<T>>(
+      deletedKey to mutableListOf(),
+      notDeletedKey to mutableListOf()
+    )
+
+    val tableSupportsSoftDeletes = definitionsByType[objectType]!!.supportsHistory
+
+    val fieldsToFetch = mutableListOf<SelectFieldOrAsterisk>(field("body", String::class.java))
+    if (tableSupportsSoftDeletes) {
+      fieldsToFetch.add(field("is_deleted", Boolean::class.java))
+    }
+
+    val timeToLoadObjects = measureTimeMillis {
+      val result: Result<Record> = jooq.withRetry(sqlRetryProperties.reads) { ctx ->
+        ctx
+          .select(fieldsToFetch)
+          .from(definitionsByType[objectType]!!.tableName)
+          .where(field("last_modified_at", Long::class.java).greaterThan(lastModifiedThreshold))
+          .fetch()
+      }
+      for (record in result) {
+        val insertInto = if (tableSupportsSoftDeletes && record.get("is_deleted", Boolean::class.java)) {
+          deletedKey
+        } else {
+          notDeletedKey
+        }
+        resultMap[insertInto]!!.add(
+          record.get("body", String::class.java)
+            .let { objectMapper.readValue(it, objectType.clazz as Class<T>)
+            })
+      }
+    }
+
+    log.debug("Took {}ms to fetch {} {} objects with last_modified_at value greater than {}",
+      timeToLoadObjects,
+      resultMap[deletedKey]!!.size + resultMap[notDeletedKey]!!.size,
+      objectType,
+      lastModifiedThreshold
+    )
+
+    return resultMap
   }
 
   override fun deleteObject(objectType: ObjectType, objectKey: String) {

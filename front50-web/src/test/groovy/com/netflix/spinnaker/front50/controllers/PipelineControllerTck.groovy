@@ -48,6 +48,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 
 abstract class PipelineControllerTck extends Specification {
@@ -458,6 +459,53 @@ abstract class PipelineControllerTck extends Specification {
 
     where:
     synchronizeCacheRefresh << [ false, true ]
+  }
+
+  def "should optimally refresh the cache after updates and deletes"() {
+    given:
+    pipelineDAOConfigProperties.setOptimizeCacheRefreshes(true)
+    def pipelines = [
+      new Pipeline([name: "Pipeline1", application: "test", id: "id1", triggers: []]),
+      new Pipeline([name: "Pipeline2", application: "test", id: "id2", triggers: []]),
+      new Pipeline([name: "Pipeline3", application: "test", id: "id3", triggers: []]),
+      new Pipeline([name: "Pipeline4", application: "test", id: "id4", triggers: []]),
+    ]
+    pipelineDAO.bulkImport(pipelines)
+
+    // Test cache refreshes for additions
+    when:
+    def response = mockMvc.perform(get('/pipelines/test'))
+
+    then:
+    response.andReturn().response.status == OK
+    response.andExpect(jsonPath('$.[*].name')
+      .value(["Pipeline1", "Pipeline2", "Pipeline3", "Pipeline4"]))
+
+    // Test cache refreshes for updates
+    when:
+    // Update Pipeline 2
+    mockMvc.perform(put('/pipelines/id2')
+      .contentType(MediaType.APPLICATION_JSON)
+      .content(new ObjectMapper().writeValueAsString(pipelines[1])))
+      .andExpect(status().isOk())
+    response = mockMvc.perform(get('/pipelines/test'))
+
+    then:
+    response.andReturn().response.status == OK
+    // ordered of returned pipelines changes after update
+    response.andExpect(jsonPath('$.[*].name')
+      .value(["Pipeline1", "Pipeline3", "Pipeline4", "Pipeline2"]))
+
+    // Test cache refreshes for deletes
+    when:
+    // Update 1 pipeline
+    mockMvc.perform(delete('/pipelines/test/Pipeline1')).andExpect(status().isOk())
+    response = mockMvc.perform(get('/pipelines/test'))
+
+    then:
+    response.andReturn().response.status == OK
+    response.andExpect(jsonPath('$.[*].name')
+      .value(["Pipeline3", "Pipeline4", "Pipeline2"]))
   }
 }
 

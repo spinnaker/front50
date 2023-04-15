@@ -82,6 +82,12 @@ public class StorageServiceConfigurationProperties {
      */
     private boolean synchronizeCacheRefresh;
 
+    /**
+     * When true, for objects that support versioning, cache refreshes only query the data store for
+     * objects modified (or deleted) since the last refresh.
+     */
+    private boolean optimizeCacheRefreshes;
+
     public PerObjectType setThreadPool(int threadPool) {
       if (threadPool <= 1) {
         throw new IllegalArgumentException("threadPool must be >= 1");
