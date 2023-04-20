@@ -76,11 +76,7 @@ public class Trigger extends ForwardingMap<String, Object> {
     }
 
     if (enabled != null) {
-      // It's tempting to warn if enabled is some other type, as it's likely a
-      // pipeline bug.  There's not enough context here to help find the
-      // offending pipeline though, so let's leave it as debug.
-      log.debug(
-          "enabled: '{}' is a {}, not a Boolean", enabled, enabled.getClass().getSimpleName());
+      log.warn("enabled: '{}' is a {}, not a Boolean", enabled, enabled.getClass().getSimpleName());
     }
     return false;
   }
@@ -97,7 +93,7 @@ public class Trigger extends ForwardingMap<String, Object> {
     }
 
     if (status != null) {
-      log.debug("status: '{}' is a {}, not a List", status, status.getClass().getSimpleName());
+      log.warn("status: '{}' is a {}, not a List", status, status.getClass().getSimpleName());
     }
     return Collections.emptyList();
   }
