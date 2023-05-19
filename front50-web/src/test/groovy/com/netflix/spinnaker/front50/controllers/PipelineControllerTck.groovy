@@ -29,6 +29,7 @@ import com.netflix.spinnaker.kork.sql.config.SqlRetryProperties
 import com.netflix.spinnaker.kork.sql.test.SqlTestUtil
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
+import com.netflix.spinnaker.kork.web.exceptions.NotFoundException
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.ObjectProvider
@@ -774,9 +775,22 @@ abstract class PipelineControllerTck extends Specification {
     def updatedAllItems =  pipelineDAO.all(true)
 
     then:
-    // StorageServiceSupport.fetchAllItems doesn't tolerate null ids, so to
-    // demonstrate current behavior, expect an exception here.
-    thrown NullPointerException
+    // fetchAllItems drops items with null ids, so expect only one element
+    updatedAllItems.size == 1
+
+    // and nothing with a null id
+    updatedAllItems.findAll { it.id == null }.size == 0
+
+    when:
+    // search for something that doesn't exist to exercise the fallback-to-cache behavior of findById
+    pipelineDAO.findById("does-not-exist")
+
+    then:
+    thrown NotFoundException
+
+    and:
+    // for completeness, search for an item in the database too
+    pipelineDAO.findById(pipeline2.id).getId() == pipeline2.id
   }
 
   def "findById with a pipeline with a null id in the cache works as expected (optimizeCacheRefreshes: true)"() {

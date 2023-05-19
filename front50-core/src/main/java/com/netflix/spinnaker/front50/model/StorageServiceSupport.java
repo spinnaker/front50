@@ -22,6 +22,7 @@ import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
 import com.netflix.spinnaker.front50.api.model.Timestamped;
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.security.AuthenticatedRequest;
@@ -233,6 +234,32 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
     return service.getHealthIntervalMillis();
   }
 
+  /**
+   * Return true if the id of an item is not null. Log a warning if the id is null.
+   *
+   * @param item the item to check
+   */
+  private boolean isIdNotNull(T item) {
+    if (item.getId() != null) {
+      return true;
+    }
+
+    // For pipelines, log the application and name to help figure out where
+    // these are coming
+    // from.
+    if (item instanceof Pipeline) {
+      Pipeline pipeline = (Pipeline) item;
+      log.warn(
+          "{} with null id from pipeline '{}' in application '{}'",
+          objectType,
+          pipeline.getName(),
+          pipeline.getApplication());
+    } else {
+      log.warn("{} with null id", objectType);
+    }
+    return false;
+  }
+
   public T findById(String id) throws NotFoundException {
     CircuitBreaker breaker =
         circuitBreakerRegistry.circuitBreaker(
@@ -410,6 +437,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
 
       Map<String, T> objectsById =
           objects.stream()
+              .filter(this::isIdNotNull)
               .collect(Collectors.toMap(this::buildObjectKey, Function.identity(), (o1, o2) -> o1));
 
       for (String objectKey : objectKeys) {
