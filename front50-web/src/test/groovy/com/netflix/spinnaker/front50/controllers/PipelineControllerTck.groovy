@@ -735,17 +735,14 @@ abstract class PipelineControllerTck extends Specification {
       .value(["Pipeline3", "Pipeline4", "Pipeline2"]))
   }
 
-  // The current state of affairs is different enough when
-  // optimizeCacheRefreshes is true vs. false that it makes sense to have
-  // separate tests.  Eventually with any luck, we'll combine them.
-
   // Even if it's not possible to get pipelines without ids into the database
   // via an API endpoint, there's nothing stopping a wayward sql query or a bug
   // elsewhere from getting them there.  So, it's helpful for the code to handle
   // this.
-  def "findById with a pipeline with a null id in the cache works as expected (optimizeCacheRefreshes: false)"() {
+  @Unroll
+  def "findById with a pipeline with a null id in the cache works as expected (optimizeCacheRefreshes: #optimizeCacheRefreshes)"() {
     given:
-    pipelineDAOConfigProperties.setOptimizeCacheRefreshes(false)
+    pipelineDAOConfigProperties.setOptimizeCacheRefreshes(optimizeCacheRefreshes)
     def pipeline1 = pipelineDAO.create(null, new Pipeline([
       name: "pipeline1", application: "test"
     ]))
@@ -775,8 +772,11 @@ abstract class PipelineControllerTck extends Specification {
     def updatedAllItems =  pipelineDAO.all(true)
 
     then:
-    // fetchAllItems drops items with null ids, so expect only one element
-    updatedAllItems.size == 1
+    // fetchAllItems drops items with null ids, so expect only one element when
+    // optimizeCacheRefreshes is false.  The way fetchAllItemsOptimized drops
+    // items with null ids, it doesn't notice that pipeline1 has been updated,
+    // so it remains with its id.
+    updatedAllItems.size == 1 + (optimizeCacheRefreshes ? 1 : 0)
 
     // and nothing with a null id
     updatedAllItems.findAll { it.id == null }.size == 0
@@ -791,58 +791,9 @@ abstract class PipelineControllerTck extends Specification {
     and:
     // for completeness, search for an item in the database too
     pipelineDAO.findById(pipeline2.id).getId() == pipeline2.id
-  }
 
-  def "findById with a pipeline with a null id in the cache works as expected (optimizeCacheRefreshes: true)"() {
-    given:
-    pipelineDAOConfigProperties.setOptimizeCacheRefreshes(true)
-    def pipeline1 = pipelineDAO.create(null, new Pipeline([
-      name: "pipeline1", application: "test"
-    ]))
-
-    def pipeline2 = pipelineDAO.create(null, new Pipeline([
-      name: "pipeline2", application: "test"
-    ]))
-
-    when:
-    // refresh the in-memory cache and make sure it has two items in it
-    def allItems = pipelineDAO.all(true)
-
-    then:
-    // verify that the cache has two items to make sure the test is working as expected
-    allItems.size == 2
-
-    and:
-    // remove the id from one of the pipelines.
-    def pipeline1WithoutId = new Pipeline(name: "pipeline1", application: "test")
-
-    // It's a bug that update allows pipelines without ids.  It's helpful to
-    // utilize this bug to uncover others though.
-    pipelineDAO.update(pipeline1.id, pipeline1WithoutId);
-
-    when:
-    // see how many items we've got now
-    def updatedAllItems = pipelineDAO.all(true)
-
-    then:
-    // StorageServiceSupport.fetchAllItemsOptimized filters out items with null
-    // ids, so it doesn't notice that pipeline1 has been updated.  pipeline1
-    // remains with its id.
-    updatedAllItems.size == 2
-
-    // and nothing with a null id
-    updatedAllItems.findAll { it.id == null }.size == 0
-
-    when:
-    // search for something that doesn't exist to exercise the fallback-to-cache behavior of findById
-    pipelineDAO.findById("does-not-exist")
-
-    then:
-    thrown NotFoundException
-
-    and:
-    // for completeness, search for an item in the database too
-    pipelineDAO.findById(pipeline2.id).getId() == pipeline2.id
+    where:
+    optimizeCacheRefreshes << [false, true]
   }
 }
 
