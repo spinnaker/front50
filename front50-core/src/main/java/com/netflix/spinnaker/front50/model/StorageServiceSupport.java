@@ -273,6 +273,7 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
             () -> service.loadObject(objectType, buildObjectKey(id)),
             e ->
                 Optional.ofNullable(allItemsCache.get()).orElseGet(HashSet::new).stream()
+                    .filter(this::isIdNotNull)
                     .filter(item -> item.getId().equalsIgnoreCase(id))
                     .findFirst()
                     .orElseThrow(

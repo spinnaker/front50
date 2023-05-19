@@ -837,8 +837,7 @@ abstract class PipelineControllerTck extends Specification {
     pipelineDAO.findById("does-not-exist")
 
     then:
-    // NB: this is a bug.  NotFoundException is the expected type of exception
-    thrown NullPointerException
+    thrown NotFoundException
 
     and:
     // for completeness, search for an item in the database too
