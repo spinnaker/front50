@@ -735,14 +735,8 @@ abstract class PipelineControllerTck extends Specification {
       .value(["Pipeline3", "Pipeline4", "Pipeline2"]))
   }
 
-  // Even if it's not possible to get pipelines without ids into the database
-  // via an API endpoint, there's nothing stopping a wayward sql query or a bug
-  // elsewhere from getting them there.  So, it's helpful for the code to handle
-  // this.
-  @Unroll
-  def "findById with a pipeline with a null id in the cache works as expected (optimizeCacheRefreshes: #optimizeCacheRefreshes)"() {
+  def "update with a pipeline with a null id throws an exception"() {
     given:
-    pipelineDAOConfigProperties.setOptimizeCacheRefreshes(optimizeCacheRefreshes)
     def pipeline1 = pipelineDAO.create(null, new Pipeline([
       name: "pipeline1", application: "test"
     ]))
@@ -759,7 +753,7 @@ abstract class PipelineControllerTck extends Specification {
     // verify that the cache has two items to make sure the test is working as expected
     allItems.size == 2
 
-    and:
+    when:
     // remove the id from one of the pipelines.
     def pipeline1WithoutId = new Pipeline(name: "pipeline1", application: "test")
 
@@ -767,33 +761,8 @@ abstract class PipelineControllerTck extends Specification {
     // utilize this bug to uncover others though.
     pipelineDAO.update(pipeline1.id, pipeline1WithoutId);
 
-    when:
-    // see how many items we've got now
-    def updatedAllItems =  pipelineDAO.all(true)
-
     then:
-    // fetchAllItems drops items with null ids, so expect only one element when
-    // optimizeCacheRefreshes is false.  The way fetchAllItemsOptimized drops
-    // items with null ids, it doesn't notice that pipeline1 has been updated,
-    // so it remains with its id.
-    updatedAllItems.size == 1 + (optimizeCacheRefreshes ? 1 : 0)
-
-    // and nothing with a null id
-    updatedAllItems.findAll { it.id == null }.size == 0
-
-    when:
-    // search for something that doesn't exist to exercise the fallback-to-cache behavior of findById
-    pipelineDAO.findById("does-not-exist")
-
-    then:
-    thrown NotFoundException
-
-    and:
-    // for completeness, search for an item in the database too
-    pipelineDAO.findById(pipeline2.id).getId() == pipeline2.id
-
-    where:
-    optimizeCacheRefreshes << [false, true]
+    thrown IllegalArgumentException
   }
 }
 

@@ -287,6 +287,20 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
   }
 
   public void update(String id, T item) {
+    // We're in this unfortunate situation where there's an id in the item as
+    // well as the separate id argument.  Or at least there's supposed to be.
+    // When hydrating an object from the data store, the id comes from the item,
+    // so if service.storeObject would succeed, and even if subsequent attempts
+    // to read the item appear to succeed, the resulting object wouldn't have an
+    // id.  So, short-circuit all that and check here.
+    //
+    // Additional checks to verify that the two ids actually match could make
+    // sense, or potentially even adding an id to the item where it's missing.
+    // For now, this is the minimal check to keep null ids out of the database.
+    if (item.getId() == null) {
+      throw new IllegalArgumentException(
+          "id is required in " + objectType + " (id argument: " + id + ")");
+    }
     item.setLastModifiedBy(AuthenticatedRequest.getSpinnakerUser().orElse("anonymous"));
     item.setLastModified(System.currentTimeMillis());
     service.storeObject(objectType, buildObjectKey(id), item);
