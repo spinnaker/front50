@@ -688,6 +688,24 @@ abstract class PipelineControllerTck extends Specification {
     response.andReturn().response.status == NOT_FOUND
   }
 
+  def "bulkImport of a pipeline with a null id fails"() {
+    given:
+    def pipelines = [
+      new Pipeline([name: "Pipeline1", application: "test", id: "id1"]),
+      new Pipeline([name: "Pipeline2", application: "test"])
+    ]
+
+    when:
+    pipelineDAO.bulkImport(pipelines)
+
+    then:
+    thrown NullPointerException
+
+    and:
+    // the pipeline with the id didn't make it in either
+    pipelineDAO.all(true).size == 0
+  }
+
   def "should optimally refresh the cache after updates and deletes"() {
     given:
     pipelineDAOConfigProperties.setOptimizeCacheRefreshes(true)
