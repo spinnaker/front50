@@ -825,12 +825,13 @@ abstract class PipelineControllerTck extends Specification {
     def updatedAllItems = pipelineDAO.all(true)
 
     then:
-    // NB: 3 isn't the expected size.  So, there's a bug in
-    // StorageServiceSupport.fetchAllItemsOptimized.
-    updatedAllItems.size == 3
+    // StorageServiceSupport.fetchAllItemsOptimized filters out items with null
+    // ids, so it doesn't notice that pipeline1 has been updated.  pipeline1
+    // remains with its id.
+    updatedAllItems.size == 2
 
-    // make sure one of them has a null id
-    updatedAllItems.findAll { it.id == null }.size == 1
+    // and nothing with a null id
+    updatedAllItems.findAll { it.id == null }.size == 0
 
     when:
     // search for something that doesn't exist to exercise the fallback-to-cache behavior of findById

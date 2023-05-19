@@ -530,9 +530,11 @@ public abstract class StorageServiceSupport<T extends Timestamped> {
         service.loadObjectsNewerThan(objectType, lastSeenStorageTime.get());
     Map<String, T> modifiedItems =
         newerItems.get("not_deleted").stream()
+            .filter(this::isIdNotNull)
             .collect(Collectors.toMap(Timestamped::getId, item -> item));
     Map<String, T> deletedItems =
         newerItems.get("deleted").stream()
+            .filter(this::isIdNotNull)
             .collect(Collectors.toMap(Timestamped::getId, item -> item));
 
     // Expanded from a stream collector to avoid DuplicateKeyExceptions
