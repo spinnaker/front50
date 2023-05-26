@@ -18,6 +18,7 @@ package com.netflix.spinnaker.front50.model.pipeline;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
+import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties;
 import com.netflix.spinnaker.front50.model.ObjectKeyLoader;
 import com.netflix.spinnaker.front50.model.ObjectType;
 import com.netflix.spinnaker.front50.model.StorageService;
@@ -35,8 +36,7 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
       StorageService service,
       Scheduler scheduler,
       ObjectKeyLoader objectKeyLoader,
-      long refreshIntervalMs,
-      boolean shouldWarmCache,
+      StorageServiceConfigurationProperties.PerObjectType configurationProperties,
       Registry registry,
       CircuitBreakerRegistry circuitBreakerRegistry) {
     super(
@@ -44,8 +44,7 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
         service,
         scheduler,
         objectKeyLoader,
-        refreshIntervalMs,
-        shouldWarmCache,
+        configurationProperties,
         registry,
         circuitBreakerRegistry);
   }
@@ -79,6 +78,24 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
                 pipeline.getApplication() != null
                     && pipeline.getApplication().equalsIgnoreCase(application))
         .collect(Collectors.toList());
+  }
+
+  @Override
+  public Pipeline getPipelineByName(String application, String pipelineName, boolean refresh) {
+    return all(refresh).stream()
+        .filter(
+            pipeline ->
+                pipeline.getApplication() != null
+                    && pipeline.getApplication().equalsIgnoreCase(application)
+                    && pipeline.getName() != null
+                    && pipeline.getName().equalsIgnoreCase(pipelineName))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new NotFoundException(
+                    String.format(
+                        "No pipeline found in cache with application %s, name %s",
+                        application, pipelineName)));
   }
 
   @Override
