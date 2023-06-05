@@ -41,4 +41,22 @@ abstract class PipelineDAOSpec<T extends PipelineDAO> extends Specification {
     thrown IllegalArgumentException
   }
 
+  def "filters pipelines by pipeline name"() {
+    when:
+    instance.create("0", new Pipeline(application: "foo", name: "pipelineName1"))
+    for (int i = 1; i < 10; i++) {
+      def name = i % 2 == 0 ? "pipelineNameA" + i : "pipelineNameB" + i;
+      instance.create(i.toString(), new Pipeline(application: "foo", name: name))
+    }
+    def filteredPipelines = instance.getPipelinesByApplication("foo", "NameA", true);
+    filteredPipelines.sort()
+
+    then:
+    filteredPipelines[0].getName() == "pipelineNameA2"
+    filteredPipelines[1].getName() == "pipelineNameA4"
+    filteredPipelines[2].getName() == "pipelineNameA6"
+    filteredPipelines[3].getName() == "pipelineNameA8"
+    filteredPipelines.size() == 4
+  }
+
 }

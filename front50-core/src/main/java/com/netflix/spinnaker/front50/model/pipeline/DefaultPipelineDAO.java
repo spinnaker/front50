@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
 import rx.Scheduler;
 
 public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implements PipelineDAO {
@@ -72,11 +73,22 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
 
   @Override
   public Collection<Pipeline> getPipelinesByApplication(String application, boolean refresh) {
+    return getPipelinesByApplication(application, null, refresh);
+  }
+
+  @Override
+  public Collection<Pipeline> getPipelinesByApplication(
+      String application, String pipelineNameFilter, boolean refresh) {
     return all(refresh).stream()
         .filter(
             pipeline ->
                 pipeline.getApplication() != null
-                    && pipeline.getApplication().equalsIgnoreCase(application))
+                    && pipeline.getApplication().equalsIgnoreCase(application)
+                    /* if the pipeline name filter is empty, we want to treat it as if it doesn't exist
+                    if isEmpty returns true, the statement will short circuit and return true,
+                    which effectively means we don't use the filter at all. */
+                    && (ObjectUtils.isEmpty(pipelineNameFilter)
+                        || pipeline.getName().contains(pipelineNameFilter)))
         .collect(Collectors.toList());
   }
 

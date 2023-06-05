@@ -167,6 +167,23 @@ abstract class PipelineControllerTck extends Specification {
       .andExpect(jsonPath('$.[*].index').value([0, 1, 2, 3, 4]))
   }
 
+  void "should use pipelineNameFilter when getting pipelines for an application"() {
+    given:
+    pipelineDAO.create("0", new Pipeline(application: "test", name: "pipelineName1"))
+    for (int i = 1; i < 10; i++) {
+      def name = i % 2 == 0 ? "pipelineNameA" + i : "pipelineNameB" + i;
+      pipelineDAO.create(i.toString(), new Pipeline(application: "test", name: name))
+    }
+
+    when:
+    def response = mockMvc.perform(get("/pipelines/test?pipelineNameFilter=NameA"))
+
+    then:
+    response
+      .andExpect(jsonPath('$.[*].name').value(["pipelineNameA2", "pipelineNameA4", "pipelineNameA6", "pipelineNameA8"]))
+      .andExpect(jsonPath('$.[*].index').value([0, 1, 2, 3]))
+  }
+
   void 'should update a pipeline'() {
     given:
     def pipeline = pipelineDAO.create(null, new Pipeline([name: "test pipeline", application: "test_application"]))
