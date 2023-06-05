@@ -40,11 +40,8 @@ import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 
@@ -73,6 +70,7 @@ public class OracleStorageService implements StorageService {
     @Override
     public ClientResponse handle(ClientRequest cr) throws ClientHandlerException {
       Map<String, List<String>> stringHeaders = new HashMap<>();
+
       for (String key : cr.getHeaders().keySet()) {
         List<String> vals = new ArrayList<>();
         for (Object val : cr.getHeaders().get(key)) {
@@ -80,6 +78,8 @@ public class OracleStorageService implements StorageService {
         }
         stringHeaders.put(key, vals);
       }
+
+      stringHeaders.put(HttpHeaders.USER_AGENT, Collections.singletonList("spinnaker-oci"));
 
       Map<String, String> signedHeaders =
           signer.signRequest(cr.getURI(), cr.getMethod(), stringHeaders, cr.getEntity());
