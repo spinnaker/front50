@@ -28,11 +28,15 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import rx.Scheduler;
 
 public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implements PipelineDAO {
+  private static final Logger log = LoggerFactory.getLogger(DefaultPipelineDAO.class);
+
   public DefaultPipelineDAO(
       StorageService service,
       Scheduler scheduler,
@@ -81,14 +85,37 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
       String application, String pipelineNameFilter, boolean refresh) {
     return all(refresh).stream()
         .filter(
-            pipeline ->
-                pipeline.getApplication() != null
-                    && pipeline.getApplication().equalsIgnoreCase(application)
-                    /* if the pipeline name filter is empty, we want to treat it as if it doesn't exist
-                    if isEmpty returns true, the statement will short circuit and return true,
-                    which effectively means we don't use the filter at all. */
-                    && (ObjectUtils.isEmpty(pipelineNameFilter)
-                        || pipeline.getName().contains(pipelineNameFilter)))
+            pipeline -> {
+              boolean applicationFilter =
+                  pipeline.getApplication() != null
+                      && pipeline.getApplication().equalsIgnoreCase(application);
+
+              boolean nameFilter = false;
+              /* There's a sneaky bug where some pipeline names are missing.
+              wherever we can we want to check for null pipeline names to try to identify
+              which pipelines have bad names to help with debugging.
+               */
+              if (pipeline.getName() == null) {
+                log.error(
+                    "Pipeline with (id={}, app={}, type={}, lastModified={}) does not have a name.",
+                    pipeline.getId(),
+                    pipeline.getApplication(),
+                    pipeline.getType(),
+                    pipeline.getLastModified());
+                /* if application filter is false, short circuit and return false.
+                No need to check for pipeline name. Should save some compute cycles
+                avoiding unnecessary string comparison
+                 */
+              } else if (applicationFilter) {
+                /* if the pipeline name filter is empty, we want to treat it as if it doesn't exist.
+                if isEmpty returns true, the statement will short circuit and return true,
+                which effectively means we don't use the filter at all. */
+                nameFilter =
+                    (ObjectUtils.isEmpty(pipelineNameFilter)
+                        || pipeline.getName().contains(pipelineNameFilter));
+              }
+              return applicationFilter && nameFilter;
+            })
         .collect(Collectors.toList());
   }
 
