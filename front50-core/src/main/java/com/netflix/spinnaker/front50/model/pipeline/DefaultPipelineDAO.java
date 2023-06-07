@@ -86,14 +86,9 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
     return all(refresh).stream()
         .filter(
             pipeline -> {
-              boolean applicationFilter =
-                  pipeline.getApplication() != null
-                      && pipeline.getApplication().equalsIgnoreCase(application);
-
-              boolean nameFilter = false;
-              /* There's a sneaky bug where some pipeline names are missing.
-              wherever we can we want to check for null pipeline names to try to identify
-              which pipelines have bad names to help with debugging.
+              /*
+              There's a sneaky bug where some application names are null. It's hard to find,
+              so for debugging purposes, we ALWAYS want to check for null pipeline names.
                */
               if (pipeline.getName() == null) {
                 log.error(
@@ -102,19 +97,20 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
                     pipeline.getApplication(),
                     pipeline.getType(),
                     pipeline.getLastModified());
-                /* if application filter is false, short circuit and return false.
-                No need to check for pipeline name. Should save some compute cycles
-                avoiding unnecessary string comparison
-                 */
-              } else if (applicationFilter) {
-                /* if the pipeline name filter is empty, we want to treat it as if it doesn't exist.
-                if isEmpty returns true, the statement will short circuit and return true,
-                which effectively means we don't use the filter at all. */
-                nameFilter =
-                    (ObjectUtils.isEmpty(pipelineNameFilter)
-                        || pipeline.getName().contains(pipelineNameFilter));
               }
-              return applicationFilter && nameFilter;
+
+              if (pipeline.getApplication() == null
+                  || !pipeline.getApplication().equalsIgnoreCase(application)) {
+                return false;
+              }
+
+              /*
+              if the pipeline name filter is empty, we want to treat it as if it doesn't exist.
+              if isEmpty returns true, the statement will short circuit and return true,
+              which effectively means we don't use the filter at all.
+              */
+              return ObjectUtils.isEmpty(pipelineNameFilter)
+                  || pipeline.getName() != null && pipeline.getName().contains(pipelineNameFilter);
             })
         .collect(Collectors.toList());
   }

@@ -52,11 +52,16 @@ abstract class PipelineDAOSpec<T extends PipelineDAO> extends Specification {
     filteredPipelines.sort()
 
     then:
-    filteredPipelines[0].getName() == "pipelineNameA2"
-    filteredPipelines[1].getName() == "pipelineNameA4"
-    filteredPipelines[2].getName() == "pipelineNameA6"
-    filteredPipelines[3].getName() == "pipelineNameA8"
+    // the pipelines are not guaranteed to be in order of insertion
+    pipelinesContainName(filteredPipelines, "pipelineNameA2")
+    pipelinesContainName(filteredPipelines, "pipelineNameA4")
+    pipelinesContainName(filteredPipelines, "pipelineNameA6")
+    pipelinesContainName(filteredPipelines, "pipelineNameA8")
     filteredPipelines.size() == 4
+  }
+
+  private static boolean pipelinesContainName(Collection<Pipeline> pipelines, String name) {
+    return pipelines.stream().filter {pipeline -> pipeline.getName() == name}.findAny().isPresent();
   }
 
 }
