@@ -60,6 +60,16 @@ abstract class PipelineDAOSpec<T extends PipelineDAO> extends Specification {
     filteredPipelines.size() == 4
   }
 
+  def "filters pipelines by pipeline name case insensitive"() {
+    when:
+    instance.create("0", new Pipeline(application: "foo", name: "PipElinenamea"))
+    def filteredPipelines = instance.getPipelinesByApplication("foo", "NameA", true);
+
+    then:
+    filteredPipelines[0].getName() == "PipElinenamea"
+    filteredPipelines.size() == 1
+  }
+
   private static boolean pipelinesContainName(Collection<Pipeline> pipelines, String name) {
     return pipelines.stream().filter {pipeline -> pipeline.getName() == name}.findAny().isPresent();
   }

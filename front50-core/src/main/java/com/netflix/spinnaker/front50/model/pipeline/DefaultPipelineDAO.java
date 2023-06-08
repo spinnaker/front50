@@ -110,7 +110,11 @@ public class DefaultPipelineDAO extends StorageServiceSupport<Pipeline> implemen
               which effectively means we don't use the filter at all.
               */
               return ObjectUtils.isEmpty(pipelineNameFilter)
-                  || pipeline.getName() != null && pipeline.getName().contains(pipelineNameFilter);
+                  || pipeline.getName() != null
+                      && pipeline
+                          .getName()
+                          .toLowerCase()
+                          .contains(pipelineNameFilter.toLowerCase());
             })
         .collect(Collectors.toList());
   }

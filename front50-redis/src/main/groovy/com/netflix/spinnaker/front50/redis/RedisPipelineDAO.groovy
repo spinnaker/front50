@@ -50,7 +50,7 @@ class RedisPipelineDAO implements PipelineDAO {
       if isEmpty returns true, the statement will short circuit and return true,
       which effectively means we don't use the filter at all. */
       it.getApplication() == application &&
-        (ObjectUtils.isEmpty(pipelineNameFilter) || it.getName().contains(pipelineNameFilter))
+        (ObjectUtils.isEmpty(pipelineNameFilter) || it.getName().toLowerCase().contains(pipelineNameFilter.toLowerCase()))
     }
   }
 
