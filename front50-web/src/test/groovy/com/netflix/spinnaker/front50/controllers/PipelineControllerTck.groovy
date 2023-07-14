@@ -17,6 +17,7 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.netflix.spectator.api.NoopRegistry
+import com.netflix.spinnaker.config.Front50SqlProperties
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
@@ -28,6 +29,7 @@ import com.netflix.spinnaker.kork.sql.config.SqlRetryProperties
 import com.netflix.spinnaker.kork.sql.test.SqlTestUtil
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
+import com.netflix.spinnaker.kork.web.exceptions.NotFoundException
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.ObjectProvider
@@ -555,6 +557,13 @@ abstract class PipelineControllerTck extends Specification {
         [enabled: null, type: "pipeline", pipeline: "triggering-pipeline", status: [ "successful" ] ]
       ]
     ]))
+    pipelineDAO.create(null, new Pipeline([
+      name       : "enabled trigger with null type",
+      application: "test",
+      triggers   : [
+        [enabled: true, type: null, pipeline: "triggering-pipeline", status: [ "successful" ] ]
+      ]
+    ]))
 
     when:
     def response = mockMvc.perform(get("/pipelines/triggeredBy/triggering-pipeline/${status}/"))
@@ -686,6 +695,24 @@ abstract class PipelineControllerTck extends Specification {
     response.andReturn().response.status == NOT_FOUND
   }
 
+  def "bulkImport of a pipeline with a null id fails"() {
+    given:
+    def pipelines = [
+      new Pipeline([name: "Pipeline1", application: "test", id: "id1"]),
+      new Pipeline([name: "Pipeline2", application: "test"])
+    ]
+
+    when:
+    pipelineDAO.bulkImport(pipelines)
+
+    then:
+    thrown NullPointerException
+
+    and:
+    // the pipeline with the id didn't make it in either
+    pipelineDAO.all(true).size == 0
+  }
+
   def "should optimally refresh the cache after updates and deletes"() {
     given:
     pipelineDAOConfigProperties.setOptimizeCacheRefreshes(true)
@@ -732,6 +759,36 @@ abstract class PipelineControllerTck extends Specification {
     response.andExpect(jsonPath('$.[*].name')
       .value(["Pipeline3", "Pipeline4", "Pipeline2"]))
   }
+
+  def "update with a pipeline with a null id throws an exception"() {
+    given:
+    def pipeline1 = pipelineDAO.create(null, new Pipeline([
+      name: "pipeline1", application: "test"
+    ]))
+
+    def pipeline2 = pipelineDAO.create(null, new Pipeline([
+      name: "pipeline2", application: "test"
+    ]))
+
+    when:
+    // refresh the in-memory cache and make sure it has two items in it
+    def allItems = pipelineDAO.all(true)
+
+    then:
+    // verify that the cache has two items to make sure the test is working as expected
+    allItems.size == 2
+
+    when:
+    // remove the id from one of the pipelines.
+    def pipeline1WithoutId = new Pipeline(name: "pipeline1", application: "test")
+
+    // It's a bug that update allows pipelines without ids.  It's helpful to
+    // utilize this bug to uncover others though.
+    pipelineDAO.update(pipeline1.id, pipeline1WithoutId);
+
+    then:
+    thrown IllegalArgumentException
+  }
 }
 
 class SqlPipelineControllerTck extends PipelineControllerTck {
@@ -755,7 +812,8 @@ class SqlPipelineControllerTck extends PipelineControllerTck {
       Clock.systemDefaultZone(),
       new SqlRetryProperties(),
       100,
-      "default"
+      "default",
+      new Front50SqlProperties()
     )
 
     pipelineDAOConfigProperties.setRefreshMs(0)
