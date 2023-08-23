@@ -43,6 +43,7 @@ subprojects { project ->
       testLogging {
         exceptionFormat = 'full'
       }
+      useJUnitPlatform()
     }
 
     tasks.withType(JavaExec) {
@@ -63,13 +64,14 @@ subprojects { project ->
       annotationProcessor("org.projectlombok:lombok")
       testAnnotationProcessor("org.projectlombok:lombok")
 
-      testImplementation("org.codehaus.groovy:groovy-all")
+      testImplementation("org.codehaus.groovy:groovy")
       testImplementation("org.spockframework:spock-core")
       testImplementation("org.springframework.boot:spring-boot-starter-test")
       testImplementation("org.spockframework:spock-spring")
       testImplementation("org.springframework:spring-test")
       testImplementation("org.hamcrest:hamcrest-core")
       testRuntimeOnly("cglib:cglib-nodep")
+      testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
       testRuntimeOnly("org.objenesis:objenesis")
     }
   }

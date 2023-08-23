@@ -19,8 +19,10 @@ package com.netflix.spinnaker.front50.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spectator.api.NoopRegistry
+import com.netflix.spinnaker.config.Front50SqlProperties
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
-import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
+import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
+import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties;
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.SqlStorageService
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineStrategyDAO
@@ -221,15 +223,15 @@ class SqlStrategyControllerTck extends StrategyControllerTck {
       Clock.systemDefaultZone(),
       new SqlRetryProperties(),
       100,
-      "default"
+      "default",
+      new Front50SqlProperties()
     )
 
     return new DefaultPipelineStrategyDAO(
       storageService,
       scheduler,
       new DefaultObjectKeyLoader(storageService),
-      0,
-      false,
+      new StorageServiceConfigurationProperties.PerObjectType(),
       new NoopRegistry(),
       new InMemoryCircuitBreakerRegistry()
     )
