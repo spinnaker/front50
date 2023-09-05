@@ -25,15 +25,10 @@ import com.netflix.spinnaker.front50.model.application.Application.Permission;
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO;
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO;
 import com.netflix.spinnaker.kork.exceptions.SystemException;
+import com.netflix.spinnaker.kork.retrofit.exceptions.SpinnakerServerException;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
+import java.util.*;
 import java.util.AbstractMap.SimpleEntry;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
@@ -41,7 +36,6 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import retrofit.RetrofitError;
 
 /** Wraps the business logic around Application Permissions. */
 @Component
@@ -183,7 +177,7 @@ public class ApplicationPermissionsService {
     if (fiatConfigurationProperties.getRoleSync().isEnabled()) {
       try {
         fiatService.get().sync(new ArrayList<>(roles));
-      } catch (RetrofitError e) {
+      } catch (SpinnakerServerException e) {
         log.warn("Error syncing users", e);
       }
     }
