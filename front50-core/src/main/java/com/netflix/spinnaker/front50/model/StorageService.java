@@ -35,6 +35,12 @@ public interface StorageService {
   <T extends Timestamped> T loadObject(ObjectType objectType, String objectKey)
       throws NotFoundException;
 
+  /**
+   * Load objects of the given type with the given keys
+   *
+   * @param objectType {@link ObjectType} of the objects to load
+   * @return A list of the loaded objects. Any objects that fail to deserialize are skipped.
+   */
   default <T extends Timestamped> List<T> loadObjects(
       ObjectType objectType, List<String> objectKeys) {
     throw new UnsupportedOperationException();
