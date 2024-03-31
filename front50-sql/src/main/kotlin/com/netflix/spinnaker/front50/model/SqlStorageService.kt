@@ -216,10 +216,14 @@ class SqlStorageService(
         } else {
           notDeletedKey
         }
-        resultMap[insertInto]!!.add(
-          record.get("body", String::class.java)
-            .let { objectMapper.readValue(it, objectType.clazz as Class<T>)
-            })
+        val bodyString = record.get("body", String::class.java)
+        try {
+          val thisObject = objectMapper.readValue(bodyString, objectType.clazz as Class<T>)
+          resultMap[insertInto]!!.add(thisObject)
+        } catch (e: JsonProcessingException) {
+          log.error("unable to deserialize {}", objectType.name, e)
+          registry.counter(invalidJsonCounterId.withTag("objectType", objectType.group)).increment();
+        }
       }
     }
 

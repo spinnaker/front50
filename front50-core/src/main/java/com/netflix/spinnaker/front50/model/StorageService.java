@@ -53,7 +53,8 @@ public interface StorageService {
    * @param lastModifiedThreshold threshold to use for filtering based on the last_modified_at time
    *     in ms
    * @return {@link Map<String, List<T>>} with two keys, "deleted" and "not_deleted". Each value is
-   *     a list of fetched objects that satisfy the provided last_modified_at threshold.
+   *     a list of fetched objects that satisfy the provided last_modified_at threshold. Any objects
+   *     that fail to deserialize are skipped.
    */
   default <T extends Timestamped> Map<String, List<T>> loadObjectsNewerThan(
       ObjectType objectType, long lastModifiedThreshold) {
