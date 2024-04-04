@@ -188,7 +188,7 @@ abstract class PipelineControllerTck extends Specification {
   }
 
   @Unroll
-  void 'should only (re)generate cron trigger ids for new pipelines'() {
+  void '(re)generates cron trigger ids for new pipelines, or when explicitly specified: lookupPipelineId: #lookupPipelineId, regenerateCronTriggerIds: #regenerateCronTriggerIds'() {
     given:
     def pipeline = new Pipeline([
       name       : "My Pipeline",
@@ -197,6 +197,9 @@ abstract class PipelineControllerTck extends Specification {
         new Trigger([type: "cron", id: "original-id"])
       ]
     ])
+    if (regenerateCronTriggerIds != null) {
+      pipeline.setAny("regenerateCronTriggerIds", regenerateCronTriggerIds)
+    }
     if (lookupPipelineId) {
       pipelineDAO.create(null, pipeline)
       pipeline.id = pipelineDAO.findById(
@@ -218,9 +221,11 @@ abstract class PipelineControllerTck extends Specification {
     expectedTriggerCheck.call(updatedPipeline)
 
     where:
-    lookupPipelineId || expectedTriggerCheck
-    false            || { Pipeline p -> p.triggers*.id != ["original-id"] }
-    true             || { Pipeline p -> p.triggers*.id == ["original-id"] }
+    lookupPipelineId | regenerateCronTriggerIds || expectedTriggerCheck
+    false            | null                     || { Pipeline p -> p.triggers*.id != ["original-id"] }
+    true             | null                     || { Pipeline p -> p.triggers*.id == ["original-id"] }
+    true             | false                    || { Pipeline p -> p.triggers*.id == ["original-id"] }
+    true             | true                     || { Pipeline p -> p.triggers*.id != ["original-id"] }
   }
 
   void 'should ensure that all cron triggers have an identifier'() {

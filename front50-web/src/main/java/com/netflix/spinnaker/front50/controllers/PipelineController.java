@@ -249,7 +249,8 @@ public class PipelineController {
     pipeline.setName(pipeline.getName().trim());
     pipeline = ensureCronTriggersHaveIdentifier(pipeline);
 
-    if (Strings.isNullOrEmpty(pipeline.getId())) {
+    if (Strings.isNullOrEmpty(pipeline.getId())
+        || (boolean) pipeline.getAny().getOrDefault("regenerateCronTriggerIds", false)) {
       // ensure that cron triggers are assigned a unique identifier for new pipelines
       List<Trigger> triggers = pipeline.getTriggers();
       triggers.stream()
