@@ -190,15 +190,15 @@ abstract class PipelineControllerTck extends Specification {
   @Unroll
   void 'should only (re)generate cron trigger ids for new pipelines'() {
     given:
-    def pipeline = [
+    def pipeline = new Pipeline([
       name       : "My Pipeline",
       application: "test",
       triggers   : [
         new Trigger([type: "cron", id: "original-id"])
       ]
-    ]
+    ])
     if (lookupPipelineId) {
-      pipelineDAO.create(null, pipeline as Pipeline)
+      pipelineDAO.create(null, pipeline)
       pipeline.id = pipelineDAO.findById(
         pipelineDAO.getPipelineId("test", "My Pipeline")
       ).getId()
@@ -225,7 +225,7 @@ abstract class PipelineControllerTck extends Specification {
 
   void 'should ensure that all cron triggers have an identifier'() {
     given:
-    def pipeline = [
+    def pipeline = new Pipeline([
       name       : "My Pipeline",
       application: "test",
       triggers   : [
@@ -233,9 +233,9 @@ abstract class PipelineControllerTck extends Specification {
         new Trigger([type: "cron", expression: "2"]),
         new Trigger([type: "cron", id: "", expression: "3"])
       ]
-    ]
+    ])
 
-    pipelineDAO.create(null, pipeline as Pipeline)
+    pipelineDAO.create(null, pipeline)
     pipeline.id = pipelineDAO.findById(
       pipelineDAO.getPipelineId("test", "My Pipeline")
     ).getId()
