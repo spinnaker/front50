@@ -22,6 +22,7 @@ import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
 import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties
+import com.netflix.spinnaker.front50.jackson.Front50ApiModule
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.SqlStorageService
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineDAO
@@ -29,10 +30,10 @@ import com.netflix.spinnaker.kork.sql.config.SqlRetryProperties
 import com.netflix.spinnaker.kork.sql.test.SqlTestUtil
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
-import com.netflix.spinnaker.kork.web.exceptions.NotFoundException
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.ObjectProvider
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.util.UriComponentsBuilder
 
 import java.time.Clock
@@ -71,23 +72,31 @@ abstract class PipelineControllerTck extends Specification {
   ServiceAccountsService serviceAccountsService
   StorageServiceConfigurationProperties.PerObjectType pipelineDAOConfigProperties =
     new StorageServiceConfigurationProperties().getPipeline()
+  ObjectMapper objectMapper
 
   void setup() {
     println "--------------- Test " + specificationContext.currentIteration.name
 
+    this.objectMapper = new ObjectMapper()
+    this.objectMapper.registerModule(new Front50ApiModule())
+
     this.pipelineDAO = Spy(createPipelineDAO())
     this.serviceAccountsService = Mock(ServiceAccountsService)
+
+    MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter = new MappingJackson2HttpMessageConverter();
+    mappingJackson2HttpMessageConverter.setObjectMapper(objectMapper)
 
     mockMvc = MockMvcBuilders
       .standaloneSetup(
         new PipelineController(
           pipelineDAO,
-          new ObjectMapper(),
+          objectMapper,
           Optional.of(serviceAccountsService),
           Collections.emptyList(),
           Optional.empty()
         )
       )
+      .setMessageConverters(mappingJackson2HttpMessageConverter)
       .setControllerAdvice(
         new GenericExceptionHandlers(
           new ExceptionMessageDecorator(Mock(ObjectProvider))
@@ -109,7 +118,7 @@ abstract class PipelineControllerTck extends Specification {
       .perform(
         post("/pipelines")
           .contentType(MediaType.APPLICATION_JSON)
-          .content(new ObjectMapper().writeValueAsString(command))
+          .content(objectMapper.writeValueAsString(command))
       )
       .andReturn()
       .response
@@ -152,7 +161,7 @@ abstract class PipelineControllerTck extends Specification {
     when:
     pipeline.name = "Updated Name"
     def response = mockMvc.perform(put("/pipelines/${pipeline.id}").contentType(MediaType.APPLICATION_JSON)
-      .content(new ObjectMapper().writeValueAsString(pipeline))).andReturn().response
+      .content(objectMapper.writeValueAsString(pipeline))).andReturn().response
 
     then:
     response.status == OK
@@ -172,7 +181,7 @@ abstract class PipelineControllerTck extends Specification {
 
     when:
     def response = mockMvc.perform(put("/pipelines/${pipeline1.id}").contentType(MediaType.APPLICATION_JSON)
-      .content(new ObjectMapper().writeValueAsString(pipeline1))).andReturn().response
+      .content(objectMapper.writeValueAsString(pipeline1))).andReturn().response
 
     then:
     response.status == BAD_REQUEST
@@ -180,7 +189,7 @@ abstract class PipelineControllerTck extends Specification {
 
     when:
     response = mockMvc.perform(put("/pipelines/${pipeline2.id}").contentType(MediaType.APPLICATION_JSON)
-      .content(new ObjectMapper().writeValueAsString(pipeline1))).andReturn().response
+      .content(objectMapper.writeValueAsString(pipeline1))).andReturn().response
 
     then:
     response.status == BAD_REQUEST
@@ -209,7 +218,7 @@ abstract class PipelineControllerTck extends Specification {
 
     when:
     def response = mockMvc.perform(post('/pipelines').
-      contentType(MediaType.APPLICATION_JSON).content(new ObjectMapper().writeValueAsString(pipeline)))
+      contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(pipeline)))
       .andReturn().response
 
     def updatedPipeline = pipelineDAO.findById(
@@ -247,7 +256,7 @@ abstract class PipelineControllerTck extends Specification {
 
     when:
     def response = mockMvc.perform(post('/pipelines').
-      contentType(MediaType.APPLICATION_JSON).content(new ObjectMapper().writeValueAsString(pipeline)))
+      contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(pipeline)))
       .andReturn().response
 
     def updatedPipeline = pipelineDAO.findById(
@@ -307,7 +316,7 @@ abstract class PipelineControllerTck extends Specification {
     when:
     def response = mockMvc.perform(post('/pipelines')
       .contentType(MediaType.APPLICATION_JSON)
-      .content(new ObjectMapper().writeValueAsString([name: "pipeline1", application: "test"])))
+      .content(objectMapper.writeValueAsString([name: "pipeline1", application: "test"])))
       .andReturn().response
 
     then:
@@ -340,7 +349,7 @@ abstract class PipelineControllerTck extends Specification {
     def postResponse = mockMvc.perform(
       post("/pipelines")
         .contentType(MediaType.APPLICATION_JSON)
-        .content(new ObjectMapper().writeValueAsString(pipelineData))
+        .content(objectMapper.writeValueAsString(pipelineData))
       )
       .andReturn()
       .response
@@ -447,7 +456,7 @@ abstract class PipelineControllerTck extends Specification {
           if (it % 2 == 0) {
             mockMvc.perform(post('/pipelines')
               .contentType(MediaType.APPLICATION_JSON)
-              .content(new ObjectMapper().writeValueAsString([
+              .content(objectMapper.writeValueAsString([
                 name: "My Pipeline" + it,
                 application: "test" + it,
                 id: "id" + it,
@@ -743,7 +752,7 @@ abstract class PipelineControllerTck extends Specification {
     // Update Pipeline 2
     mockMvc.perform(put('/pipelines/id2')
       .contentType(MediaType.APPLICATION_JSON)
-      .content(new ObjectMapper().writeValueAsString(pipelines[1])))
+      .content(objectMapper.writeValueAsString(pipelines[1])))
       .andExpect(status().isOk())
     response = mockMvc.perform(get('/pipelines/test'))
 
@@ -811,7 +820,7 @@ class SqlPipelineControllerTck extends PipelineControllerTck {
     def registry = new NoopRegistry()
 
     def storageService = new SqlStorageService(
-      new ObjectMapper(),
+      objectMapper,
       registry,
       currentDatabase.context,
       Clock.systemDefaultZone(),
