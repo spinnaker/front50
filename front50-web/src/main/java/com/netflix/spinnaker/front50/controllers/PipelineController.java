@@ -498,16 +498,9 @@ public class PipelineController {
     if (Strings.isNullOrEmpty(pipeline.getId())
         || (boolean) pipeline.getAny().getOrDefault("regenerateCronTriggerIds", false)) {
       // ensure that cron triggers are assigned a unique identifier for new pipelines
-      pipeline.setTriggers(
-          pipeline.getTriggers().stream()
-              .map(
-                  it -> {
-                    if ("cron".equalsIgnoreCase(it.getType())) {
-                      it.put("id", UUID.randomUUID().toString());
-                    }
-                    return it;
-                  })
-              .collect(Collectors.toList()));
+      pipeline.getTriggers().stream()
+          .filter(it -> "cron".equals(it.getType()))
+          .forEach(it -> it.put("id", UUID.randomUUID().toString()));
     }
 
     final ValidatorErrors errors = new ValidatorErrors();
