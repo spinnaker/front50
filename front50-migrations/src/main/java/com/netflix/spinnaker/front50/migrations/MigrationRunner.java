@@ -16,15 +16,14 @@
 
 package com.netflix.spinnaker.front50.migrations;
 
-import static net.logstash.logback.argument.StructuredArguments.value;
-
-import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import static net.logstash.logback.argument.StructuredArguments.value;
 
 /**
  * Migration runner runs all the registered migrations as scheduled. By default migration runner
@@ -38,17 +37,25 @@ import org.springframework.stereotype.Component;
 public class MigrationRunner {
   private final Logger log = LoggerFactory.getLogger(MigrationRunner.class);
 
-  @Autowired Collection<Migration> migrations;
+  private final ApplicationContext applicationContext;
+
+  public MigrationRunner(ApplicationContext applicationContext) {
+    this.applicationContext = applicationContext;
+  }
 
   /** Run migrations every 8hrs. */
-  @Scheduled(fixedDelay = 28800000)
+  @Scheduled(fixedDelay = 28800000, initialDelay = 10000)
   void run() {
-    migrations.stream()
+    applicationContext.getBeansOfType(Migration.class).values().stream()
         .filter(Migration::isValid)
         .forEach(
             migration -> {
               try {
+                log.debug(
+                    "Running migration: {}", value("class", migration.getClass().getSimpleName()));
                 migration.run();
+                log.debug(
+                    "Migration complete: {}", value("class", migration.getClass().getSimpleName()));
               } catch (Exception e) {
                 log.error(
                     "Migration failure ({}):",
