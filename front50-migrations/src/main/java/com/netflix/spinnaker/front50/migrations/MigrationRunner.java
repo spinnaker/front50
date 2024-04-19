@@ -16,14 +16,14 @@
 
 package com.netflix.spinnaker.front50.migrations;
 
+import static net.logstash.logback.argument.StructuredArguments.value;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import static net.logstash.logback.argument.StructuredArguments.value;
 
 /**
  * Migration runner runs all the registered migrations as scheduled. By default migration runner
