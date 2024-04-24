@@ -26,9 +26,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Migration runner runs all the registered migrations as scheduled. By default migration runner
- * will <strong>not</strong> run and need to set <strong>`migrations.enabled`</strong> property to
- * enable it.
+ * Migration runner runs all the registered migrations as scheduled. By default, migration runner
+ * will <strong>not</strong> run and need to set <code>migrations.enabled</code> property to enable
+ * it. The interval between migration runs can be set using <code>migrations.intervalMs</code>, and
+ * the initial delay before running the first migration can be set using <code>
+ * migrations.initialDelayMs</code> (can be useful if you initialize migrations in plugins, and they
+ * need some time to start up). Default values are 8 hours and 10 seconds respectively.
  *
  * <p>Note: Ideally migrations should be running only on one instance.
  */
@@ -43,8 +46,10 @@ public class MigrationRunner {
     this.applicationContext = applicationContext;
   }
 
-  /** Run migrations every 8hrs. */
-  @Scheduled(fixedDelay = 28800000, initialDelay = 10000)
+  /** Run migrations every 8hrs (by default). */
+  @Scheduled(
+      fixedDelayString = "${migrations.intervalMs:28800000}",
+      initialDelayString = "${migrations.initialDelayMs:10000}")
   void run() {
     applicationContext.getBeansOfType(Migration.class).values().stream()
         .filter(Migration::isValid)
