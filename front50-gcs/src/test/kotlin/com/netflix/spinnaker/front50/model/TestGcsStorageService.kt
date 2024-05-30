@@ -71,7 +71,7 @@ class GcsStorageServiceTest {
     private const val BUCKET_NAME = "myBucket"
     private const val BUCKET_LOCATION = "bucketLocation"
     private const val BASE_PATH = "my/base/path"
-    private const val DATA_FILENAME = "my-file.txt"
+    private val DATA_FILENAME = ObjectType.APPLICATION.getDefaultMetadataFilename(true);
   }
 
   private lateinit var gcs: Storage
