@@ -27,6 +27,7 @@ import com.netflix.spinnaker.front50.model.pipeline.V2TemplateConfiguration;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplate
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO
+import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration
 import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Unroll
@@ -161,6 +162,40 @@ class V2PipelineTemplateControllerSpec extends Specification {
 
     then:
     hash1 == hash2
+  }
+
+  def "verify retrieval of templated pipeline config using v1 approach results in null"() {
+    given:
+
+    def templatedPipeline = new Pipeline(
+      id: "id-of-my-templated-pipeline",
+      name: "name-of-my-templated-pipeline",
+      application: "application",
+      type: TYPE_TEMPLATED,
+      schema: "v2",
+      template: [
+        reference: SPINNAKER_PREFIX + "myPipelineTemplateId"
+      ]
+    )
+    def oneOtherTemplatedPipeline = new Pipeline(
+      id: "id-of-one-other-templated-pipeline",
+      name: "name-of-one-other-templated-pipeline",
+      application: "application",
+      type: TYPE_TEMPLATED,
+      schema: "v2",
+      template: [
+        reference: SPINNAKER_PREFIX + "oneOtherPipelineTemplateId"
+      ]
+    )
+
+    pipelineDAO.all() >> [templatedPipeline, oneOtherTemplatedPipeline]
+
+    when:
+    TemplateConfiguration config = controller.objectMapper.convertValue(
+      templatedPipeline.getConfig(), TemplateConfiguration.class);
+
+    then:
+    config == null
   }
 
   def "getDependentConfigs returns empty list when there are no templated pipelines"() {
