@@ -198,7 +198,6 @@ public class V2PipelineTemplateController {
                     objectMapper.convertValue(templatedPipeline, V2TemplateConfiguration.class);
                 source = config.getTemplate().getReference();
               } catch (Exception e) {
-                e.printStackTrace();
                 return;
               }
 
