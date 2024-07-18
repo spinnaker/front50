@@ -43,11 +43,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PostAuthorize;
@@ -277,8 +279,47 @@ public class PipelineController {
 
   @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
   @RequestMapping(value = "batchUpdate", method = RequestMethod.POST)
-  public void batchUpdate(@RequestBody List<Pipeline> pipelines) {
+  public void batchUpdate(@RequestBody List<Map<String, Object>> pipelinesJson) {
+
+    long batchUpdateStartTime = System.currentTimeMillis();
+
+    log.debug(
+        "Deserializing the provided map of {} pipelines into a list of pipeline objects.",
+        pipelinesJson.size());
+
+    // The right side of the pair holds failed pipelines.  This needs to be
+    // List<Map<String, Object>> as opposed to List<Pipeline> since some
+    // elements of pipelineJson may fail to deserialize into Pipeline objects.
+    ImmutablePair<List<Pipeline>, List<Map<String, Object>>> deserializedPipelines =
+        deSerializePipelines(pipelinesJson);
+    List<Pipeline> pipelines = deserializedPipelines.getLeft();
+    List<Map<String, Object>> failedPipelines = deserializedPipelines.getRight();
+
+    log.info(
+        "Batch upserting the following pipelines: {}",
+        pipelines.stream().map(Pipeline::getName).collect(Collectors.toList()));
+
+    long bulkImportStartTime = System.currentTimeMillis();
+    log.debug("Bulk importing the following pipelines: {}", pipelines);
     pipelineDAO.bulkImport(pipelines);
+    log.debug(
+        "Bulk imported {} pipelines successfully in {}ms",
+        pipelines.size(),
+        System.currentTimeMillis() - bulkImportStartTime);
+
+    List<String> savedPipelines =
+        pipelines.stream().map(Pipeline::getName).collect(Collectors.toList());
+
+    if (!failedPipelines.isEmpty()) {
+      log.warn(
+          "Following pipelines were skipped during the bulk import since they had errors: {}",
+          failedPipelines.stream().map(p -> p.get("name")).collect(Collectors.toList()));
+    }
+    log.info(
+        "Batch updated the following {} pipelines in {}ms: {}",
+        savedPipelines.size(),
+        System.currentTimeMillis() - batchUpdateStartTime,
+        savedPipelines);
   }
 
   @PreAuthorize("hasPermission(#application, 'APPLICATION', 'WRITE')")
@@ -326,6 +367,38 @@ public class PipelineController {
     pipelineDAO.update(id, pipeline);
 
     return pipeline;
+  }
+
+  /**
+   * Helper method to deserialize the given list of Pipeline maps into a list of Pipeline objects
+   *
+   * @param pipelinesMap List of pipeline maps
+   * @return Deserialized list of pipeline objects
+   */
+  private ImmutablePair<List<Pipeline>, List<Map<String, Object>>> deSerializePipelines(
+      List<Map<String, Object>> pipelinesMap) {
+
+    List<Pipeline> pipelines = new ArrayList<>();
+    List<Map<String, Object>> failedPipelines = new ArrayList<>();
+
+    log.trace("Deserializing the following pipeline maps into pipeline objects: {}", pipelinesMap);
+    pipelinesMap.forEach(
+        pipelineMap -> {
+          try {
+            Pipeline pipeline = objectMapper.convertValue(pipelineMap, Pipeline.class);
+            pipelines.add(pipeline);
+          } catch (IllegalArgumentException e) {
+            log.error(
+                "Failed to deserialize pipeline map from the provided json: {}", pipelineMap, e);
+            pipelineMap.put(
+                "errorMsg",
+                String.format(
+                    "Failed to deserialize the pipeline json into a valid pipeline: %s", e));
+            failedPipelines.add(pipelineMap);
+          }
+        });
+
+    return ImmutablePair.of(pipelines, failedPipelines);
   }
 
   /**
