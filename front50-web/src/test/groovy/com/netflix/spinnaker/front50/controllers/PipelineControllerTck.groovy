@@ -22,6 +22,7 @@ import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
 import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties
+import com.netflix.spinnaker.front50.config.controllers.PipelineControllerConfig
 import com.netflix.spinnaker.front50.jackson.Front50ApiModule
 import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
 import com.netflix.spinnaker.front50.model.SqlStorageService
@@ -73,6 +74,7 @@ abstract class PipelineControllerTck extends Specification {
   StorageServiceConfigurationProperties.PerObjectType pipelineDAOConfigProperties =
     new StorageServiceConfigurationProperties().getPipeline()
   ObjectMapper objectMapper
+  PipelineControllerConfig pipelineControllerConfig
 
   void setup() {
     println "--------------- Test " + specificationContext.currentIteration.name
@@ -82,6 +84,7 @@ abstract class PipelineControllerTck extends Specification {
 
     this.pipelineDAO = Spy(createPipelineDAO())
     this.serviceAccountsService = Mock(ServiceAccountsService)
+    this.pipelineControllerConfig = new PipelineControllerConfig()
 
     MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter = new MappingJackson2HttpMessageConverter();
     mappingJackson2HttpMessageConverter.setObjectMapper(objectMapper)
@@ -93,7 +96,8 @@ abstract class PipelineControllerTck extends Specification {
           objectMapper,
           Optional.of(serviceAccountsService),
           Collections.emptyList(),
-          Optional.empty()
+          Optional.empty(),
+          pipelineControllerConfig
         )
       )
       .setMessageConverters(mappingJackson2HttpMessageConverter)

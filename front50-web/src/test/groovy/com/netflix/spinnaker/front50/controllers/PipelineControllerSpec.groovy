@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator
 import com.netflix.spinnaker.front50.api.validator.ValidatorErrors
+import com.netflix.spinnaker.front50.config.controllers.PipelineControllerConfig
+import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException
 import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
@@ -32,11 +34,53 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(controllers = [PipelineController])
-@ContextConfiguration(classes = [TestConfiguration, PipelineController])
+@ContextConfiguration(classes = [TestConfiguration, PipelineController, PipelineControllerConfig])
 class PipelineControllerSpec extends Specification {
 
   @Autowired
   private MockMvc mockMvc
+
+  @Autowired
+  PipelineControllerConfig pipelineControllerConfig
+
+  @Unroll
+  def "test cache refresh enabled flag when checking for duplicate pipelines"() {
+    given:
+    def existingPipelineIdNotInCache = "123"
+    def newPipelineId = "456"
+    def application = "test-application"
+    def pipelineName = "test-pipeline"
+    def pipeline = new Pipeline([
+      id          : existingPipelineIdNotInCache,
+      name        : pipelineName,
+      application : application,
+    ])
+
+    def pipelineDAO = new InMemoryPipelineDAO(){
+      @Override
+      Collection<Pipeline> getPipelinesByApplication(String app, boolean refresh) {
+        return refresh ? [pipeline] : []
+      }
+    }
+
+    def pipelineController = new PipelineController(
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig)
+
+    when:
+    pipelineControllerConfig.getSave().refreshCacheOnDuplicatesCheck = true
+    pipelineController.checkForDuplicatePipeline(application, pipelineName, newPipelineId)
+
+    then:
+    thrown DuplicateEntityException
+
+    when:
+    pipelineControllerConfig.getSave().refreshCacheOnDuplicatesCheck = false
+    pipelineController.checkForDuplicatePipeline(application, pipelineName, newPipelineId)
+
+    then:
+    noExceptionThrown()
+
+  }
 
   @Unroll
   def "should fail to save if application is missing, empty or blank"() {
@@ -113,7 +157,8 @@ class PipelineControllerSpec extends Specification {
           new ObjectMapper(),
           Optional.empty(),
           [new MockValidator()] as List<PipelineValidator>,
-          Optional.empty()
+          Optional.empty(),
+          pipelineControllerConfig
         )
       )
       .setControllerAdvice(
@@ -155,7 +200,7 @@ class PipelineControllerSpec extends Specification {
     pipelineDAO.history(testPipelineId, 20) >> pipelineList
 
     def mockMvcWithController = MockMvcBuilders.standaloneSetup(new PipelineController(
-      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty()
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig
     )).build()
 
     when:
@@ -193,7 +238,7 @@ class PipelineControllerSpec extends Specification {
       ]))
 
     def mockMvcWithController = MockMvcBuilders.standaloneSetup(new PipelineController(
-      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty()
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig
     )).build()
 
     when:

@@ -26,6 +26,7 @@ import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator;
 import com.netflix.spinnaker.front50.api.validator.ValidatorErrors;
+import com.netflix.spinnaker.front50.config.controllers.PipelineControllerConfig;
 import com.netflix.spinnaker.front50.exception.BadRequestException;
 import com.netflix.spinnaker.front50.exceptions.DuplicateEntityException;
 import com.netflix.spinnaker.front50.exceptions.InvalidEntityException;
@@ -34,6 +35,7 @@ import com.netflix.spinnaker.front50.model.pipeline.PipelineDAO;
 import com.netflix.spinnaker.front50.model.pipeline.PipelineTemplateDAO;
 import com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration;
 import com.netflix.spinnaker.front50.model.pipeline.V2TemplateConfiguration;
+import com.netflix.spinnaker.kork.annotations.VisibleForTesting;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.kork.web.exceptions.ValidationException;
 import java.util.ArrayList;
@@ -69,18 +71,21 @@ public class PipelineController {
   private final Optional<ServiceAccountsService> serviceAccountsService;
   private final List<PipelineValidator> pipelineValidators;
   private final Optional<PipelineTemplateDAO> pipelineTemplateDAO;
+  private final PipelineControllerConfig pipelineControllerConfig;
 
   public PipelineController(
       PipelineDAO pipelineDAO,
       ObjectMapper objectMapper,
       Optional<ServiceAccountsService> serviceAccountsService,
       List<PipelineValidator> pipelineValidators,
-      Optional<PipelineTemplateDAO> pipelineTemplateDAO) {
+      Optional<PipelineTemplateDAO> pipelineTemplateDAO,
+      PipelineControllerConfig pipelineControllerConfig) {
     this.pipelineDAO = pipelineDAO;
     this.objectMapper = objectMapper;
     this.serviceAccountsService = serviceAccountsService;
     this.pipelineValidators = pipelineValidators;
     this.pipelineTemplateDAO = pipelineTemplateDAO;
+    this.pipelineControllerConfig = pipelineControllerConfig;
   }
 
   @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
@@ -400,9 +405,16 @@ public class PipelineController {
     }
   }
 
-  private void checkForDuplicatePipeline(String application, String name, String id) {
+  @VisibleForTesting
+  void checkForDuplicatePipeline(String application, String name, String id) {
+    log.debug(
+        "Cache refresh enabled when checking for duplicates: {}",
+        pipelineControllerConfig.getSave().isRefreshCacheOnDuplicatesCheck());
     boolean any =
-        pipelineDAO.getPipelinesByApplication(application).stream()
+        pipelineDAO
+            .getPipelinesByApplication(
+                application, pipelineControllerConfig.getSave().isRefreshCacheOnDuplicatesCheck())
+            .stream()
             .anyMatch(it -> it.getName().equalsIgnoreCase(name) && !it.getId().equals(id));
     if (any) {
       throw new DuplicateEntityException(
