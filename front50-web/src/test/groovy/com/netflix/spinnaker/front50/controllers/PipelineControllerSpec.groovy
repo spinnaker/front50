@@ -333,6 +333,7 @@ class PipelineControllerSpec extends Specification {
     @Override
     Pipeline create(String id, Pipeline item) {
       map.put(id, item)
+      item
     }
 
     @Override

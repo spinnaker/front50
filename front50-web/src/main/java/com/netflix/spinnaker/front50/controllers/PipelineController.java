@@ -249,20 +249,30 @@ public class PipelineController {
       @RequestParam(value = "staleCheck", required = false, defaultValue = "false")
           Boolean staleCheck) {
 
+    long saveStartTime = System.currentTimeMillis();
+    log.info(
+        "Received request to save pipeline {} in application {}",
+        pipeline.getName(),
+        pipeline.getApplication());
+
+    log.debug("Running validation before saving pipeline {}", pipeline.getName());
+    long validationStartTime = System.currentTimeMillis();
     validatePipeline(pipeline, staleCheck);
-
+    checkForDuplicatePipeline(
+        pipeline.getApplication(), pipeline.getName().trim(), pipeline.getId());
     pipeline.setName(pipeline.getName().trim());
-    ensureCronTriggersHaveIdentifier(pipeline);
+    log.debug(
+        "Successfully validated pipeline {} in {}ms",
+        pipeline.getName(),
+        System.currentTimeMillis() - validationStartTime);
 
-    if (Strings.isNullOrEmpty(pipeline.getId())
-        || (boolean) pipeline.getAny().getOrDefault("regenerateCronTriggerIds", false)) {
-      // ensure that cron triggers are assigned a unique identifier for new pipelines
-      pipeline.getTriggers().stream()
-          .filter(it -> "cron".equals(it.getType()))
-          .forEach(it -> it.put("id", UUID.randomUUID().toString()));
-    }
-
-    return pipelineDAO.create(pipeline.getId(), pipeline);
+    Pipeline savedPipeline = pipelineDAO.create(pipeline.getId(), pipeline);
+    log.info(
+        "Successfully saved pipeline {} in application {} in {}ms",
+        savedPipeline.getName(),
+        savedPipeline.getApplication(),
+        System.currentTimeMillis() - saveStartTime);
+    return savedPipeline;
   }
 
   @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
@@ -308,10 +318,10 @@ public class PipelineController {
     }
 
     validatePipeline(pipeline, staleCheck);
+    checkForDuplicatePipeline(
+        pipeline.getApplication(), pipeline.getName().trim(), pipeline.getId());
 
-    pipeline.setName(pipeline.getName().trim());
     pipeline.setLastModified(System.currentTimeMillis());
-    ensureCronTriggersHaveIdentifier(pipeline);
 
     pipelineDAO.update(id, pipeline);
 
@@ -328,6 +338,7 @@ public class PipelineController {
     if (StringUtils.isAnyBlank(pipeline.getApplication(), pipeline.getName())) {
       throw new InvalidEntityException("A pipeline requires name and application fields");
     }
+    pipeline.setName(pipeline.getName().trim());
 
     // Check if pipeline type is templated
     if (TYPE_TEMPLATED.equals(pipeline.getType())) {
@@ -360,17 +371,35 @@ public class PipelineController {
       }
     }
 
-    checkForDuplicatePipeline(
-        pipeline.getApplication(), pipeline.getName().trim(), pipeline.getId());
+    ensureCronTriggersHaveIdentifier(pipeline);
+
+    // Ensure cron trigger ids are regenerated if needed
+    if (Strings.isNullOrEmpty(pipeline.getId())
+        || (boolean) pipeline.getAny().getOrDefault("regenerateCronTriggerIds", false)) {
+      // ensure that cron triggers are assigned a unique identifier for new pipelines
+      pipeline.setTriggers(
+          pipeline.getTriggers().stream()
+              .map(
+                  it -> {
+                    if ("cron".equalsIgnoreCase(it.getType())) {
+                      it.put("id", UUID.randomUUID().toString());
+                    }
+                    return it;
+                  })
+              .collect(Collectors.toList()));
+    }
 
     final ValidatorErrors errors = new ValidatorErrors();
-    pipelineValidators.forEach(it -> it.validate(pipeline, errors));
 
+    // Run stale pipeline definition check
     if (staleCheck
         && !Strings.isNullOrEmpty(pipeline.getId())
         && pipeline.getLastModified() != null) {
       checkForStalePipeline(pipeline, errors);
     }
+
+    // Run other pre-configured validators
+    pipelineValidators.forEach(it -> it.validate(pipeline, errors));
 
     if (errors.hasErrors()) {
       String message = errors.getAllErrorsMessage();
@@ -420,10 +449,6 @@ public class PipelineController {
       throw new DuplicateEntityException(
           format("A pipeline with name %s already exists in application %s", name, application));
     }
-  }
-
-  private void checkForDuplicatePipeline(String application, String name) {
-    checkForDuplicatePipeline(application, name, null);
   }
 
   /**
