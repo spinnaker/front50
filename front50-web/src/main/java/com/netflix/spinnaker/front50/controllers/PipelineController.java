@@ -290,7 +290,7 @@ public class PipelineController {
 
   @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
   @RequestMapping(value = "batchUpdate", method = RequestMethod.POST)
-  public void batchUpdate(@RequestBody List<Map<String, Object>> pipelinesJson) {
+  public Map<String, Object> batchUpdate(@RequestBody List<Map<String, Object>> pipelinesJson) {
 
     long batchUpdateStartTime = System.currentTimeMillis();
 
@@ -311,6 +311,7 @@ public class PipelineController {
         pipelines.stream().map(Pipeline::getName).collect(Collectors.toList()));
 
     List<Pipeline> pipelinesToSave = new ArrayList<>();
+    Map<String, Object> returnData = new HashMap<>();
 
     // List of pipelines in the provided request body which don't adhere to the schema
     List<Pipeline> invalidPipelines = new ArrayList<>();
@@ -332,6 +333,10 @@ public class PipelineController {
 
     List<String> savedPipelines =
         pipelinesToSave.stream().map(Pipeline::getName).collect(Collectors.toList());
+    returnData.put("successful_pipelines_count", savedPipelines.size());
+    returnData.put("successful_pipelines", savedPipelines);
+    returnData.put("failed_pipelines_count", failedPipelines.size());
+    returnData.put("failed_pipelines", failedPipelines);
 
     if (!failedPipelines.isEmpty()) {
       log.warn(
@@ -343,6 +348,8 @@ public class PipelineController {
         savedPipelines.size(),
         System.currentTimeMillis() - batchUpdateStartTime,
         savedPipelines);
+
+    return returnData;
   }
 
   @PreAuthorize("hasPermission(#application, 'APPLICATION', 'WRITE')")
