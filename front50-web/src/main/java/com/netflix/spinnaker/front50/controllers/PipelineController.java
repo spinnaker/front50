@@ -19,8 +19,10 @@ import static com.netflix.spinnaker.front50.api.model.pipeline.Pipeline.TYPE_TEM
 import static com.netflix.spinnaker.front50.model.pipeline.TemplateConfiguration.TemplateSource.SPINNAKER_PREFIX;
 import static java.lang.String.format;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator;
 import com.netflix.spinnaker.front50.ServiceAccountsService;
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger;
@@ -38,13 +40,17 @@ import com.netflix.spinnaker.front50.model.pipeline.V2TemplateConfiguration;
 import com.netflix.spinnaker.kork.annotations.VisibleForTesting;
 import com.netflix.spinnaker.kork.web.exceptions.NotFoundException;
 import com.netflix.spinnaker.kork.web.exceptions.ValidationException;
+import com.netflix.spinnaker.security.AuthenticatedRequest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -55,6 +61,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PostFilter;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -74,6 +82,7 @@ public class PipelineController {
   private final List<PipelineValidator> pipelineValidators;
   private final Optional<PipelineTemplateDAO> pipelineTemplateDAO;
   private final PipelineControllerConfig pipelineControllerConfig;
+  private final FiatPermissionEvaluator fiatPermissionEvaluator;
 
   public PipelineController(
       PipelineDAO pipelineDAO,
@@ -81,13 +90,15 @@ public class PipelineController {
       Optional<ServiceAccountsService> serviceAccountsService,
       List<PipelineValidator> pipelineValidators,
       Optional<PipelineTemplateDAO> pipelineTemplateDAO,
-      PipelineControllerConfig pipelineControllerConfig) {
+      PipelineControllerConfig pipelineControllerConfig,
+      FiatPermissionEvaluator fiatPermissionEvaluator) {
     this.pipelineDAO = pipelineDAO;
     this.objectMapper = objectMapper;
     this.serviceAccountsService = serviceAccountsService;
     this.pipelineValidators = pipelineValidators;
     this.pipelineTemplateDAO = pipelineTemplateDAO;
     this.pipelineControllerConfig = pipelineControllerConfig;
+    this.fiatPermissionEvaluator = fiatPermissionEvaluator;
   }
 
   @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
@@ -299,16 +310,28 @@ public class PipelineController {
         "Batch upserting the following pipelines: {}",
         pipelines.stream().map(Pipeline::getName).collect(Collectors.toList()));
 
+    List<Pipeline> pipelinesToSave = new ArrayList<>();
+
+    // List of pipelines in the provided request body which don't adhere to the schema
+    List<Pipeline> invalidPipelines = new ArrayList<>();
+    validatePipelines(pipelines, pipelinesToSave, invalidPipelines);
+
+    TypeReference<Map<String, Object>> mapType = new TypeReference<>() {};
+    failedPipelines.addAll(
+        invalidPipelines.stream()
+            .map((pipeline) -> objectMapper.convertValue(pipeline, mapType))
+            .collect(Collectors.toList()));
+
     long bulkImportStartTime = System.currentTimeMillis();
-    log.debug("Bulk importing the following pipelines: {}", pipelines);
-    pipelineDAO.bulkImport(pipelines);
+    log.debug("Bulk importing the following pipelines: {}", pipelinesToSave);
+    pipelineDAO.bulkImport(pipelinesToSave);
     log.debug(
         "Bulk imported {} pipelines successfully in {}ms",
-        pipelines.size(),
+        pipelinesToSave.size(),
         System.currentTimeMillis() - bulkImportStartTime);
 
     List<String> savedPipelines =
-        pipelines.stream().map(Pipeline::getName).collect(Collectors.toList());
+        pipelinesToSave.stream().map(Pipeline::getName).collect(Collectors.toList());
 
     if (!failedPipelines.isEmpty()) {
       log.warn(
@@ -535,5 +558,110 @@ public class PipelineController {
         .filter(it -> "cron".equalsIgnoreCase(it.getType()))
         .filter(it -> Strings.isNullOrEmpty((String) it.get("id")))
         .forEach(it -> it.put("id", UUID.randomUUID().toString()));
+  }
+
+  /** * Fetches all the pipelines and groups then into a map indexed by applications */
+  private Map<String, List<Pipeline>> getAllPipelinesByApplication() {
+    Map<String, List<Pipeline>> appToPipelines = new HashMap<>();
+    pipelineDAO
+        .all(false)
+        .forEach(
+            pipeline ->
+                appToPipelines
+                    .computeIfAbsent(pipeline.getApplication(), k -> new ArrayList<>())
+                    .add(pipeline));
+    return appToPipelines;
+  }
+
+  /**
+   * Validates the provided list of pipelines and populates the provided valid and invalid pipelines
+   * accordingly. Following validations are performed: Check if user has permissions to write the
+   * pipeline; Check if duplicate pipeline exists in the same app; Validate pipeline id
+   *
+   * @param pipelines List of {@link Pipeline} to be validated
+   * @param validPipelines Result list of {@link Pipeline} that passed validations
+   * @param invalidPipelines Result list of {@link Pipeline} that failed validations
+   */
+  private void validatePipelines(
+      List<Pipeline> pipelines, List<Pipeline> validPipelines, List<Pipeline> invalidPipelines) {
+
+    Map<String, List<Pipeline>> pipelinesByApp = getAllPipelinesByApplication();
+    Map<String, Boolean> appPermissionForUser = new HashMap<>();
+    Set<String> uniqueIdSet = new HashSet<>();
+
+    final Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    String user = AuthenticatedRequest.getSpinnakerUser().orElse("anonymous");
+
+    long validationStartTime = System.currentTimeMillis();
+    log.debug("Running validations before saving");
+    for (Pipeline pipeline : pipelines) {
+      try {
+        validatePipeline(pipeline, false);
+
+        String app = pipeline.getApplication();
+        String pipelineName = pipeline.getName();
+
+        // Check if user has permissions to write the pipeline
+        if (!appPermissionForUser.computeIfAbsent(
+            app,
+            key ->
+                fiatPermissionEvaluator.hasPermission(
+                    auth, pipeline.getApplication(), "APPLICATION", "WRITE"))) {
+          String errorMessage =
+              String.format(
+                  "User %s does not have WRITE permission to save the pipeline %s in the application %s.",
+                  user, pipeline.getName(), pipeline.getApplication());
+          log.error(errorMessage);
+          pipeline.setAny("errorMsg", errorMessage);
+          invalidPipelines.add(pipeline);
+          continue;
+        }
+
+        // Check if duplicate pipeline exists in the same app
+        List<Pipeline> appPipelines = pipelinesByApp.getOrDefault(app, new ArrayList<>());
+        if (appPipelines.stream()
+            .anyMatch(
+                existingPipeline ->
+                    existingPipeline.getName().equalsIgnoreCase(pipeline.getName())
+                        && !existingPipeline.getId().equals(pipeline.getId()))) {
+          String errorMessage =
+              String.format(
+                  "A pipeline with name %s already exists in the application %s",
+                  pipelineName, app);
+          log.error(errorMessage);
+          pipeline.setAny("errorMsg", errorMessage);
+          invalidPipelines.add(pipeline);
+          continue;
+        }
+
+        // Validate pipeline id
+        String id = pipeline.getId();
+        if (Strings.isNullOrEmpty(id)) {
+          pipeline.setId(UUID.randomUUID().toString());
+        } else if (!uniqueIdSet.add(id)) {
+          String errorMessage =
+              String.format(
+                  "Duplicate pipeline id %s found when processing pipeline %s in the application %s",
+                  id, pipeline.getName(), pipeline.getApplication());
+          log.error(errorMessage);
+          invalidPipelines.add(pipeline);
+          pipeline.setAny("errorMsg", errorMessage);
+          continue;
+        }
+        validPipelines.add(pipeline);
+      } catch (Exception e) {
+        String errorMessage =
+            String.format(
+                "Encountered the following error when validating pipeline %s in the application %s: %s",
+                pipeline.getName(), pipeline.getApplication(), e.getMessage());
+        log.error(errorMessage, e);
+        pipeline.setAny("errorMsg", errorMessage);
+        invalidPipelines.add(pipeline);
+      }
+    }
+    log.debug(
+        "Validated {} pipelines in {}ms",
+        pipelines.size(),
+        System.currentTimeMillis() - validationStartTime);
   }
 }

@@ -1,6 +1,7 @@
 package com.netflix.spinnaker.front50.controllers
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.api.validator.PipelineValidator
 import com.netflix.spinnaker.front50.api.validator.ValidatorErrors
@@ -43,6 +44,9 @@ class PipelineControllerSpec extends Specification {
   @Autowired
   PipelineControllerConfig pipelineControllerConfig
 
+  @Autowired
+  FiatPermissionEvaluator fiatPermissionEvaluator
+
   @Unroll
   def "test cache refresh enabled flag when checking for duplicate pipelines"() {
     given:
@@ -64,7 +68,8 @@ class PipelineControllerSpec extends Specification {
     }
 
     def pipelineController = new PipelineController(
-      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig)
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
+      fiatPermissionEvaluator)
 
     when:
     pipelineControllerConfig.getSave().refreshCacheOnDuplicatesCheck = true
@@ -158,7 +163,8 @@ class PipelineControllerSpec extends Specification {
           Optional.empty(),
           [new MockValidator()] as List<PipelineValidator>,
           Optional.empty(),
-          pipelineControllerConfig
+          pipelineControllerConfig,
+          fiatPermissionEvaluator
         )
       )
       .setControllerAdvice(
@@ -200,7 +206,8 @@ class PipelineControllerSpec extends Specification {
     pipelineDAO.history(testPipelineId, 20) >> pipelineList
 
     def mockMvcWithController = MockMvcBuilders.standaloneSetup(new PipelineController(
-      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
+      fiatPermissionEvaluator
     )).build()
 
     when:
@@ -238,7 +245,8 @@ class PipelineControllerSpec extends Specification {
       ]))
 
     def mockMvcWithController = MockMvcBuilders.standaloneSetup(new PipelineController(
-      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
+      fiatPermissionEvaluator
     )).build()
 
     when:
@@ -258,6 +266,11 @@ class PipelineControllerSpec extends Specification {
     @Bean
     PipelineDAO pipelineDAO() {
       detachedMockFactory.Stub(PipelineDAO)
+    }
+
+    @Bean
+    FiatPermissionEvaluator fiatPermissionEvaluator() {
+      detachedMockFactory.Stub(FiatPermissionEvaluator)
     }
   }
 

@@ -18,8 +18,9 @@ package com.netflix.spinnaker.front50.controllers
 
 import com.netflix.spectator.api.NoopRegistry
 import com.netflix.spinnaker.config.Front50SqlProperties
-import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
+import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.ServiceAccountsService
+import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
 import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
 import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties
 import com.netflix.spinnaker.front50.config.controllers.PipelineControllerConfig
@@ -73,6 +74,8 @@ abstract class PipelineControllerTck extends Specification {
   ServiceAccountsService serviceAccountsService
   StorageServiceConfigurationProperties.PerObjectType pipelineDAOConfigProperties =
     new StorageServiceConfigurationProperties().getPipeline()
+  FiatPermissionEvaluator fiatPermissionEvaluator
+  AuthorizationSupport authorizationSupport
   ObjectMapper objectMapper
   PipelineControllerConfig pipelineControllerConfig
 
@@ -85,6 +88,8 @@ abstract class PipelineControllerTck extends Specification {
     this.pipelineDAO = Spy(createPipelineDAO())
     this.serviceAccountsService = Mock(ServiceAccountsService)
     this.pipelineControllerConfig = new PipelineControllerConfig()
+    this.fiatPermissionEvaluator = Mock(FiatPermissionEvaluator)
+    this.authorizationSupport = Spy(new AuthorizationSupport(fiatPermissionEvaluator))
 
     MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter = new MappingJackson2HttpMessageConverter();
     mappingJackson2HttpMessageConverter.setObjectMapper(objectMapper)
@@ -97,7 +102,8 @@ abstract class PipelineControllerTck extends Specification {
           Optional.of(serviceAccountsService),
           Collections.emptyList(),
           Optional.empty(),
-          pipelineControllerConfig
+          pipelineControllerConfig,
+          fiatPermissionEvaluator
         )
       )
       .setMessageConverters(mappingJackson2HttpMessageConverter)
