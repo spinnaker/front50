@@ -103,7 +103,8 @@ abstract class PipelineControllerTck extends Specification {
           Collections.emptyList(),
           Optional.empty(),
           pipelineControllerConfig,
-          fiatPermissionEvaluator
+          fiatPermissionEvaluator,
+          authorizationSupport
         )
       )
       .setMessageConverters(mappingJackson2HttpMessageConverter)

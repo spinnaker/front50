@@ -83,6 +83,7 @@ public class PipelineController {
   private final Optional<PipelineTemplateDAO> pipelineTemplateDAO;
   private final PipelineControllerConfig pipelineControllerConfig;
   private final FiatPermissionEvaluator fiatPermissionEvaluator;
+  private final AuthorizationSupport authorizationSupport;
 
   public PipelineController(
       PipelineDAO pipelineDAO,
@@ -91,7 +92,8 @@ public class PipelineController {
       List<PipelineValidator> pipelineValidators,
       Optional<PipelineTemplateDAO> pipelineTemplateDAO,
       PipelineControllerConfig pipelineControllerConfig,
-      FiatPermissionEvaluator fiatPermissionEvaluator) {
+      FiatPermissionEvaluator fiatPermissionEvaluator,
+      AuthorizationSupport authorizationSupport) {
     this.pipelineDAO = pipelineDAO;
     this.objectMapper = objectMapper;
     this.serviceAccountsService = serviceAccountsService;
@@ -99,6 +101,7 @@ public class PipelineController {
     this.pipelineTemplateDAO = pipelineTemplateDAO;
     this.pipelineControllerConfig = pipelineControllerConfig;
     this.fiatPermissionEvaluator = fiatPermissionEvaluator;
+    this.authorizationSupport = authorizationSupport;
   }
 
   @PreAuthorize("#restricted ? @fiatPermissionEvaluator.storeWholePermission() : true")
@@ -255,7 +258,9 @@ public class PipelineController {
   }
 
   @PreAuthorize(
-      "@fiatPermissionEvaluator.storeWholePermission() and hasPermission(#pipeline.application, 'APPLICATION', 'WRITE') and @authorizationSupport.hasRunAsUserPermission(#pipeline)")
+      "@fiatPermissionEvaluator.storeWholePermission() "
+          + "and hasPermission(#pipeline.application, 'APPLICATION', 'WRITE') "
+          + "and @authorizationSupport.hasRunAsUserPermission(#pipeline)")
   @RequestMapping(value = "", method = RequestMethod.POST)
   public synchronized Pipeline save(
       @RequestBody Pipeline pipeline,
@@ -288,7 +293,7 @@ public class PipelineController {
     return savedPipeline;
   }
 
-  @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
+  @PreAuthorize("@fiatPermissionEvaluator.storeWholePermission()")
   @RequestMapping(value = "batchUpdate", method = RequestMethod.POST)
   public Map<String, Object> batchUpdate(
       @RequestBody List<Map<String, Object>> pipelinesJson,
@@ -419,7 +424,17 @@ public class PipelineController {
         pipelineMap -> {
           try {
             Pipeline pipeline = objectMapper.convertValue(pipelineMap, Pipeline.class);
-            pipelines.add(pipeline);
+            if (!authorizationSupport.hasRunAsUserPermission(pipeline)) {
+              String errorMessage =
+                  String.format(
+                      "Validation of runAsUser permissions for pipeline %s in the application %s failed.",
+                      pipeline.getName(), pipeline.getApplication());
+              log.error(errorMessage);
+              pipelineMap.put("errorMsg", errorMessage);
+              failedPipelines.add(pipelineMap);
+            } else {
+              pipelines.add(pipeline);
+            }
           } catch (IllegalArgumentException e) {
             log.error(
                 "Failed to deserialize pipeline map from the provided json: {}", pipelineMap, e);

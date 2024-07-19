@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(controllers = [PipelineController])
-@ContextConfiguration(classes = [TestConfiguration, PipelineController, PipelineControllerConfig])
+@ContextConfiguration(classes = [TestConfiguration, AuthorizationSupport, PipelineController, PipelineControllerConfig])
 class PipelineControllerSpec extends Specification {
 
   @Autowired
@@ -46,6 +46,9 @@ class PipelineControllerSpec extends Specification {
 
   @Autowired
   FiatPermissionEvaluator fiatPermissionEvaluator
+
+  @Autowired
+  private AuthorizationSupport authorizationSupport
 
   @Unroll
   def "should fail the pipeline when staleCheck is true and conditions are met"() {
@@ -86,7 +89,7 @@ class PipelineControllerSpec extends Specification {
 
     def pipelineController = new PipelineController(
       pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
-      localFiatPermissionEvaluator)
+      localFiatPermissionEvaluator, authorizationSupport)
 
     when: "staleCheck is true and conditions are met"
     def response = pipelineController.batchUpdate(pipelinesBatch1, staleCheck_true)
@@ -137,7 +140,7 @@ class PipelineControllerSpec extends Specification {
 
     def pipelineController = new PipelineController(
       pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
-      fiatPermissionEvaluator)
+      fiatPermissionEvaluator, authorizationSupport)
 
     when:
     pipelineControllerConfig.getSave().refreshCacheOnDuplicatesCheck = true
@@ -232,7 +235,8 @@ class PipelineControllerSpec extends Specification {
           [new MockValidator()] as List<PipelineValidator>,
           Optional.empty(),
           pipelineControllerConfig,
-          fiatPermissionEvaluator
+          fiatPermissionEvaluator,
+          authorizationSupport
         )
       )
       .setControllerAdvice(
@@ -275,7 +279,7 @@ class PipelineControllerSpec extends Specification {
 
     def mockMvcWithController = MockMvcBuilders.standaloneSetup(new PipelineController(
       pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
-      fiatPermissionEvaluator
+      fiatPermissionEvaluator, authorizationSupport
     )).build()
 
     when:
@@ -314,7 +318,7 @@ class PipelineControllerSpec extends Specification {
 
     def mockMvcWithController = MockMvcBuilders.standaloneSetup(new PipelineController(
       pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
-      fiatPermissionEvaluator
+      fiatPermissionEvaluator, authorizationSupport
     )).build()
 
     when:
