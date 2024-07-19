@@ -48,6 +48,74 @@ class PipelineControllerSpec extends Specification {
   FiatPermissionEvaluator fiatPermissionEvaluator
 
   @Unroll
+  def "should fail the pipeline when staleCheck is true and conditions are met"() {
+    given:
+    def staleCheck_true = true
+    def staleCheck_false = false
+    def localFiatPermissionEvaluator = Mock(FiatPermissionEvaluator)
+    def pipelinesBatch1 = [
+      [      id          : "1",
+             name        : "test-pipeline",
+             application : "test-application",
+             lastModified: 1662644108666
+      ]
+    ]
+
+    def pipelinesBatch2 = [
+      [      id          : "1",
+             name        : "test-pipeline",
+             application : "test-application",
+      ]
+    ]
+    def pipelineDAO = new InMemoryPipelineDAO(){
+      @Override
+      Pipeline findById(String id) throws NotFoundException {
+        return new Pipeline([
+          id          : "1",
+          name        : "test-pipeline",
+          application : "test-application",
+          lastModified: 1772644108777
+        ])
+      }
+
+      @Override
+      void bulkImport(Collection<Pipeline> items) {}
+    }
+
+    _ * localFiatPermissionEvaluator.hasPermission(_, "test-application", "APPLICATION", "WRITE") >> true
+
+    def pipelineController = new PipelineController(
+      pipelineDAO, new ObjectMapper(), Optional.empty(), [], Optional.empty(), pipelineControllerConfig,
+      localFiatPermissionEvaluator)
+
+    when: "staleCheck is true and conditions are met"
+    def response = pipelineController.batchUpdate(pipelinesBatch1, staleCheck_true)
+
+    then: "pipeline save should fail"
+    response.failed_pipelines_count == 1
+    response.successful_pipelines_count == 0
+    response.successful_pipelines == []
+    response.failed_pipelines[0].any.errorMsg ==
+      "Encountered the following error when validating pipeline test-pipeline in the application test-application: " +
+      "The submitted pipeline is stale.  submitted updateTs 1662644108666 does not match stored updateTs 1772644108777"
+
+    when: "staleCheck is false"
+    response = pipelineController.batchUpdate(pipelinesBatch1, staleCheck_false)
+
+    then: "pipeline save should be successful"
+    response.failed_pipelines_count == 0
+    response.successful_pipelines_count == 1
+
+    when: "staleCheck is true but submitted pipeline doesn't have lastModified timestamp"
+    response = pipelineController.batchUpdate(pipelinesBatch2, staleCheck_true)
+
+    then: "pipeline save should be successful"
+    response.failed_pipelines_count == 0
+    response.successful_pipelines_count == 1
+
+  }
+
+  @Unroll
   def "test cache refresh enabled flag when checking for duplicate pipelines"() {
     given:
     def existingPipelineIdNotInCache = "123"

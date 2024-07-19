@@ -290,7 +290,10 @@ public class PipelineController {
 
   @PreAuthorize("@fiatPermissionEvaluator.isAdmin()")
   @RequestMapping(value = "batchUpdate", method = RequestMethod.POST)
-  public Map<String, Object> batchUpdate(@RequestBody List<Map<String, Object>> pipelinesJson) {
+  public Map<String, Object> batchUpdate(
+      @RequestBody List<Map<String, Object>> pipelinesJson,
+      @RequestParam(value = "staleCheck", required = false, defaultValue = "false")
+          Boolean staleCheck) {
 
     long batchUpdateStartTime = System.currentTimeMillis();
 
@@ -315,7 +318,7 @@ public class PipelineController {
 
     // List of pipelines in the provided request body which don't adhere to the schema
     List<Pipeline> invalidPipelines = new ArrayList<>();
-    validatePipelines(pipelines, pipelinesToSave, invalidPipelines);
+    validatePipelines(pipelines, staleCheck, pipelinesToSave, invalidPipelines);
 
     TypeReference<Map<String, Object>> mapType = new TypeReference<>() {};
     failedPipelines.addAll(
@@ -590,7 +593,10 @@ public class PipelineController {
    * @param invalidPipelines Result list of {@link Pipeline} that failed validations
    */
   private void validatePipelines(
-      List<Pipeline> pipelines, List<Pipeline> validPipelines, List<Pipeline> invalidPipelines) {
+      List<Pipeline> pipelines,
+      Boolean staleCheck,
+      List<Pipeline> validPipelines,
+      List<Pipeline> invalidPipelines) {
 
     Map<String, List<Pipeline>> pipelinesByApp = getAllPipelinesByApplication();
     Map<String, Boolean> appPermissionForUser = new HashMap<>();
@@ -603,7 +609,7 @@ public class PipelineController {
     log.debug("Running validations before saving");
     for (Pipeline pipeline : pipelines) {
       try {
-        validatePipeline(pipeline, false);
+        validatePipeline(pipeline, staleCheck);
 
         String app = pipeline.getApplication();
         String pipelineName = pipeline.getName();
