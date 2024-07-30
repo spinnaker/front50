@@ -25,7 +25,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-@EqualsAndHashCode
+@EqualsAndHashCode(of = {"id", "name", "application"})
 public class Pipeline implements Timestamped {
 
   public static final String TYPE_TEMPLATED = "templatedPipeline";

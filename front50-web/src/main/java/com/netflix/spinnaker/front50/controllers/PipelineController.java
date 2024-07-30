@@ -278,7 +278,6 @@ public class PipelineController {
     validatePipeline(pipeline, staleCheck);
     checkForDuplicatePipeline(
         pipeline.getApplication(), pipeline.getName().trim(), pipeline.getId());
-    pipeline.setName(pipeline.getName().trim());
     log.debug(
         "Successfully validated pipeline {} in {}ms",
         pipeline.getName(),
