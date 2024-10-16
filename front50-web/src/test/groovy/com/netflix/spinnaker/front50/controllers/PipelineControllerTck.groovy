@@ -16,7 +16,6 @@
 
 package com.netflix.spinnaker.front50.controllers
 
-import com.netflix.spectator.api.NoopRegistry
 import com.netflix.spinnaker.fiat.shared.FiatPermissionEvaluator
 import com.netflix.spinnaker.front50.ServiceAccountsService
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline
@@ -24,19 +23,15 @@ import com.netflix.spinnaker.front50.api.model.pipeline.Trigger
 import com.netflix.spinnaker.front50.config.StorageServiceConfigurationProperties
 import com.netflix.spinnaker.front50.config.controllers.PipelineControllerConfig
 import com.netflix.spinnaker.front50.jackson.Front50ApiModule
-import com.netflix.spinnaker.front50.model.DefaultObjectKeyLoader
-import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineDAO
 import com.netflix.spinnaker.kork.sql.test.SqlTestUtil
 
 import com.netflix.spinnaker.front50.pipeline.SqlPipelineDAOTestConfiguration
 import com.netflix.spinnaker.kork.web.exceptions.ExceptionMessageDecorator
 import com.netflix.spinnaker.kork.web.exceptions.GenericExceptionHandlers
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.hamcrest.Matchers
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.util.UriComponentsBuilder
-import rx.schedulers.Schedulers
 
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.Callable
