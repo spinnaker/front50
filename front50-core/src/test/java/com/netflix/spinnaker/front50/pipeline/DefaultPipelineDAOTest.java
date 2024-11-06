@@ -19,7 +19,7 @@ package com.netflix.spinnaker.front50.pipeline;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
 
 import com.netflix.spinnaker.front50.api.model.pipeline.Pipeline;
 import com.netflix.spinnaker.front50.model.pipeline.DefaultPipelineDAO;
@@ -108,6 +108,7 @@ class SqlDefaultPipelineDAOTest extends DefaultPipelineDAOTest {
   public void cleanup() {
     if (database != null) {
       SqlTestUtil.cleanupDb(database.context);
+      database.close();
     }
   }
 

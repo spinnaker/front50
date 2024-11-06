@@ -49,7 +49,6 @@ abstract class PipelineDAOSpec<T extends PipelineDAO> extends Specification {
       instance.create(i.toString(), new Pipeline(application: "foo", name: name))
     }
     def filteredPipelines = instance.getPipelinesByApplication("foo", "NameA", true);
-    filteredPipelines.sort()
 
     then:
     // the pipelines are not guaranteed to be in order of insertion

@@ -29,15 +29,11 @@ import com.netflix.spinnaker.kork.sql.test.SqlTestUtil;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.time.Clock;
 import java.util.concurrent.Executors;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
-@Configuration
 public class SqlPipelineDAOTestConfiguration {
 
-  @Bean
   public static DefaultPipelineDAO createPipelineDAO(SqlTestUtil.TestDatabase database) {
     Scheduler scheduler = Schedulers.from(Executors.newFixedThreadPool(1));
 
