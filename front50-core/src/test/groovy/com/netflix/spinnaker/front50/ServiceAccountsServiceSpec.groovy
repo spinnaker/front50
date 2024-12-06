@@ -26,12 +26,17 @@ import com.netflix.spinnaker.front50.model.serviceaccount.ServiceAccountDAO
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContext
 import org.springframework.security.core.context.SecurityContextHolder
+import retrofit2.Call
+import retrofit2.Response
 import spock.lang.Specification
 import spock.lang.Subject
 
 class ServiceAccountsServiceSpec extends Specification {
   ServiceAccountDAO serviceAccountDAO = Mock(ServiceAccountDAO)
   FiatService fiatService = Mock(FiatService)
+  Call syncCall = Mock(Call)
+  Call syncSaCall = Mock(Call)
+  Call logoutCall = Mock(Call)
   FiatClientConfigurationProperties fiatClientConfigurationProperties = Mock(FiatClientConfigurationProperties) {
     isEnabled() >> true
   }
@@ -67,13 +72,15 @@ class ServiceAccountsServiceSpec extends Specification {
     }
     SecurityContextHolder.setContext(securityContext)
     fiatConfigurationProperties.isDisableRoleSyncWhenSavingServiceAccounts() >> false
+
     when:
     serviceAccountDAO.create(serviceAccount.id, serviceAccount) >> serviceAccount
     service.createServiceAccount(serviceAccount)
 
     then:
     1 * fiatPermissionsEvaluator.invalidatePermission(_)
-    1 * fiatService.sync(["test-role"])
+    1 * fiatService.sync(["test-role"]) >> syncCall
+    1 * syncCall.execute() >> Response.success(null)
   }
 
   def "deleting multiple service account should call sync once"() {
@@ -92,13 +99,15 @@ class ServiceAccountsServiceSpec extends Specification {
         ]
       )]
     fiatConfigurationProperties.isDisableRoleSyncWhenSavingServiceAccounts() >> false
+
     when:
     service.deleteServiceAccounts(serviceAccounts)
 
     then:
     1 * serviceAccountDAO.delete("test-svc-acct-1")
     1 * serviceAccountDAO.delete("test-svc-acct-2")
-    1 * fiatService.sync(['test-role-1', 'test-role-2'])
+    1 * fiatService.sync(['test-role-1', 'test-role-2']) >> syncCall
+    1 * syncCall.execute() >> Response.success(null)
   }
 
   def "unknown managed service accounts should not throw exception"() {
@@ -118,6 +127,10 @@ class ServiceAccountsServiceSpec extends Specification {
     1 * serviceAccountDAO.findById(test1ServiceAccount.id) >> test1ServiceAccount
     1 * serviceAccountDAO.findById(test2ServiceAccount.id) >> { throw new NotFoundException(test2ServiceAccount.id) }
     1 * serviceAccountDAO.delete(test1ServiceAccount.id)
+    1 * fiatService.logoutUser(_) >> logoutCall
+    1 * logoutCall.execute() >> Response.success(null)
+    1 * fiatService.sync(_) >> syncCall
+    1 * syncCall.execute() >> Response.success(1L)
     0 * serviceAccountDAO.delete(test2ServiceAccount.id)
   }
 
@@ -144,7 +157,8 @@ class ServiceAccountsServiceSpec extends Specification {
 
     then:
     1 * fiatPermissionsEvaluator.invalidatePermission(_)
-    1 * fiatService.syncServiceAccount("test-svc-acct", ["test-role"])
+    1 * fiatService.syncServiceAccount("test-svc-acct", ["test-role"]) >> syncSaCall
+    1 * syncSaCall.execute() >> Response.success(1L)
     0 * fiatService.sync(["test-role"])
   }
 }
