@@ -23,6 +23,8 @@ import com.netflix.spinnaker.front50.config.FiatConfigurationProperties
 import com.netflix.spinnaker.front50.model.application.Application
 import com.netflix.spinnaker.front50.model.application.ApplicationDAO
 import com.netflix.spinnaker.front50.model.application.ApplicationPermissionDAO
+import retrofit2.Call
+import retrofit2.Response
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -33,6 +35,7 @@ class ApplicationPermissionsServiceSpec extends Specification {
   def "test application creation will sync roles in fiat"(permission, expectedSyncedRoles) {
     given:
     def fiatService = Mock(FiatService)
+    def syncCall = Mock(Call)
     ApplicationPermissionsService subject = createSubject(
       fiatService,
       Mock(ApplicationPermissionDAO) {
@@ -44,7 +47,8 @@ class ApplicationPermissionsServiceSpec extends Specification {
     subject.createApplicationPermission(permission)
 
     then:
-    1 * fiatService.sync(expectedSyncedRoles)
+    1 * fiatService.sync(expectedSyncedRoles) >> syncCall
+    1 * syncCall.execute() >> Response.success(null)
 
     where:
     permission                                                  | expectedSyncedRoles
