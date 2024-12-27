@@ -161,7 +161,8 @@ abstract class PipelineControllerTck extends Specification {
       .andExpect(jsonPath('$.[*].index').value([0, 1, 2, 3, 4]))
   }
 
-  void "should provide a valid, unique index when listing all for an application excluding the disabled Pipelines - enabledPipelines=true"() {
+  @Unroll
+  void "should provide a valid, unique index when listing all for an application excluding the disabled Pipelines - enabledPipelines"() {
     given:
     pipelineDAO.create(null, new Pipeline([
       name: "c", application: "test", "disabled": true
@@ -180,12 +181,18 @@ abstract class PipelineControllerTck extends Specification {
     ]))
 
     when:
-    def response = mockMvc.perform(get("/pipelines/test?enabledPipelines=true"))
+    def response = mockMvc.perform(get("/pipelines/test?enabledPipelines=${filter}"))
 
     then:
     response
-      .andExpect(jsonPath('$.[*].name').value(["a1", "b1", "b"]))
-      .andExpect(jsonPath('$.[*].index').value([0, 1, 2]))
+      .andExpect(jsonPath('$.[*].name').value(nameExpectedArray))
+      .andExpect(jsonPath('$.[*].index').value(indexExpectedArray))
+
+    where:
+    filter      || nameExpectedArray        | indexExpectedArray
+    ""          || ["a1","b1","a3","b","c"] | [0, 1, 2, 3, 4]
+    false       || ["a3", "c"]              | [0, 1]
+    true        || ["a1","b1","b"]          | [0, 1, 2]
   }
 
   void "should use pipelineNameFilter when getting pipelines for an application"() {

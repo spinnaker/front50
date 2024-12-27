@@ -203,13 +203,12 @@ public class PipelineController {
       @PathVariable(value = "application") String application,
       @RequestParam(value = "pipelineNameFilter", required = false) String pipelineNameFilter,
       @RequestParam(required = false, value = "refresh", defaultValue = "true") boolean refresh,
-      @RequestParam(required = false, value = "enabledPipelines", defaultValue = "false")
-          Boolean enabledPipelines) {
+      @RequestParam(required = false, value = "enabledPipelines") Boolean enabledPipelines) {
     List<Pipeline> pipelines =
         new ArrayList<>(
             pipelineDAO.getPipelinesByApplication(application, pipelineNameFilter, refresh));
 
-    if (!enabledPipelines) {
+    if (enabledPipelines == null) {
       return sortPipelines(pipelines);
     }
 
