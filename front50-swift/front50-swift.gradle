@@ -28,6 +28,7 @@ dependencies {
   implementation "io.spinnaker.kork:kork-core"
   implementation "org.springframework:spring-web"
   implementation 'org.pacesys:openstack4j:3.2.0'
+  implementation 'org.jboss.resteasy:resteasy-jaxrs:3.12.1.Final'
 
   testImplementation project(":front50-test")
 }
